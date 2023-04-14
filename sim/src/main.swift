@@ -13,8 +13,8 @@ func getCurrentTimeMs() -> Int {
 let options = SimulatorOptions.parseOrExit()
 
 if (options.verbose) {
-    print("Reading from: \(options.inputFilePath)")
-    print("Writing to: \(options.outputFilePath)")
+    print("Reading from '\(options.inputFileUrl.path)'")
+    print("Writing to '\(options.outputFileUrl.path)'")
     print("Running at \(options.speed)x speed")
 }
 
@@ -37,20 +37,25 @@ try som!.data.appendToURL(fileURL: outputFileUrl)
 
 let startTime = getCurrentTimeMs()
 
+let dateFormatter = DateFormatter()
+dateFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss.SS"
+dateFormatter.timeZone = TimeZone(abbreviation: "UTC")
+
 var packet = inputFileParser.parsePacket()
 while packet != nil {
-    if packet!.timestamp == nil {
+    if packet!.timeOffsetMs == nil || packet!.date == nil {
         throw MyError.runtimeError("Expected timestamp on packet.")
     }
     if (options.verbose) {
-        print("\(inputFileParser.progress())%: \(packet!.timestamp!)ms \(packet!.signature)")
+        let date = dateFormatter.string(for: packet!.date!)
+        print("\(inputFileParser.progress())% - T\(date!) \(packet!.signature)")
     } else {
         print(" Progress: \(inputFileParser.progress())% ", terminator: "\r")
         fflush(stdout)
     }
     let relativeTime = getCurrentTimeMs() - startTime
-    if packet!.timestamp! > relativeTime {
-        usleep(UInt32(Double(packet!.timestamp! - relativeTime) / options.speed))
+    if packet!.timeOffsetMs! > relativeTime {
+        usleep(UInt32(Double(packet!.timeOffsetMs! - relativeTime) / options.speed))
     }
     try packet!.data.appendToURL(fileURL: outputFileUrl)
     packet = inputFileParser.parsePacket()

@@ -1,35 +1,9 @@
 import Foundation
 
-extension String {
-
-    var length: Int {
-        return count
-    }
-
-    subscript (i: Int) -> String {
-        return self[i ..< i + 1]
-    }
-
-    func substring(fromIndex: Int) -> String {
-        return self[min(fromIndex, length) ..< length]
-    }
-
-    func substring(toIndex: Int) -> String {
-        return self[0 ..< max(0, toIndex)]
-    }
-
-    subscript (r: Range<Int>) -> String {
-        let range = Range(uncheckedBounds: (lower: max(0, min(length, r.lowerBound)),
-                                            upper: min(length, max(0, r.upperBound))))
-        let start = index(startIndex, offsetBy: range.lowerBound)
-        let end = index(start, offsetBy: range.upperBound - range.lowerBound)
-        return String(self[start ..< end])
-    }
-}
-
 struct Packet {
     public var data : Data
-    public var timestamp : Int?
+    public var timeOffsetMs : Int?
+    public var date : NSDate?
     public var signature = ""
 }
 
@@ -37,6 +11,7 @@ struct Parser {
     private var data : [UInt8]
     private var cursor = 0
     private var firstTimestamp : Int?
+    private var currentYearOffset = 0
     init(data: Data) {
         self.data = [UInt8](repeating: 0, count: data.count)
         data.copyBytes(to: &self.data, count: data.count)
@@ -89,6 +64,9 @@ struct Parser {
         repeat {
             line = parseLine()
             guard line != nil else { return nil }
+            if line!.starts(with: "OFFSET_TIME =") {
+                currentYearOffset = Int(line!.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+            }
             header = header + line!
         } while !line!.starts(with: "%*****END_FCTD_HEADER_START_RUN*****")
 
@@ -143,22 +121,22 @@ struct Parser {
         var i = 0
         // Parse the timestamp immediately following the <T>
         if packet.count > 2 && packet[i] == Parser.ASCII_T {
-            p.timestamp = 0
+            var timestamp = 0
             i = i + 1
             var c = packet[i]
             while i < packet.count && Parser.isDigit(c) {
-                p.timestamp = p.timestamp! * 10 + Int(c - Parser.ASCII_0)
+                timestamp = timestamp * 10 + Int(c - Parser.ASCII_0)
                 i = i + 1
                 c = packet[i]
             }
-            if c != Parser.ASCII_DOLLAR {
-                p.timestamp = nil
-            } else {
+            if c == Parser.ASCII_DOLLAR {
                 if firstTimestamp == nil {
-                    firstTimestamp = p.timestamp
+                    firstTimestamp = timestamp
                 }
+                let timestampSeconds = Double(timestamp) / 100.0
+                p.date = NSDate(timeIntervalSince1970: TimeInterval(Double(currentYearOffset) + timestampSeconds))
                 // Convert from hundreths of seconds to milliseconds
-                p.timestamp = 10 * (p.timestamp! - firstTimestamp!)
+                p.timeOffsetMs = 10 * (timestamp - firstTimestamp!)
             }
         }
         // Parse the signature following the <DOLLAR>
