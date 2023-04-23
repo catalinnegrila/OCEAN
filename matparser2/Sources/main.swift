@@ -1,4 +1,5 @@
 import Foundation
+import Compression
 
 let VERBOSE = false
 
@@ -63,8 +64,8 @@ class MatDataElementHeader {
     var dataType = MatDataType.miINT8
     var numberOfBytes = 0
 
-    func print() {
-        if (VERBOSE) {
+    func print(force : Bool = false) {
+        if (VERBOSE || force) {
             Swift.print("\nData Element: \(String(describing: dataType)) (\(dataType.rawValue)) size \(numberOfBytes)")
         }
     }
@@ -91,8 +92,8 @@ enum MatMatrixClass : Int {
 class MatArrayFlagsSubelement {
     var matrixClass = MatMatrixClass.mxCELL_CLASS
 
-    func print() {
-        if (VERBOSE) {
+    func print(force : Bool = false) {
+        if (VERBOSE || force) {
             Swift.print("ArrayFlags: \(String(describing: matrixClass)) (\(matrixClass))")
         }
     }
@@ -111,6 +112,30 @@ class MatFile {
         cursor = 0
 
         _ = readMatHeader()
+        data = data.suffix(data.count - cursor)
+        cursor = 0
+
+        // Do we need to decompress the file?
+        let firstDataElement = readDataElementHeader()
+        if (firstDataElement.dataType == MatDataType.miCOMPRESSED) {
+            // We only support a single compressed chunk
+            assert(data.count == 8 + firstDataElement.numberOfBytes)
+            let uncompressedLen = firstDataElement.numberOfBytes * 20;
+            let uncompressed = UnsafeMutablePointer<UInt8>.allocate(capacity: uncompressedLen)
+            // 2 is a mysterious fudge factor
+            let writtenLen = data[(cursor + 2)..<data.count].withUnsafeBytes ({
+                return compression_decode_buffer(
+                    uncompressed, uncompressedLen,
+                    $0.baseAddress!.bindMemory(to: UInt8.self, capacity: 1),
+                    firstDataElement.numberOfBytes - 2, nil, COMPRESSION_ZLIB)
+            })
+            assert(writtenLen > 0)
+            // Replace original data with decompressed so we can continue parsing
+            data = Array(UnsafeBufferPointer(start: uncompressed, count: writtenLen))
+            uncompressed.deallocate()
+        }
+        // Rewind, whether we just decompressed or not
+        seek(0)
     }
 
     public func endOfFile() -> Bool {
@@ -121,6 +146,15 @@ class MatFile {
     public func skip(_ numberOfBytes : Int) {
         assert(cursor + numberOfBytes <= data.count)
         cursor += numberOfBytes;
+    }
+
+    public func seek(_ pos : Int) {
+        assert(pos >= 0 && pos < data.count)
+        cursor = pos;
+    }
+
+    public func tell() -> Int {
+        return cursor
     }
 
     public func readByte() -> UInt8 {
@@ -134,7 +168,7 @@ class MatFile {
         return Character(UnicodeScalar(byte))
     }
 
-    public func readString(_ numChars : Int) -> String {
+    public func readString(_ numChars: Int, _ encoding: MatDataType? = nil) -> String {
         var str = ""
         for _ in 0..<numChars {
             let byte = readByte()
@@ -142,9 +176,37 @@ class MatFile {
                 str += String(Character(UnicodeScalar(byte)))
             }
         }
+
+        if (encoding != nil) {
+            switch (encoding!) {
+            case .miUTF8:
+                str = String(str.utf8)
+
+            case .miUTF16:
+                str = String(str.utf16)
+
+            default:
+                print("ERROR: Unsupported string encoding: \(String(describing: encoding!))")
+                assert(false)
+            }
+        }
+
         return str
     }
- 
+
+    public func readLEDouble() -> Double
+    {
+        let expected = MemoryLayout<Double>.size
+        assert(cursor + expected <= data.count)
+        defer { cursor += expected }
+        let sub = data[cursor...cursor + expected - 1]
+        return sub
+            .reversed()
+            .withUnsafeBytes {
+                return $0.load(fromByteOffset: 0, as: Double.self)
+            }
+    }
+
     public func readLEUIntX<Result>(_: Result.Type) -> Result
             where Result: UnsignedInteger
     {
@@ -152,7 +214,6 @@ class MatFile {
         assert(cursor + expected <= data.count)
         defer { cursor += expected }
         let sub = data[cursor...cursor + expected - 1]
-        assert(sub.count == expected)
         return sub
             .reversed()
             .reduce(0, { soFar, new in
@@ -184,27 +245,28 @@ class MatFile {
         header.offset = readLEUInt64()
         header.version = readLEUInt16()
         header.endian = readString(2)
+        assert(header.version == 0x100)
+        assert(header.endian == "IM")
         header.print()
         return header
     }
 
     public func readDataElementHeader() -> MatDataElementHeader {
         let header = MatDataElementHeader()
+        // Align start of data element to the next 64bit boundary
         cursor = ((cursor + 7) & ~7)
-        assert((cursor % 8) == 0)
+        // Is it a small data element, packed into 4bytes?
         if (data[cursor + 2] != 0 || data[cursor + 3] != 0)
         {
             header.dataType = MatDataType(rawValue: readLEUInt16())!
             header.numberOfBytes = readLEUInt16()
         }
-        else
+        else // No, regular sized 8byte data element
         {
             header.dataType = MatDataType(rawValue: readLEUInt32())!
             header.numberOfBytes = readLEUInt32()
         }
         header.print()
-
-        assert(header.dataType != MatDataType.miCOMPRESSED)
         return header
     }
 
@@ -217,110 +279,183 @@ class MatFile {
     }
 }
 
-var g_currentField = -1
-var g_arrayName = ""
-var g_fieldNames = [String]()
-
-func readMatrixStruct(_ mat : MatFile) {
-    let fieldNameLengthHeader = mat.readDataElementHeader()
-    assert(fieldNameLengthHeader.dataType == MatDataType.miINT32)
-    assert(fieldNameLengthHeader.numberOfBytes == MemoryLayout<Int32>.size)
-    let fieldNameLength = mat.readLEUInt32()
-    print()
-
-    let fieldNamesHeader = mat.readDataElementHeader();
-    assert(fieldNamesHeader.dataType == MatDataType.miINT8)
-    assert(fieldNamesHeader.numberOfBytes % fieldNameLength == 0);
-    let fieldNameCount = fieldNamesHeader.numberOfBytes / fieldNameLength
-
-    g_fieldNames = [String](repeating: "", count: fieldNameCount)
-    for i in 0..<fieldNameCount {
-        let fieldName = mat.readString(fieldNameLength)
-        print("[\(String(format: "%02d", i))]: '\(fieldName)'")
-        g_fieldNames[i] = fieldName
-    }
-    g_currentField = 0
-}
-
-func readMatrixChar(_ mat : MatFile) {
-    let header = mat.readDataElementHeader()
-    assert(header.dataType == MatDataType.miUTF8)
-
-    let charName = mat.readString(header.numberOfBytes)
-    print("\(String(describing: header.dataType)) '\(charName)'")
-}
-
-func readMatrixDouble(_ mat : MatFile) {
-    let header = mat.readDataElementHeader()
-    let dataTypeSize = MatDataTypeToSize(header.dataType)
-    assert(dataTypeSize != 0)
-    print(String(describing: header.dataType))
-    mat.skip(header.numberOfBytes);
-}
-
-func readMatrix(_ mat : MatFile) {
-    let arrayFlagsHeader = mat.readDataElementHeader()
-    assert(arrayFlagsHeader.dataType == MatDataType.miUINT32)
-    assert(arrayFlagsHeader.numberOfBytes == 2 * MemoryLayout<UInt32>.size)
-    let arrayFlags = mat.readArrayFlags()
-
-    print()
-    if (g_fieldNames.count > 0)
-    {
-        assert(g_currentField < g_fieldNames.count)
-        print("\(g_arrayName).\(g_fieldNames[g_currentField]): ", terminator: "")
-        g_currentField += 1
+class MatData {
+    struct FieldInfo {
+        var name = ""
+        var offsetInFile = 0
+        var dimensions : [Int] = [Int]()
     }
 
-    let dimensionHeader = mat.readDataElementHeader()
-    assert(dimensionHeader.dataType == MatDataType.miINT32)
-    let dimensions = dimensionHeader.numberOfBytes / MemoryLayout<UInt32>.size
-    for i in 0..<dimensions {
-        print(mat.readLEUInt32(), terminator: "")
-        if (i < dimensions - 1) {
-            print("-by-", terminator: "")
+    var mat : MatFile
+    var currentField : Int? = nil
+    var arrayName = ""
+    var fieldInfo = [FieldInfo]()
+
+    init(path : String) {
+        mat = MatFile(path)
+        while !mat.endOfFile() {
+            let element = mat.readDataElementHeader();
+            switch (element.dataType) {
+            case MatDataType.miMATRIX:
+                readMatrix()
+
+            default:
+                print("ERROR: Unknown data element!")
+                element.print(force: true)
+                assert(false)
+                //mat.skip(element.numberOfBytes)
+            }
         }
-    }
-    print(", ", terminator: "")
-
-    let arrayNameHeader = mat.readDataElementHeader()
-    assert(arrayNameHeader.dataType == MatDataType.miINT8)
-    if (arrayNameHeader.numberOfBytes > 0) {
-        g_arrayName = mat.readString(arrayNameHeader.numberOfBytes)
-        print("'\(g_arrayName)' ", terminator: "")
+        mat.seek(0)
+        currentField = nil
     }
 
-    switch (arrayFlags.matrixClass) {
-    case MatMatrixClass.mxSTRUCT_CLASS:
-        readMatrixStruct(mat)
-        break
+    private func readMatrixStruct() {
+        let fieldNameLengthHeader = mat.readDataElementHeader()
+        assert(fieldNameLengthHeader.dataType == MatDataType.miINT32)
+        assert(fieldNameLengthHeader.numberOfBytes == MemoryLayout<Int32>.size)
+        let fieldNameLength = mat.readLEUInt32()
+        print()
+        
+        let fieldNamesHeader = mat.readDataElementHeader();
+        assert(fieldNamesHeader.dataType == MatDataType.miINT8)
+        assert(fieldNamesHeader.numberOfBytes % fieldNameLength == 0);
+        let fieldNameCount = fieldNamesHeader.numberOfBytes / fieldNameLength
+        
+        fieldInfo = [FieldInfo](repeating: FieldInfo(), count: fieldNameCount)
+        for i in 0..<fieldNameCount {
+            let fieldName = mat.readString(fieldNameLength)
+            print("[\(String(format: "%02d", i))]: '\(fieldName)'")
+            fieldInfo[i].name = fieldName
+        }
+        currentField = 0
+    }
+    
+    func skipMatrixChar() {
+        let header = mat.readDataElementHeader()
+        let val = mat.readString(header.numberOfBytes, header.dataType)
+        print("\(String(describing: header.dataType)) '\(val)'")
+    }
+    
+    func getMatrixChar(name: String) -> String {
+        let field = fieldInfo.first { $0.name == name }
+        assert(field != nil)
 
-    case MatMatrixClass.mxCHAR_CLASS:
-        readMatrixChar(mat)
-        break
+        let prevPos = mat.tell()
+        defer { mat.seek(prevPos) }
+        mat.seek(field!.offsetInFile)
 
-    case MatMatrixClass.mxDOUBLE_CLASS:
-        readMatrixDouble(mat)
-        break
+        let header = mat.readDataElementHeader()
+        return mat.readString(header.numberOfBytes, header.dataType)
+    }
 
-    default:
-        print("Unsupported matrix type!")
-        assert(false)
+    func skipMatrixDouble() {
+        let header = mat.readDataElementHeader()
+        let dataTypeSize = MatDataTypeToSize(header.dataType)
+        assert(dataTypeSize != 0)
+        print(String(describing: header.dataType))
+        mat.skip(header.numberOfBytes);
+    }
+    
+    func getMatrixDouble2(name : String) -> [[Double]] {
+        let field = fieldInfo.first { $0.name == name }
+        assert(field != nil)
+
+        let prevPos = mat.tell()
+        defer { mat.seek(prevPos) }
+        mat.seek(field!.offsetInFile)
+
+        assert(field!.dimensions.count == 2)
+        var result = Array(repeating: Array<Double>(repeating: 0, count: field!.dimensions[1]), count: field!.dimensions[0])
+
+        let header = mat.readDataElementHeader()
+        for j in 0..<result.count {
+            for i in 0..<result[j].count {
+                switch (header.dataType) {
+                case .miDOUBLE:
+                    result[j][i] = mat.readLEDouble()
+
+                case .miUINT8:
+                    result[j][i] = Double(mat.readLEUInt8())
+
+                case .miUINT16:
+                    result[j][i] = Double(mat.readLEUInt16())
+
+                default:
+                    print("Unsupported Matrix2D type: \(String(describing: header.dataType))")
+                    assert(false)
+                }
+            }
+        }
+
+        return result
+    }
+
+    func readMatrix() {
+        let arrayFlagsHeader = mat.readDataElementHeader()
+        assert(arrayFlagsHeader.dataType == MatDataType.miUINT32)
+        assert(arrayFlagsHeader.numberOfBytes == 2 * MemoryLayout<UInt32>.size)
+        let arrayFlags = mat.readArrayFlags()
+        
+        print()
+        if (fieldInfo.count > 0) {
+            print("\(arrayName).\(fieldInfo[currentField!].name): ", terminator: "")
+        }
+        
+        let dimensionHeader = mat.readDataElementHeader()
+        assert(dimensionHeader.dataType == MatDataType.miINT32)
+        let dimensions = dimensionHeader.numberOfBytes / MemoryLayout<UInt32>.size
+        for i in 0..<dimensions {
+            let val = mat.readLEUInt32()
+            if (fieldInfo.count > 0) {
+                fieldInfo[currentField!].dimensions.append(val)
+            }
+            print(val, terminator: "")
+            if (i < dimensions - 1) {
+                print("-by-", terminator: "")
+            }
+        }
+        print(", ", terminator: "")
+        
+        let arrayNameHeader = mat.readDataElementHeader()
+        assert(arrayNameHeader.dataType == MatDataType.miINT8)
+        if (arrayNameHeader.numberOfBytes > 0) {
+            arrayName = mat.readString(arrayNameHeader.numberOfBytes)
+            print("'\(arrayName)' ", terminator: "")
+        }
+
+        if (fieldInfo.count > 0) {
+            fieldInfo[currentField!].offsetInFile = mat.tell()
+            currentField! += 1
+        }
+
+        switch (arrayFlags.matrixClass) {
+        case MatMatrixClass.mxSTRUCT_CLASS:
+            readMatrixStruct()
+
+        case MatMatrixClass.mxCHAR_CLASS:
+            skipMatrixChar()
+            
+        case MatMatrixClass.mxDOUBLE_CLASS:
+            skipMatrixDouble()
+            
+        default:
+            print("ERROR: Unsupported matrix type!")
+            arrayFlags.print(force: true)
+            assert(false)
+        }
     }
 }
 
 //var mat = MatFile("fctd_grid_uncompressed.mat")
-var mat = MatFile("epsi_grid_uncompressed.mat")
+//var mat = MatFile("epsi_grid_uncompressed.mat")
+let data = MatData(path: "epsi_grid.mat")
+//var mat = MatFile("fctd_grid.mat")
+let a = data.getMatrixDouble2(name: "s")
+print("Received: \(a.count)x\(a[0].count)")
 
-while (!mat.endOfFile())
-{
-    let element = mat.readDataElementHeader();
-    if (element.dataType == MatDataType.miMATRIX)
-    {
-        readMatrix(mat);
-    }
-    else
-    {
-        mat.skip(element.numberOfBytes);
-    }
-}
+let b = data.getMatrixDouble2(name: "pr")
+print("Received: \(b.count)x\(b[0].count)")
+
+let c = data.getMatrixChar(name: "vehicle_name")
+print("Received: \(c)")
