@@ -7,7 +7,7 @@
 
 #pragma pack(1)
 
-#define VERBOSE
+//#define VERBOSE
 
 struct MatHeader
 {
@@ -363,7 +363,24 @@ void ReadMatrixDouble(MatFile& mat)
     size_t dataTypeSize = MatDataTypeToSize(header.dataType);
     assert(dataTypeSize != 0);
     printf("%s\n", MatDataTypeToString(header.dataType));
-    mat.Skip(header.numberOfBytes);
+    if (header.dataType == miDOUBLE)
+    {
+        double minVal, maxVal;
+        minVal = maxVal = mat.ReadPrimitive<double>();
+        for (int i = 1; i < header.numberOfBytes / 8; i++)
+        {
+            double val = mat.ReadPrimitive<double>();
+            if (isnan(val));
+                printf("0x%llx\n", *(uint64_t*)&val);
+            minVal = fmin(minVal, val);
+            maxVal = fmax(maxVal, val);
+        }
+        printf("Min: %g, Max: %g\n", minVal, maxVal);
+    }
+    else
+    {
+        mat.Skip(header.numberOfBytes);
+    }
 }
 
 void ReadMatrix(MatFile& mat)
@@ -427,8 +444,8 @@ void ReadMatrix(MatFile& mat)
 
 int main()
 {
-    //MatFile mat("fctd_grid_uncompressed.mat");
-    MatFile mat("epsi_grid_uncompressed.mat");
+    MatFile mat("fctd_grid_uncompressed.mat");
+    //MatFile mat("epsi_grid_uncompressed.mat");
 
     while (!mat.EndOfFile())
     {
