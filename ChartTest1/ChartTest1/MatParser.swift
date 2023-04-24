@@ -287,7 +287,6 @@ class MatData {
     }
 
     var mat : MatFile
-    var currentField : Int? = nil
     var arrayName = ""
     var fieldInfo = [FieldInfo]()
 
@@ -307,7 +306,6 @@ class MatData {
             }
         }
         mat.seek(0)
-        currentField = nil
     }
 
     private func readMatrixStruct() {
@@ -328,7 +326,11 @@ class MatData {
             print("[\(String(format: "%02d", i))]: '\(fieldName)'")
             fieldInfo[i].name = fieldName
         }
-        currentField = 0
+        for i in 0..<fieldNameCount {
+            let field = mat.readDataElementHeader();
+            assert(field.dataType == MatDataType.miMATRIX)
+            readMatrix(currentField: i)
+        }
     }
     
     func skipMatrixChar() {
@@ -366,6 +368,7 @@ class MatData {
         } else {
             mat.skip(header.numberOfBytes)
         }
+        //mat.skip(header.numberOfBytes)
     }
     
     func getMatrixDouble2(name : String) -> [[Double]] {
@@ -402,14 +405,34 @@ class MatData {
         return result
     }
 
-    func readMatrix() {
+    func getFieldNames(filter2D : Bool) -> [String] {
+        var fieldNames = [String]()
+        for i in 0..<fieldInfo.count {
+            let field = fieldInfo[i]
+            if (filter2D) {
+                if !(field.dimensions.count == 2 &&
+                    field.dimensions[0] != 1 &&
+                    field.dimensions[1] != 1) {
+                    continue
+                }
+            }
+            fieldNames.append("\(arrayName).\(field.name)")
+        }
+        return fieldNames
+    }
+
+    func getArrayName() -> String {
+        return arrayName
+    }
+
+    func readMatrix(currentField: Int? = nil) {
         let arrayFlagsHeader = mat.readDataElementHeader()
         assert(arrayFlagsHeader.dataType == MatDataType.miUINT32)
         assert(arrayFlagsHeader.numberOfBytes == 2 * MemoryLayout<UInt32>.size)
         let arrayFlags = mat.readArrayFlags()
         
         print()
-        if (fieldInfo.count > 0) {
+        if (currentField != nil) {
             print("\(arrayName).\(fieldInfo[currentField!].name): ", terminator: "")
         }
         
@@ -418,7 +441,7 @@ class MatData {
         let dimensions = dimensionHeader.numberOfBytes / MemoryLayout<UInt32>.size
         for i in 0..<dimensions {
             let val = mat.readLEUInt32()
-            if (fieldInfo.count > 0) {
+            if (currentField != nil) {
                 fieldInfo[currentField!].dimensions.append(val)
             }
             print(val, terminator: "")
@@ -435,19 +458,21 @@ class MatData {
             print("'\(arrayName)' ", terminator: "")
         }
 
-        if (fieldInfo.count > 0) {
+        if (currentField != nil) {
             fieldInfo[currentField!].offsetInFile = mat.tell()
-            currentField! += 1
         }
 
         switch (arrayFlags.matrixClass) {
         case MatMatrixClass.mxSTRUCT_CLASS:
+            assert(currentField == nil)
             readMatrixStruct()
 
         case MatMatrixClass.mxCHAR_CLASS:
+            assert(currentField != nil)
             skipMatrixChar()
             
         case MatMatrixClass.mxDOUBLE_CLASS:
+            assert(currentField != nil)
             skipMatrixDouble()
             
         default:
