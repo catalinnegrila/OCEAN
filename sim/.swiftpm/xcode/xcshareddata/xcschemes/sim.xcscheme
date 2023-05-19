@@ -53,19 +53,15 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i data/EPSI22_08_08_225428.modraw"
+            argument = "-i @../data/list.txt"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-s 1000"
+            argument = "-s 10000"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-v"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-o sim.txt"
+            argument = "-o ../out"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
