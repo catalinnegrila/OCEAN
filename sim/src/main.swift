@@ -21,6 +21,8 @@ for inputFileUrl in inputFileUrlList {
     try deleteFile(fileURL: outputFileUrl)
 }
 
+var partialEndPacket : Data? = nil
+
 let inputFileUrlListWithIndex = zip(inputFileUrlList.indices, inputFileUrlList)
 for (index, inputFileUrl) in inputFileUrlListWithIndex {
     let outputFileUrl = options.outputFileUrl(inputFileUrl)
@@ -33,16 +35,27 @@ for (index, inputFileUrl) in inputFileUrlListWithIndex {
     var inputFileParser = Parser(data: inputFileData)
 
     let header = inputFileParser.parseHeader()
-    if header == nil {
+    guard header != nil else {
         throw MyError.runtimeError("Invalid file format. Could not parse header.")
     }
     try header!.appendToURL(fileURL: outputFileUrl)
 
     let som = inputFileParser.parsePacket()
-    if som == nil {
-        throw MyError.runtimeError("Expected SOM first packet.")
+    guard som != nil &&
+            som!.timeOffsetMs == nil &&
+            som!.signature == "$SOM" else {
+        throw MyError.runtimeError("Expected $SOM first packet.")
     }
     try som!.data.appendToURL(fileURL: outputFileUrl)
+
+    if partialEndPacket != nil {
+        print("Patching partial first packet with \(partialEndPacket!).")
+        inputFileParser.insertPartialEndPacket(partialEndPacket!)
+    }
+    partialEndPacket = inputFileParser.extractPartialEndPacket()
+    if partialEndPacket != nil {
+        print("Extracted partial last packet of \(partialEndPacket!).")
+    }
 
     let startTime = getCurrentTimeMs()
     var lastProgress = -1.0
