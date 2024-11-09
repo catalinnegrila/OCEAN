@@ -3,6 +3,16 @@ import RegexBuilder
 
 class EpsiDataModel
 {
+    // Time window
+    // How many elements in the window to render
+    // On a timer go look at files on disk, read delta, render into view data
+    // Source data in 2 buffers, sampled into view data based on window
+    
+    // Timer on the UI thread
+    //  call dataModel.Update()
+    //  getChannel()
+    //  render
+
     init() throws
     {}
     
@@ -76,7 +86,7 @@ class EpsiDataModel
         return result
     }
 
-    static func getMinMaxMat1(mat : [Double]) -> (Double, Double)
+    static func getMinMaxMat1<T:Comparable>(mat : [T]) -> (T, T)
     {
         var minVal = mat[0]
         var maxVal = minVal

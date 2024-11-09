@@ -226,6 +226,20 @@ class MatFile {
             })
     }
 
+    public func readLEIntX<Result>(_: Result.Type) -> Result
+            where Result: SignedInteger
+    {
+        let expected = MemoryLayout<Result>.size
+        assert(cursor + expected <= data.count)
+        defer { cursor += expected }
+        let sub = data[cursor..<cursor + expected]
+        return sub
+            .reversed()
+            .reduce(0, { soFar, new in
+                    (soFar << 8) | Result(new)
+            })
+    }
+
     public func readLEUInt8() -> Int {
         Int(readLEUIntX(UInt8.self))
     }
@@ -240,6 +254,10 @@ class MatFile {
 
     public func readLEUInt64() -> Int {
         Int(readLEUIntX(UInt64.self))
+    }
+
+    public func readLEInt32() -> Int {
+        Int(readLEIntX(Int32.self))
     }
 
     public func readMatHeader() -> MatHeader {
@@ -426,6 +444,9 @@ class MatData {
 
                 case .miUINT32:
                     result[j][i] = Double(mat.readLEUInt32())
+
+                case .miINT32:
+                    result[j][i] = Double(mat.readLEInt32())
 
                 default:
                     print("Unsupported Matrix2D type: \(String(describing: header.dataType))")
