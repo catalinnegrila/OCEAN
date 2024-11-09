@@ -1,0 +1,6 @@
+.DS_Store
+*.mat
+*.modraw
+
+data/
+out/
