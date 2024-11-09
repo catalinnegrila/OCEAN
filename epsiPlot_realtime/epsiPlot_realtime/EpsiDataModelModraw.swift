@@ -13,6 +13,11 @@ class EpsiDataModelModraw: EpsiDataModel
     var epsi_a2_g : [Double] = []
     var epsi_a3_g : [Double] = []
 
+    var ctd_T_raw : [Int] = []
+    var ctd_C_raw : [Int] = []
+    var ctd_P_raw : [Int] = []
+    var ctd_PT_raw : [Int] = []
+
     var ctd_P : [Double] = []
     var ctd_T : [Double] = []
     var ctd_S : [Double] = []
@@ -49,7 +54,7 @@ class EpsiDataModelModraw: EpsiDataModel
     var sbe_cal_cpcor : Double = 0
     let sbe_c3515 = 42.914
 
-    func getKeyValue(key: String, header: String) -> Double {
+    static func getKeyValue(key: String, header: String) -> Double {
         let indexOfKey = header.index(of: key)
         let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
         let valueOnwards = header[indexAfterKey...]
@@ -58,13 +63,13 @@ class EpsiDataModelModraw: EpsiDataModel
             indexOfCrlf = valueOnwards.index(of: "\n")
         }
         let value = valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
-        print("\(key.trimmingCharacters(in: .whitespacesAndNewlines))\(value)")
+        //print("\(key.trimmingCharacters(in: .whitespacesAndNewlines))\(value)")
         return Double(value)!
     }
 
     override init() throws
     {
-        let _ = try! EpsiDataModelMat()
+        //let mat = try! EpsiDataModelMat()
 
         let fileUrl = URL(fileURLWithPath: "/Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.modraw")
         let inputFileData = try! Data(contentsOf: fileUrl)
@@ -77,30 +82,30 @@ class EpsiDataModelModraw: EpsiDataModel
             throw MyError.runtimeError("Invalid file format. Could not parse header.")
         }
 
-        sbe_cal_ta0 = getKeyValue(key: " TA0 = ", header: header!)
-        sbe_cal_ta1 = getKeyValue(key: " TA1 = ", header: header!)
-        sbe_cal_ta2 = getKeyValue(key: " TA2 = ", header: header!)
-        sbe_cal_ta3 = getKeyValue(key: " TA3 = ", header: header!)
+        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: " TA0 = ", header: header!)
+        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: " TA1 = ", header: header!)
+        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: " TA2 = ", header: header!)
+        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: " TA3 = ", header: header!)
 
-        sbe_cal_pa0 = getKeyValue(key: "\nPA0=", header: header!)
-        sbe_cal_pa1 = getKeyValue(key: "\nPA1=", header: header!)
-        sbe_cal_pa2 = getKeyValue(key: "\nPA2=", header: header!)
-        sbe_cal_ptempa0 = getKeyValue(key: "\nPTEMPA0=", header: header!)
-        sbe_cal_ptempa1 = getKeyValue(key: "\nPTEMPA1=", header: header!)
-        sbe_cal_ptempa2 = getKeyValue(key: "\nPTEMPA2=", header: header!)
-        sbe_cal_ptca0 = getKeyValue(key: "\nPTCA0=", header: header!)
-        sbe_cal_ptca1 = getKeyValue(key: "\nPTCA1=", header: header!)
-        sbe_cal_ptca2 = getKeyValue(key: "\nPTCA2=", header: header!)
-        sbe_cal_ptcb0 = getKeyValue(key: "\nPTCB0=", header: header!)
-        sbe_cal_ptcb1 = getKeyValue(key: "\nPTCB1=", header: header!)
-        sbe_cal_ptcb2 = getKeyValue(key: "\nPTCB2=", header: header!)
+        sbe_cal_pa0 = EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header!)
+        sbe_cal_pa1 = EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header!)
+        sbe_cal_pa2 = EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header!)
+        sbe_cal_ptempa0 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA0=", header: header!)
+        sbe_cal_ptempa1 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA1=", header: header!)
+        sbe_cal_ptempa2 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA2=", header: header!)
+        sbe_cal_ptca0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA0=", header: header!)
+        sbe_cal_ptca1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA1=", header: header!)
+        sbe_cal_ptca2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA2=", header: header!)
+        sbe_cal_ptcb0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB0=", header: header!)
+        sbe_cal_ptcb1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB1=", header: header!)
+        sbe_cal_ptcb2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB2=", header: header!)
 
-        sbe_cal_cg = getKeyValue(key: "\nCG=", header: header!)
-        sbe_cal_ch = getKeyValue(key: "\nCH=", header: header!)
-        sbe_cal_ci = getKeyValue(key: "\nCI=", header: header!)
-        sbe_cal_cj = getKeyValue(key: "\nCJ=", header: header!)
-        sbe_cal_ctcor = getKeyValue(key: "\nCTCOR=", header: header!)
-        sbe_cal_cpcor = getKeyValue(key: "\nCPCOR=", header: header!)
+        sbe_cal_cg = EpsiDataModelModraw.getKeyValue(key: "\nCG=", header: header!)
+        sbe_cal_ch = EpsiDataModelModraw.getKeyValue(key: "\nCH=", header: header!)
+        sbe_cal_ci = EpsiDataModelModraw.getKeyValue(key: "\nCI=", header: header!)
+        sbe_cal_cj = EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header!)
+        sbe_cal_ctcor = EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header!)
+        sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header!)
 
         let som = self.modraw.parsePacket()
         guard som != nil &&
@@ -150,15 +155,40 @@ class EpsiDataModelModraw: EpsiDataModel
         self.channels["ctd.dPdt"] = self.ctd_dPdt
 
         print("MODRAW:")
-        print("-------")
+        /*print("------- \(epsi_t1_volt.count)")
         print("t1_volt: \(epsi_t1_volt[0])")
         print("t2_volt: \(epsi_t2_volt[0])")
         print("s1_volt: \(epsi_s1_volt[0])")
         print("s2_volt: \(epsi_s2_volt[0])")
         print("a1_g: \(epsi_a1_g[0])")
         print("a2_g: \(epsi_a2_g[0])")
-        print("a3_g: \(epsi_a3_g[0])")
+        print("a3_g: \(epsi_a3_g[0])")*/
+        /*print("------- \(ctd_T_raw.count)")
+        print("T_raw: \(ctd_T_raw[0])")
+        print("C_raw: \(ctd_C_raw[0])")
+        print("P_raw: \(ctd_P_raw[0])")
+        print("PT_raw: \(ctd_PT_raw[0])")*/
+        print("------- \(ctd_P.count)")
+        let (P_min, P_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_P)
+        print("P: \(ctd_P[0]) (\(P_min),\(P_max))")
+        let (T_min, T_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_T)
+        print("T: \(ctd_T[0]) (\(T_min),\(T_max))")
+        let (S_min, S_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_S)
+        print("S: \(ctd_S[0]) (\(S_min),\(S_max))")
+        let (C_min, C_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_C)
+        print("C: \(ctd_C[0]) (\(C_min),\(C_max))")
+        let (dPdt_min, dPdt_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_dPdt)
+        print("dPdt: \(ctd_dPdt[0]) (\(dPdt_min),\(dPdt_max))")
         print("-------")
+        /*
+        let mat_T_raw = mat.getChannel(name: "ctd.T_raw")
+        assert(mat_T_raw.count == ctd_T_raw.count)
+        for i in 0..<mat_T_raw.count {
+            if ctd_T_raw[i] != Int(mat_T_raw[i]) {
+                print("[\(i)]: modraw: \(ctd_T_raw[i]) mat: \(mat_T_raw[i])")
+            }
+        }
+        */
     }
 
     static let hextimestamplength = 16
@@ -267,7 +297,7 @@ class EpsiDataModelModraw: EpsiDataModel
         let mv = (Double(T_raw) - 524288) / 1.6e7
         let r = (mv * 2.295e10 + 9.216e8) / (6.144e4 - mv * 5.3e5)
         let log_r = log(r)
-        let T = a0 + a1 * log_r + a2 * log_r*log_r + a3 * log_r*log_r
+        let T = a0 + a1 * log_r + a2 * log_r*log_r + a3 * log_r*log_r*log_r
         return 1.0 / T - 273.15
     }
 
@@ -376,6 +406,11 @@ class EpsiDataModelModraw: EpsiDataModel
         ctd_C.reserveCapacity(newCapacity)
         ctd_dPdt.reserveCapacity(newCapacity)
 
+        ctd_T_raw.reserveCapacity(newCapacity)
+        ctd_C_raw.reserveCapacity(newCapacity)
+        ctd_P_raw.reserveCapacity(newCapacity)
+        ctd_PT_raw.reserveCapacity(newCapacity)
+
         for _ in 0..<EpsiDataModelModraw.sbe_recs_per_block {
             //print("[\(j)] hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.sbe_timestamp_length))")
             i += EpsiDataModelModraw.sbe_timestamp_length // skip hex timestamp
@@ -391,6 +426,11 @@ class EpsiDataModelModraw: EpsiDataModel
                 let P_raw = EpsiDataModelModraw.parseSbeChannel1(packet: packet, i: &i)
                 let PT_raw = EpsiDataModelModraw.parseSbeChannel2(packet: packet, i: &i)
 
+                ctd_T_raw.append(T_raw)
+                ctd_C_raw.append(C_raw)
+                ctd_P_raw.append(P_raw)
+                ctd_PT_raw.append(PT_raw)
+
                 let T = sbe49_get_temperature(T_raw: T_raw)
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
@@ -401,10 +441,8 @@ class EpsiDataModelModraw: EpsiDataModel
                 ctd_S.append(S)
                 ctd_C.append(C)
                 ctd_dPdt.append(0)
-
-                //default:
-            //    assert(false)
             }
+            i += 2 // skip the <CR><LF>
         }
     }
     override func getChannel(name : String) -> [Double]
