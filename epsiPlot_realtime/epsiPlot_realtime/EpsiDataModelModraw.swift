@@ -3,26 +3,6 @@ import Foundation
 class EpsiDataModelModraw: EpsiDataModel
 {
     var modraw : ModrawParser
-    var channels : [String : [Double]] = [:]
-
-    var epsi_t1_volt : [Double] = []
-    var epsi_t2_volt : [Double] = []
-    var epsi_s1_volt : [Double] = []
-    var epsi_s2_volt : [Double] = []
-    var epsi_a1_g : [Double] = []
-    var epsi_a2_g : [Double] = []
-    var epsi_a3_g : [Double] = []
-
-    var ctd_T_raw : [Int] = []
-    var ctd_C_raw : [Int] = []
-    var ctd_P_raw : [Int] = []
-    var ctd_PT_raw : [Int] = []
-
-    var ctd_P : [Double] = []
-    var ctd_T : [Double] = []
-    var ctd_S : [Double] = []
-    var ctd_C : [Double] = []
-    var ctd_dPdt : [Double] = []
 
     enum SBE_Format : Int {
         case eng = 1, PTS
@@ -54,6 +34,81 @@ class EpsiDataModelModraw: EpsiDataModel
     var sbe_cal_cpcor : Double = 0
     let sbe_c3515 = 42.914
 
+    var epsi_blocks : [EpsiData] = []
+    var ctd_blocks : [CtdData] = []
+
+    override func update() {
+        // EPSI
+        while epsi_blocks.count > 0 {
+            if (epsi_blocks[0].time_s[0] > time_cursor) {
+                time_cursor = epsi_blocks[0].time_s[0]
+                break
+            } else if (epsi_blocks[1].time_s[0] < time_cursor) {
+                epsi_blocks.remove(at: 0)
+            } else {
+                break
+            }
+        }
+        var entry_index = epsi_blocks[0].getFirstEntryIndex(time_cursor)
+        let epsi_sample_duration = epsi_blocks[0].getSampleDuration()
+        let epsi_num_samples = Int(ceil(time_window / epsi_sample_duration))
+        print("EPSI: \(epsi_num_samples) samples, \(epsi_sample_duration) seconds")
+        epsi.removeAll()
+        epsi.reserveCapacity(epsi_num_samples)
+        var j = 0
+        var block_index = 0
+        while j < epsi_num_samples && block_index < epsi_blocks.count {
+            while j < epsi_num_samples && entry_index < epsi_blocks[block_index].time_s.count {
+                epsi.time_s.append(epsi_blocks[block_index].time_s[entry_index])
+                epsi.t1_volt.append(epsi_blocks[block_index].t1_volt[entry_index])
+                epsi.t2_volt.append(epsi_blocks[block_index].t2_volt[entry_index])
+                epsi.s1_volt.append(epsi_blocks[block_index].s1_volt[entry_index])
+                epsi.s2_volt.append(epsi_blocks[block_index].s2_volt[entry_index])
+                epsi.a1_g.append(epsi_blocks[block_index].a1_g[entry_index])
+                epsi.a2_g.append(epsi_blocks[block_index].a2_g[entry_index])
+                epsi.a3_g.append(epsi_blocks[block_index].a3_g[entry_index])
+                entry_index += 1
+                j += 1
+            }
+            entry_index = 0
+            block_index += 1
+        }
+        // CTD
+        while ctd_blocks.count > 0 {
+            if (ctd_blocks[0].time_s[0] > time_cursor) {
+                time_cursor = ctd_blocks[0].time_s[0]
+                break
+            } else if (ctd_blocks[1].time_s[0] < time_cursor) {
+                ctd_blocks.remove(at: 0)
+            } else {
+                break
+            }
+        }
+        entry_index = ctd_blocks[0].getFirstEntryIndex(time_cursor)
+        let ctd_sample_duration = ctd_blocks[0].getSampleDuration()
+        let ctd_num_samples = Int(ceil(time_window / ctd_sample_duration))
+        print("CTD: \(ctd_num_samples) samples, \(ctd_sample_duration) seconds")
+        ctd.removeAll()
+        ctd.reserveCapacity(ctd_num_samples)
+        j = 0
+        block_index = 0
+        while j < ctd_num_samples && block_index < ctd_blocks.count {
+            while j < ctd_num_samples && entry_index < ctd_blocks[block_index].time_s.count {
+                ctd.time_s.append(ctd_blocks[block_index].time_s[entry_index])
+                ctd.P.append(ctd_blocks[block_index].P[entry_index])
+                ctd.T.append(ctd_blocks[block_index].T[entry_index])
+                ctd.S.append(ctd_blocks[block_index].S[entry_index])
+                ctd.C.append(ctd_blocks[block_index].C[entry_index])
+                ctd.dPdt.append(ctd_blocks[block_index].dPdt[entry_index])
+                entry_index += 1
+                j += 1
+            }
+            entry_index = 0
+            block_index += 1
+        }
+        super.update()
+    }
+
     static func getKeyValue(key: String, header: String) -> Double {
         let indexOfKey = header.index(of: key)
         let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
@@ -67,13 +122,38 @@ class EpsiDataModelModraw: EpsiDataModel
         return Double(value)!
     }
 
+    func readCalibrationData(header: String) {
+        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: " TA0 = ", header: header)
+        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: " TA1 = ", header: header)
+        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: " TA2 = ", header: header)
+        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: " TA3 = ", header: header)
+        sbe_cal_pa0 = EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header)
+        sbe_cal_pa1 = EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header)
+        sbe_cal_pa2 = EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header)
+        sbe_cal_ptempa0 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA0=", header: header)
+        sbe_cal_ptempa1 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA1=", header: header)
+        sbe_cal_ptempa2 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA2=", header: header)
+        sbe_cal_ptca0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA0=", header: header)
+        sbe_cal_ptca1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA1=", header: header)
+        sbe_cal_ptca2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA2=", header: header)
+        sbe_cal_ptcb0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB0=", header: header)
+        sbe_cal_ptcb1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB1=", header: header)
+        sbe_cal_ptcb2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB2=", header: header)
+        sbe_cal_cg = EpsiDataModelModraw.getKeyValue(key: "\nCG=", header: header)
+        sbe_cal_ch = EpsiDataModelModraw.getKeyValue(key: "\nCH=", header: header)
+        sbe_cal_ci = EpsiDataModelModraw.getKeyValue(key: "\nCI=", header: header)
+        sbe_cal_cj = EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header)
+        sbe_cal_ctcor = EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header)
+        sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header)
+    }
+
     override init() throws
     {
-        //let mat = try! EpsiDataModelMat()
+        //let _ = try! EpsiDataModelMat()
 
         let fileUrl = URL(fileURLWithPath: "/Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.modraw")
         let inputFileData = try! Data(contentsOf: fileUrl)
-        self.modraw = ModrawParser(data: inputFileData)
+        modraw = ModrawParser(data: inputFileData)
 
         try super.init()
 
@@ -82,36 +162,13 @@ class EpsiDataModelModraw: EpsiDataModel
             throw MyError.runtimeError("Invalid file format. Could not parse header.")
         }
 
-        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: " TA0 = ", header: header!)
-        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: " TA1 = ", header: header!)
-        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: " TA2 = ", header: header!)
-        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: " TA3 = ", header: header!)
-
-        sbe_cal_pa0 = EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header!)
-        sbe_cal_pa1 = EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header!)
-        sbe_cal_pa2 = EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header!)
-        sbe_cal_ptempa0 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA0=", header: header!)
-        sbe_cal_ptempa1 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA1=", header: header!)
-        sbe_cal_ptempa2 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA2=", header: header!)
-        sbe_cal_ptca0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA0=", header: header!)
-        sbe_cal_ptca1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA1=", header: header!)
-        sbe_cal_ptca2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA2=", header: header!)
-        sbe_cal_ptcb0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB0=", header: header!)
-        sbe_cal_ptcb1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB1=", header: header!)
-        sbe_cal_ptcb2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB2=", header: header!)
-
-        sbe_cal_cg = EpsiDataModelModraw.getKeyValue(key: "\nCG=", header: header!)
-        sbe_cal_ch = EpsiDataModelModraw.getKeyValue(key: "\nCH=", header: header!)
-        sbe_cal_ci = EpsiDataModelModraw.getKeyValue(key: "\nCI=", header: header!)
-        sbe_cal_cj = EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header!)
-        sbe_cal_ctcor = EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header!)
-        sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header!)
+        readCalibrationData(header: header!)
 
         let som = self.modraw.parsePacket()
         guard som != nil &&
                 som!.timeOffsetMs == nil &&
                 som!.signature == "$SOM3" else {
-            throw MyError.runtimeError("Expected $SOM first packet.")
+            throw MyError.runtimeError("Expected $SOM3 first packet.")
         }
 
         /* TODO: handle partial packets
@@ -139,56 +196,12 @@ class EpsiDataModelModraw: EpsiDataModel
             packet = self.modraw.parsePacket()
         }
 
-        self.channels = [String : [Double]]()
-        self.channels["epsi.t1_volt"] = self.epsi_t1_volt
-        self.channels["epsi.t2_volt"] = self.epsi_t2_volt
-        self.channels["epsi.s1_volt"] = self.epsi_s1_volt
-        self.channels["epsi.s2_volt"] = self.epsi_s2_volt
-        self.channels["epsi.a1_g"] = self.epsi_a1_g
-        self.channels["epsi.a2_g"] = self.epsi_a2_g
-        self.channels["epsi.a3_g"] = self.epsi_a3_g
+        update()
 
-        self.channels["ctd.P"] = self.ctd_P
-        self.channels["ctd.T"] = self.ctd_T
-        self.channels["ctd.S"] = self.ctd_S
-        self.channels["ctd.C"] = self.ctd_C
-        self.channels["ctd.dPdt"] = self.ctd_dPdt
+        //time_cursor = min(epsi.time_s[0], ctd.time_s[0])
 
         print("MODRAW:")
-        /*print("------- \(epsi_t1_volt.count)")
-        print("t1_volt: \(epsi_t1_volt[0])")
-        print("t2_volt: \(epsi_t2_volt[0])")
-        print("s1_volt: \(epsi_s1_volt[0])")
-        print("s2_volt: \(epsi_s2_volt[0])")
-        print("a1_g: \(epsi_a1_g[0])")
-        print("a2_g: \(epsi_a2_g[0])")
-        print("a3_g: \(epsi_a3_g[0])")*/
-        /*print("------- \(ctd_T_raw.count)")
-        print("T_raw: \(ctd_T_raw[0])")
-        print("C_raw: \(ctd_C_raw[0])")
-        print("P_raw: \(ctd_P_raw[0])")
-        print("PT_raw: \(ctd_PT_raw[0])")*/
-        print("------- \(ctd_P.count)")
-        let (P_min, P_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_P)
-        print("P: \(ctd_P[0]) (\(P_min),\(P_max))")
-        let (T_min, T_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_T)
-        print("T: \(ctd_T[0]) (\(T_min),\(T_max))")
-        let (S_min, S_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_S)
-        print("S: \(ctd_S[0]) (\(S_min),\(S_max))")
-        let (C_min, C_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_C)
-        print("C: \(ctd_C[0]) (\(C_min),\(C_max))")
-        let (dPdt_min, dPdt_max) = EpsiDataModel.getMinMaxMat1(mat: ctd_dPdt)
-        print("dPdt: \(ctd_dPdt[0]) (\(dPdt_min),\(dPdt_max))")
-        print("-------")
-        /*
-        let mat_T_raw = mat.getChannel(name: "ctd.T_raw")
-        assert(mat_T_raw.count == ctd_T_raw.count)
-        for i in 0..<mat_T_raw.count {
-            if ctd_T_raw[i] != Int(mat_T_raw[i]) {
-                print("[\(i)]: modraw: \(ctd_T_raw[i]) mat: \(mat_T_raw[i])")
-            }
-        }
-        */
+        printValues()
     }
 
     static let hextimestamplength = 16
@@ -216,7 +229,7 @@ class EpsiDataModelModraw: EpsiDataModel
         return (data - EpsiDataModelModraw.efe_acc_offset) / EpsiDataModelModraw.efe_acc_factor
     }
     static func parseEfeChannel(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parseBin(start: i, len: EpsiDataModelModraw.efe_bytes_per_channel)
+        let channel = Int(packet.parseBin(start: i, len: EpsiDataModelModraw.efe_bytes_per_channel))
         i += EpsiDataModelModraw.efe_bytes_per_channel
         return channel
     }
@@ -238,17 +251,17 @@ class EpsiDataModelModraw: EpsiDataModel
         assert(hexlengthblock == block_data_len)
         assert(block_data_len == EpsiDataModelModraw.efe_n_elements * EpsiDataModelModraw.efe_recs_per_block)
 
-        let newCapacity = epsi_t1_volt.count + EpsiDataModelModraw.efe_recs_per_block
-        epsi_t1_volt.reserveCapacity(newCapacity)
-        epsi_t2_volt.reserveCapacity(newCapacity)
-        epsi_s1_volt.reserveCapacity(newCapacity)
-        epsi_s2_volt.reserveCapacity(newCapacity)
-        epsi_a1_g.reserveCapacity(newCapacity)
-        epsi_a2_g.reserveCapacity(newCapacity)
-        epsi_a3_g.reserveCapacity(newCapacity)
+        let epsi_block = EpsiData()
+        epsi_block.reserveCapacity(EpsiDataModelModraw.efe_recs_per_block)
 
         for _ in 0..<EpsiDataModelModraw.efe_recs_per_block {
+            var time_s = UInt64(0) // Inverse endianness
+            for j in 0..<EpsiDataModelModraw.efe_timestamp_length {
+                time_s += UInt64(packet.data[i + j]) * UInt64(pow(256, Double(j)))
+            }
+            epsi_block.time_s.append(Double(time_s) / 1000.0)
             i += EpsiDataModelModraw.efe_timestamp_length
+
             let t1_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
             let t2_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
             let s1_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
@@ -257,20 +270,21 @@ class EpsiDataModelModraw: EpsiDataModel
             let a2_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
             let a3_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
 
-            epsi_t1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t1_count))
-            epsi_t2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t2_count))
+            epsi_block.t1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t1_count))
+            epsi_block.t2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t2_count))
 
-            epsi_s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
-            epsi_s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
+            epsi_block.s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
+            epsi_block.s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
 
             let a1_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a1_count)
             let a2_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a2_count)
             let a3_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a3_count)
 
-            epsi_a1_g.append(EpsiDataModelModraw.volt_to_g(data: a1_volt))
-            epsi_a2_g.append(EpsiDataModelModraw.volt_to_g(data: a2_volt))
-            epsi_a3_g.append(EpsiDataModelModraw.volt_to_g(data: a3_volt))
+            epsi_block.a1_g.append(EpsiDataModelModraw.volt_to_g(data: a1_volt))
+            epsi_block.a2_g.append(EpsiDataModelModraw.volt_to_g(data: a2_volt))
+            epsi_block.a3_g.append(EpsiDataModelModraw.volt_to_g(data: a3_volt))
         }
+        epsi_blocks.append(epsi_block)
     }
 
     static let sbe_recs_per_block = 2
@@ -278,12 +292,12 @@ class EpsiDataModelModraw: EpsiDataModel
     static let sbe_block_length = (24 + EpsiDataModelModraw.sbe_timestamp_length) * EpsiDataModelModraw.sbe_recs_per_block
     static let sbe_hex_per_channel1 = 6
     static let sbe_hex_per_channel2 = 4
-    static func parseSbeChannel1(packet: ModrawPacket, i: inout Int) -> Int {
+    static func parseSbeChannel6(packet: ModrawPacket, i: inout Int) -> Int {
         let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_hex_per_channel1)
         i += EpsiDataModelModraw.sbe_hex_per_channel1
         return channel
     }
-    static func parseSbeChannel2(packet: ModrawPacket, i: inout Int) -> Int {
+    static func parseSbeChannel4(packet: ModrawPacket, i: inout Int) -> Int {
         let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_hex_per_channel2)
         i += EpsiDataModelModraw.sbe_hex_per_channel2
         return channel
@@ -399,54 +413,43 @@ class EpsiDataModelModraw: EpsiDataModel
         //print("checksum2: \(packet.parseString(start: packet.data.count - EpsiDataModelModraw.chksum2length, len: EpsiDataModelModraw.chksum1length))")
         assert(packet.data[packet.data.count - EpsiDataModelModraw.chksum2length] == ModrawParser.ASCII_STAR)
 
-        let newCapacity = ctd_P.count + EpsiDataModelModraw.sbe_recs_per_block
-        ctd_P.reserveCapacity(newCapacity)
-        ctd_T.reserveCapacity(newCapacity)
-        ctd_S.reserveCapacity(newCapacity)
-        ctd_C.reserveCapacity(newCapacity)
-        ctd_dPdt.reserveCapacity(newCapacity)
-
-        ctd_T_raw.reserveCapacity(newCapacity)
-        ctd_C_raw.reserveCapacity(newCapacity)
-        ctd_P_raw.reserveCapacity(newCapacity)
-        ctd_PT_raw.reserveCapacity(newCapacity)
+        let ctd_block = CtdData()
+        ctd_block.reserveCapacity(EpsiDataModelModraw.sbe_recs_per_block)
 
         for _ in 0..<EpsiDataModelModraw.sbe_recs_per_block {
             //print("[\(j)] hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.sbe_timestamp_length))")
-            i += EpsiDataModelModraw.sbe_timestamp_length // skip hex timestamp
-            //let rec_ctd = packet.parseString(start: i, len: 24)
-            //print("[\(j)] rec: \(rec_ctd)")
+            let time_s = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_timestamp_length)
+            ctd_block.time_s.append(Double(time_s) / 1000.0)
+            i += EpsiDataModelModraw.sbe_timestamp_length
+
             switch sbe_format {
             case SBE_Format.PTS:
                 assert(false)
 
             case SBE_Format.eng:
-                let T_raw = EpsiDataModelModraw.parseSbeChannel1(packet: packet, i: &i)
-                let C_raw = EpsiDataModelModraw.parseSbeChannel1(packet: packet, i: &i)
-                let P_raw = EpsiDataModelModraw.parseSbeChannel1(packet: packet, i: &i)
-                let PT_raw = EpsiDataModelModraw.parseSbeChannel2(packet: packet, i: &i)
+                let T_raw = EpsiDataModelModraw.parseSbeChannel6(packet: packet, i: &i)
+                let C_raw = EpsiDataModelModraw.parseSbeChannel6(packet: packet, i: &i)
+                let P_raw = EpsiDataModelModraw.parseSbeChannel6(packet: packet, i: &i)
+                let PT_raw = EpsiDataModelModraw.parseSbeChannel4(packet: packet, i: &i)
 
-                ctd_T_raw.append(T_raw)
-                ctd_C_raw.append(C_raw)
-                ctd_P_raw.append(P_raw)
-                ctd_PT_raw.append(PT_raw)
+                //ctd_block.T_raw.append(T_raw)
+                //ctd_block.C_raw.append(C_raw)
+                //ctd_block.P_raw.append(P_raw)
+                //ctd_block.PT_raw.append(PT_raw)
 
                 let T = sbe49_get_temperature(T_raw: T_raw)
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
                 let S = EpsiDataModelModraw.sw_salt(cndr: C * 10 / sbe_c3515, T: T, P: P);
                 //ctd.dPdt = [0; diff(ctd.P)./diff(ctd.time_s)];
-                ctd_P.append(P)
-                ctd_T.append(T)
-                ctd_S.append(S)
-                ctd_C.append(C)
-                ctd_dPdt.append(0)
+                ctd_block.P.append(P)
+                ctd_block.T.append(T)
+                ctd_block.S.append(S)
+                ctd_block.C.append(C)
+                ctd_block.dPdt.append(0)
             }
             i += 2 // skip the <CR><LF>
         }
-    }
-    override func getChannel(name : String) -> [Double]
-    {
-        return channels[name]!
+        ctd_blocks.append(ctd_block)
     }
 }
