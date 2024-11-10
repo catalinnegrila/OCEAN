@@ -21,10 +21,16 @@ struct ModrawPacket {
         return Int(parseString(start: start, len: len), radix: 16)!
     }
 
-    func parseBin(start: Int, len: Int) -> Int {
-        var val = 0
-        for i in start..<start+len {
-            val += Int(data[i]) * Int(pow(256, Double(start+len-i-1)))
+    func parseBin(start: Int, len: Int) -> UInt64 {
+        assert(len <= 8)
+        var val = UInt64(0)
+        var mult = UInt64(1)
+        for i in 0..<len {
+            //val += UInt64(data[i]) * UInt64(pow(256, Double(start+len-i-1)))
+            val += UInt64(data[start + len - 1 - i]) * mult
+            if (i < 7) {
+                mult *= 256
+            }
         }
         return val
     }
