@@ -48,7 +48,7 @@ struct Parser {
         let oldCursor = cursor
         defer { cursor = oldCursor }
         for mc in marker {
-            var c = parseChar()
+            let c = parseChar()
             if c == nil || c! != mc {
                 return false
             }
@@ -64,12 +64,12 @@ struct Parser {
 
         line = parseLine()
         guard line != nil else { return nil }
-        guard line!.starts(with: "TOTAL_HEADER_LINES = 71") else { return nil }
+        guard line!.starts(with: "TOTAL_HEADER_LINES =") else { return nil }
         header = header + line!
 
         line = parseLine()
         guard line != nil else { return nil }
-        guard line!.starts(with: "*****START_FCTD_HEADER_START_RUN*****") else { return nil }
+        guard line!.contains("****START_FCTD_HEADER_START_RUN****") else { return nil }
         header = header + line!
 
         repeat {
@@ -79,7 +79,12 @@ struct Parser {
                 currentYearOffset = Int(line!.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
             }
             header = header + line!
-        } while !line!.starts(with: "%*****END_FCTD_HEADER_START_RUN*****")
+        } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
+
+        // skipToFirstPacket
+        while (peekByte() != Parser.ASCII_DOLLAR) {
+            _ = parseByte()
+        }
 
         return header
     }
@@ -212,7 +217,8 @@ struct Parser {
             p.signature = "$"
             i = i + 1
             var c = packet[i]
-            while i < packet.count && Parser.isUppercase(c) {
+            for _ in 0..<4  {
+                assert(i < packet.count)
                 p.signature = p.signature + String(Character(UnicodeScalar(c)))
                 i = i + 1
                 c = packet[i]

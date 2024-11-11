@@ -43,8 +43,8 @@ for (index, inputFileUrl) in inputFileUrlListWithIndex {
     let som = inputFileParser.parsePacket()
     guard som != nil &&
             som!.timeOffsetMs == nil &&
-            som!.signature == "$SOM" else {
-        throw MyError.runtimeError("Expected $SOM first packet.")
+            som!.signature == "$SOM3" else {
+        throw MyError.runtimeError("Expected $SOM3 first packet.")
     }
     try som!.data.appendToURL(fileURL: outputFileUrl)
 
