@@ -34,7 +34,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
+      useCustomWorkingDirectory = "NO"
       customWorkingDirectory = "/Users/catalin/Documents/OCEAN/sim"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -53,11 +53,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i /Users/catalin/Downloads/OCEAN/epsiPlot/EPSI24_11_06_054202.modraw"
+            argument = "-i /Users/catalin/Downloads/OCEAN/raw"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-s 2"
+            argument = "-s 20"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

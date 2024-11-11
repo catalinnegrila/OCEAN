@@ -104,10 +104,8 @@ class MatFile {
     private var cursor : Int
     private var cursor0 : Int
 
-    public init(_ path : String) {
-        print("Reading file: \(path)")
-
-        let fileData = try! Data(contentsOf: URL(fileURLWithPath: path))
+    public init(_ fileUrl : URL) {
+        let fileData = try! Data(contentsOf: fileUrl)
         self.data = [UInt8](repeating: 0, count: fileData.count)
         fileData.copyBytes(to: &self.data, count: self.data.count)
 
@@ -314,8 +312,8 @@ class MatData {
     var arrayName = ""
     var fieldInfo = [FieldInfo]()
 
-    init(path : String) {
-        mat = MatFile(path)
+    init(fileUrl : URL) {
+        mat = MatFile(fileUrl)
         while !mat.endOfFile() {
             let element = mat.readDataElementHeader();
             switch (element.dataType) {
