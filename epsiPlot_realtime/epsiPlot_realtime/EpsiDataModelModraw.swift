@@ -133,12 +133,6 @@ class EpsiDataModelModraw: EpsiDataModel
     {
         var packet = currentModraw!.parsePacket()
         while packet != nil {
-            if (packet!.signature == "$SOM3") {
-                assert(packet!.timeOffsetMs == nil)
-            } else {
-                assert(packet!.timeOffsetMs != nil)
-                assert(packet!.date != nil)
-            }
             switch packet!.signature {
             case "$EFE4":
                 parseEFE4(packet: packet!)
@@ -510,7 +504,7 @@ class EpsiDataModelModraw: EpsiDataModel
                 let T = sbe49_get_temperature(T_raw: T_raw)
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
-                let S = EpsiDataModelModraw.sw_salt(cndr: C * 10 / sbe_c3515, T: T, P: P);
+                let S = EpsiDataModelModraw.sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
                 //ctd.dPdt = [0; diff(ctd.P)./diff(ctd.time_s)];
                 ctd_block.P.append(P)
                 ctd_block.T.append(T)

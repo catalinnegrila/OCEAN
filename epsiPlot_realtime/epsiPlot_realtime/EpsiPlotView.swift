@@ -3,6 +3,7 @@ import SwiftUI
 var epsiDataModel : EpsiDataModel?
 
 struct EpsiPlotView: View {
+    @Environment(\.colorScheme) var colorScheme
     @State private var refreshView = false
     @State private var windowTitle = "Realtime Plot"
     let refreshTimer = Timer.publish(every: 1.0/20, on: .main, in: .common).autoconnect()
@@ -124,16 +125,18 @@ struct EpsiPlotView: View {
 
     private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double, data: inout [Double], time_s: inout [Double], color: Color) {
 
+        let noDataGray = isDarkTheme() ? 0.15 : 0.9
+        let noDataColor = Color(red: noDataGray, green: noDataGray, blue: noDataGray)
         if (!data.isEmpty) {
             let minX = rc.minX + rc.width * (time_s.first! - epsiDataModel!.time_window_start) / epsiDataModel!.time_window_length
             if (minX - rc.minX > 2) {
                 let rcEmpty = CGRect(x: rc.minX, y: rc.minY, width: minX - rc.minX, height: rc.height)
-                context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
+                context.fill(Path(rcEmpty), with: .color(noDataColor))
             }
             let maxX = rc.minX + rc.width * (time_s.last! - epsiDataModel!.time_window_start) / epsiDataModel!.time_window_length
             if (rc.maxX - maxX > 2) {
                 let rcEmpty = CGRect(x: maxX, y: rc.minY, width: rc.maxX - maxX, height: rc.height)
-                context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
+                context.fill(Path(rcEmpty), with: .color(noDataColor))
             }
 
             let dataRect = CGRect(x: minX, y: rc.minY, width: maxX - minX, height: rc.height)
@@ -149,15 +152,13 @@ struct EpsiPlotView: View {
             with: .color(color),
             lineWidth: 2)
         } else {
-            context.fill(Path(rc), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
+            context.fill(Path(rc), with: .color(noDataColor))
             context.draw(Text("no data").foregroundStyle(.gray),
                          at: CGPoint(x: (rc.minX + rc.maxX) / 2, y: (rc.minY + rc.maxY) / 2),
                          anchor: .center)
         }
     }
 
-    let t1_color = Color(red: 21/255, green: 53/255, blue: 136/255)
-    let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255)
     let s1_color = Color(red: 88/255, green: 143/255, blue: 92/255)
     let s2_color = Color(red: 189/255, green: 219/255, blue: 154/255)
     let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)
@@ -177,6 +178,9 @@ struct EpsiPlotView: View {
             ctx.rotate(by: Angle(degrees: -90))
             ctx.draw(Text(text).bold(), at: CGPoint(x: 0, y: 0), anchor: .center)
         }
+    }
+    func isDarkTheme() -> Bool {
+        return (colorScheme == .dark)
     }
     private var chart: some View {
         return Canvas{ context, size in
@@ -219,6 +223,9 @@ struct EpsiPlotView: View {
             }*/
 
             // EPSI t1, t2
+            let t1_color = isDarkTheme() ? Color(red: 182/255, green: 114/255, blue: 182/255) : Color(red: 21/255, green: 53/255, blue: 136/255)
+            let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255)
+
             drawLabel(context: context, rc: rect, text: "FP07 [Volt]")
             let epsi_t_volt_range = EpsiDataModel.minmaxoff(v1: dataModel.epsi_t1_volt_range, off1: -dataModel.epsi_t1_volt_mean, v2: dataModel.epsi_t2_volt_range, off2: -dataModel.epsi_t2_volt_mean)
 
@@ -276,11 +283,11 @@ struct EpsiPlotView: View {
 
             // CTD dPdt
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-            drawLabel(context: context, rc: rect, text: "dPdt")
+            drawLabel(context: context, rc: rect, text: "C")
 
-            let dPdt_yAxis = [dataModel.ctd_dPdt_range.1, 0.0, dataModel.ctd_dPdt_range.0]
+            let dPdt_yAxis = [dataModel.ctd_C_range.1, 0.0, dataModel.ctd_C_range.0]
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dPdt_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_dPdt_range, yOffset: 0, data: &dataModel.ctd_dPdt_movmean, time_s: &dataModel.ctd.time_s, color: dPdt_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_C_range, yOffset: 0, data: &dataModel.ctd.C, time_s: &dataModel.ctd.time_s, color: dPdt_color)
 
             // CTD P
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);

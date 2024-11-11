@@ -10,5 +10,19 @@
             </PersistentString>
          </PersistentStrings>
       </ContextState>
+      <ContextState
+         contextName = "EpsiDataModelModraw.parseEFE4(packet:):EpsiDataModelModraw.swift">
+         <PersistentStrings>
+            <PersistentString
+               value = "packet.data[packet.data.count-4..&lt;packet.data.count]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "closure #1 in EpsiPlotView.chart.getter:EpsiPlotView.swift">
+      </ContextState>
+      <ContextState
+         contextName = "EpsiDataModel.update():EpsiDataModel.swift">
+      </ContextState>
    </ContextStates>
 </VariablesViewState>
