@@ -2,27 +2,25 @@ import SwiftUI
 
 struct EpsiPlotView: View {
     var dataModel : EpsiDataModel
+    @State private var refreshView = false
+    let refreshTimer = Timer.publish(every: 1.0/20, on: .main, in: .common).autoconnect()
 
     init() {
         self.dataModel = try! EpsiDataModelModraw()
         //self.dataModel = try! EpsiDataModelMat()
     }
 
-    var body: some View {
-        VStack {
-            VStack(
-                alignment: .leading,
-                spacing: 10
-            ) {
-                chart
-                    .padding()
-                    .frame(alignment: .topLeading)
+        var body: some View {
+        chart
+            .id(refreshView)
+            .padding()
+            .frame(alignment: .topLeading)
+        .navigationTitle("Realtime Plot")
+        .onReceive(refreshTimer) { _ in
+            Task {
+                refreshView.toggle()
             }
-            //.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            //.border(.black, width: 2)
-            //.padding()
         }
-        .navigationTitle("Realtime EPSI")
     }
 
     private func renderGrid(context: GraphicsContext, rc: CGRect, xAxis: [Double], yAxis: [Double], leftLabels: Bool, formatter: (Double) -> String) {
@@ -110,12 +108,12 @@ struct EpsiPlotView: View {
         return CGPoint(x: rc.minX + x, y: rc.maxY - y)
     }
 
-    static func pointSample(rc: CGRect, x: Double, yAxis: (Double, Double), yOffset: Double, data: [Double]) -> CGPoint {
+    static func pointSample(rc: CGRect, x: Double, yAxis: (Double, Double), yOffset: Double, data: inout [Double]) -> CGPoint {
         let i = Int(Double(data.count - 1) * x / (rc.maxX - rc.minX))
         return valueToPoint(rc: rc, x: x, yAxis: yAxis, value: data[i] + yOffset)
     }
 
-    static func linearSample(rc: CGRect, x: Double, yAxis: (Double, Double), yOffset: Double, data: [Double]) -> CGPoint {
+    static func linearSample(rc: CGRect, x: Double, yAxis: (Double, Double), yOffset: Double, data: inout [Double]) -> CGPoint {
         let i = Double(data.count - 1) * x / (rc.maxX - rc.minX)
         let i0 = Int(modf(i).0)
         let s = modf(i).1
@@ -124,17 +122,38 @@ struct EpsiPlotView: View {
         return valueToPoint(rc: rc, x: x, yAxis: yAxis, value: value + yOffset)
     }
 
-    private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double, data: [Double], color: Color) {
-        context.stroke(Path { path in
-            let numSamples = 4 * Int(rc.width)
-            path.move(to: EpsiPlotView.pointSample(rc: rc, x: 0.0, yAxis: yAxis, yOffset: yOffset, data: data))
-            for i in 1..<numSamples {
-                let x = Double(i) * (rc.maxX - rc.minX) / Double(numSamples)
-                path.addLine(to: EpsiPlotView.pointSample(rc: rc, x: x, yAxis: yAxis, yOffset: yOffset, data: data))
+    private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double, data: inout [Double], time_s: inout [Double], color: Color) {
+
+        if (!data.isEmpty) {
+            let minX = rc.minX + rc.width * (time_s.first! - dataModel.time_window_start) / dataModel.time_window_length
+            if (minX - rc.minX > 2) {
+                let rcEmpty = CGRect(x: rc.minX, y: rc.minY, width: minX - rc.minX, height: rc.height)
+                context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
             }
+            let maxX = rc.minX + rc.width * (time_s.last! - dataModel.time_window_start) / dataModel.time_window_length
+            if (rc.maxX - maxX > 2) {
+                let rcEmpty = CGRect(x: maxX, y: rc.minY, width: rc.maxX - maxX, height: rc.height)
+                context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
+            }
+
+            let dataRect = CGRect(x: minX, y: rc.minY, width: maxX - minX, height: rc.height)
+            let samples_per_pixel = 1
+            let numSamples = samples_per_pixel * Int(dataRect.width)
+            context.stroke(Path { path in
+                path.move(to: EpsiPlotView.pointSample(rc: dataRect, x: 0.0, yAxis: yAxis, yOffset: yOffset, data: &data))
+                for i in 1..<numSamples {
+                    let x = Double(i) * (dataRect.maxX - dataRect.minX) / Double(numSamples)
+                    path.addLine(to: EpsiPlotView.pointSample(rc: dataRect, x: x, yAxis: yAxis, yOffset: yOffset, data: &data))
+                }
             },
             with: .color(color),
             lineWidth: 2)
+        } else {
+            context.fill(Path(rc), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
+            context.draw(Text("no data").foregroundStyle(.gray),
+                         at: CGPoint(x: (rc.minX + rc.maxX) / 2, y: (rc.minY + rc.maxY) / 2),
+                         anchor: .center)
+        }
     }
 
     let t1_color = Color(red: 21/255, green: 53/255, blue: 136/255)
@@ -161,28 +180,41 @@ struct EpsiPlotView: View {
     }
     private var chart: some View {
         return Canvas{ context, size in
-            print("W: \(size.width) H: \(size.height)")
+            let start_time = ProcessInfo.processInfo.systemUptime
+            dataModel.update()
+            let end_time = ProcessInfo.processInfo.systemUptime
+            let msec = Int((end_time - start_time) * 1000)
+            print("Updating took \(msec) ms.")
+
+            if (dataModel.epsi.time_s.isEmpty && dataModel.ctd.time_s.isEmpty) {
+                context.draw(Text("No data. Use File -> Select folder..."),
+                             at: CGPoint(x: 10, y: 10),
+                             anchor: .topLeading)
+                return
+            }
+
+            let start_time2 = ProcessInfo.processInfo.systemUptime
             var rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
 
-            dataModel.update()
-
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "mm:ss"
-
-            let firstTime = dataModel.epsi.time_s[0]
-            let firstAlignedTime = ceil(firstTime)
-            let lastTime = dataModel.epsi.time_s[dataModel.epsi.time_s.count - 1]
-            let timeDelta = lastTime - firstTime
-            let timeStep = max(1.0, ceil(timeDelta / 5))
+            let timeTickCount = 5
             var xAxis : [Double] = []
-            var t = firstAlignedTime
-            while t < lastTime {
-                //let s = Double(i) / Double(time_ticks - 1)
-                //let t = min((ceil((s * timeDelta) + firstTime) - firstTime) / timeDelta, 1)
-                xAxis.append((t - firstTime) / (timeDelta))
+            for i in 0..<timeTickCount {
+                xAxis.append(Double(i) / Double(timeTickCount - 1))
+            }
+            /*
+            let timeStep = max(1.0, ceil(dataModel.time_window_length / Double(timeTickCount)))
+            var t = ceil(dataModel.time_window_start / timeStep) * timeStep
+            while t < dataModel.time_window_start + dataModel.time_window_length {
+                xAxis.append((t - dataModel.time_window_start) / dataModel.time_window_length)
                 t += timeStep
             }
-            
+            if (xAxis.first! > 0.05) {
+                xAxis.insert(0.0, at: 0)
+            }
+            if (xAxis.last! < 0.95) {
+                xAxis.append(1.0)
+            }*/
+
             // EPSI t1, t2
             drawLabel(context: context, rc: rect, text: "FP07 [Volt]")
             let epsi_t_volt_range = EpsiDataModel.minmaxoff(v1: dataModel.epsi_t1_volt_range, off1: -dataModel.epsi_t1_volt_mean, v2: dataModel.epsi_t2_volt_range, off2: -dataModel.epsi_t2_volt_mean)
@@ -190,11 +222,11 @@ struct EpsiPlotView: View {
             let t_yAxis = EpsiDataModel.yAxis(range: epsi_t_volt_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: t_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
 
-            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, yOffset: -dataModel.epsi_t1_volt_mean, data: dataModel.epsi.t1_volt, color: t1_color)
-            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, yOffset: -dataModel.epsi_t2_volt_mean, data: dataModel.epsi.t2_volt, color: t2_color)
+            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, yOffset: -dataModel.epsi_t1_volt_mean, data: &dataModel.epsi.t1_volt, time_s: &dataModel.epsi.time_s, color: t1_color)
+            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, yOffset: -dataModel.epsi_t2_volt_mean, data: &dataModel.epsi.t2_volt, time_s: &dataModel.epsi.time_s, color: t2_color)
 
             // EPSI s1, s2
-            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
+            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
             drawLabel(context: context, rc: rect, text: "Shear [Volt]")
 
             let epsi_s_volt_range = EpsiDataModel.minmaxoff(v1: dataModel.epsi_s1_volt_range, off1: -dataModel.epsi_s1_volt_rms, v2: dataModel.epsi_s2_volt_range, off2: -dataModel.epsi_s2_volt_rms)
@@ -202,8 +234,8 @@ struct EpsiPlotView: View {
             let s_yAxis = EpsiDataModel.yAxis(range: epsi_s_volt_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
 
-            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, yOffset: -dataModel.epsi_s1_volt_rms, data: dataModel.epsi.s1_volt, color: s1_color)
-            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, yOffset: -dataModel.epsi_s2_volt_rms, data: dataModel.epsi.s2_volt, color: s2_color)
+            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, yOffset: -dataModel.epsi_s1_volt_rms, data: &dataModel.epsi.s1_volt, time_s: &dataModel.epsi.time_s, color: s1_color)
+            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, yOffset: -dataModel.epsi_s2_volt_rms, data: &dataModel.epsi.s2_volt, time_s: &dataModel.epsi.time_s, color: s2_color)
 
             // EPSI a1
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -212,7 +244,7 @@ struct EpsiPlotView: View {
             
             let a1_yAxis = EpsiDataModel.yAxis(range: dataModel.epsi_a1_g_range)
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a1_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: halfRect, yAxis: dataModel.epsi_a1_g_range, yOffset: 0, data: dataModel.epsi.a1_g, color: a1_color)
+            render1D(context: context, rc: halfRect, yAxis: dataModel.epsi_a1_g_range, yOffset: 0, data: &dataModel.epsi.a1_g, time_s: &dataModel.epsi.time_s, color: a1_color)
 
             // EPSI a2, a3
             halfRect = halfRect.offsetBy(dx: 0, dy: halfRect.height)
@@ -220,8 +252,8 @@ struct EpsiPlotView: View {
 
             let a23_yAxis = EpsiDataModel.yAxis(range: epsi_a23_g_range)
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a23_yAxis, leftLabels: false, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: dataModel.epsi.a2_g, color: a2_color)
-            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: dataModel.epsi.a3_g, color: a3_color)
+            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: &dataModel.epsi.a2_g, time_s: &dataModel.epsi.time_s, color: a2_color)
+            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: &dataModel.epsi.a3_g, time_s: &dataModel.epsi.time_s, color: a3_color)
 
             // CTD T
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -229,7 +261,7 @@ struct EpsiPlotView: View {
 
             let T_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_T_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: T_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_T_range, yOffset: 0, data: dataModel.ctd.T, color: T_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_T_range, yOffset: 0, data: &dataModel.ctd.T, time_s: &dataModel.ctd.time_s, color: T_color)
 
             // CTD S
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -237,7 +269,7 @@ struct EpsiPlotView: View {
 
             let S_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_S_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: S_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_S_range, yOffset: 0, data: dataModel.ctd.S, color: S_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_S_range, yOffset: 0, data: &dataModel.ctd.S, time_s: &dataModel.ctd.time_s, color: S_color)
 
             // CTD dPdt
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -245,7 +277,7 @@ struct EpsiPlotView: View {
 
             let dPdt_yAxis = [dataModel.ctd_dPdt_range.1, 0.0, dataModel.ctd_dPdt_range.0]
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dPdt_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_dPdt_range, yOffset: 0, data: dataModel.ctd_dPdt_movmean, color: dPdt_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_dPdt_range, yOffset: 0, data: &dataModel.ctd_dPdt_movmean, time_s: &dataModel.ctd.time_s, color: dPdt_color)
 
             // CTD P
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -253,20 +285,26 @@ struct EpsiPlotView: View {
 
             let P_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_P_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: P_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_P_range, yOffset: 0, data: dataModel.ctd.P, color: P_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_P_range, yOffset: 0, data: &dataModel.ctd.P, time_s: &dataModel.ctd.time_s, color: P_color)
 
             // Time labels
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "mm:ss.S"
             for i in 0..<xAxis.count {
                 let s = xAxis[i]
-                let time_s = firstTime + s * timeDelta
+                let time_s = dataModel.time_window_start + s * dataModel.time_window_length
                 let date = Date(timeIntervalSince1970: time_s)
                 let label = dateFormatter.string(from: date)
 
                 let x = (1 - s) * rect.minX + s * rect.maxX
                 context.draw(Text(label).font(.footnote),
                              at: CGPoint(x: x, y: rect.maxY + vgap/2),
-                             anchor: UnitPoint(x: 0.5, y: 0.5))
+                             anchor: .center)
             }
+
+            let end_time2 = ProcessInfo.processInfo.systemUptime
+            let msec2 = Int((end_time2 - start_time2) * 1000)
+            print("Rendering took \(msec2) ms.")
         }
     }
 }

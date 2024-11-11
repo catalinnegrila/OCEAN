@@ -3,8 +3,12 @@ import RegexBuilder
 
 class TimestampedData
 {
+    var capacity : Int = 0
     var time_s : [Double] = []
-    
+
+    func isFull() -> Bool {
+        return time_s.count >= capacity
+    }
     func reserveCapacity(_ newCapacity: Int)
     {
         time_s.reserveCapacity(newCapacity)
@@ -13,10 +17,14 @@ class TimestampedData
     {
         time_s.removeAll()
     }
+    func append(from: TimestampedData, first: Int, count: Int)
+    {
+        time_s.append(contentsOf: from.time_s[first..<first+count])
+    }
     func getFirstEntryIndex(_ time_cursor : Double) -> Int
     {
         for i in 0..<time_s.count {
-            if (time_s[i] > time_cursor) {
+            if (time_s[i] >= time_cursor) {
                 return i
             }
         }
@@ -38,6 +46,10 @@ class EpsiData : TimestampedData
     var a2_g : [Double] = []
     var a3_g : [Double] = []
     
+    override init() {
+        super.init()
+        capacity = 8000
+    }
     override func reserveCapacity(_ newCapacity: Int)
     {
         super.reserveCapacity(newCapacity)
@@ -60,6 +72,17 @@ class EpsiData : TimestampedData
         a2_g.removeAll()
         a3_g.removeAll()
     }
+    func append(from: EpsiData, first: Int, count: Int)
+    {
+        super.append(from: from, first: first, count: count)
+        t1_volt.append(contentsOf: from.t1_volt[first..<first+count])
+        t2_volt.append(contentsOf: from.t2_volt[first..<first+count])
+        s1_volt.append(contentsOf: from.s1_volt[first..<first+count])
+        s2_volt.append(contentsOf: from.s2_volt[first..<first+count])
+        a1_g.append(contentsOf: from.a1_g[first..<first+count])
+        a2_g.append(contentsOf: from.a2_g[first..<first+count])
+        a3_g.append(contentsOf: from.a3_g[first..<first+count])
+    }
 }
 
 class CtdData : TimestampedData
@@ -70,6 +93,10 @@ class CtdData : TimestampedData
     var C : [Double] = []
     var dPdt : [Double] = []
     
+    override init() {
+        super.init()
+        capacity = 1000
+    }
     override func reserveCapacity(_ newCapacity: Int)
     {
         super.reserveCapacity(newCapacity)
@@ -86,6 +113,15 @@ class CtdData : TimestampedData
         S.removeAll()
         C.removeAll()
         dPdt.removeAll()
+    }
+    func append(from: CtdData, first: Int, count: Int)
+    {
+        super.append(from: from, first: first, count: count)
+        P.append(contentsOf: from.P[first..<first+count])
+        T.append(contentsOf: from.T[first..<first+count])
+        S.append(contentsOf: from.S[first..<first+count])
+        C.append(contentsOf: from.C[first..<first+count])
+        dPdt.append(contentsOf: from.dPdt[first..<first+count])
     }
 }
 
@@ -114,37 +150,39 @@ class EpsiDataModel
     var ctd_C_range : (Double, Double) = (0, 0)
     var ctd_dPdt_range : (Double, Double) = (0, 0)
 
-    var time_cursor : Double = 0
-    var time_window : Double = 300.0 // seconds
+    var time_window_start = 0.0
+    var time_window_length = 20.0 // seconds
 
     func update()
     {
-        ctd_dPdt_movmean = EpsiDataModel.movmean(mat: ctd.dPdt, window: 100)
-
-        epsi_t1_volt_mean = EpsiDataModel.mean(mat: epsi.t1_volt)
-        epsi_t2_volt_mean = EpsiDataModel.mean(mat: epsi.t2_volt)
-        epsi_s1_volt_rms = EpsiDataModel.rms(mat: epsi.s1_volt)
-        epsi_s2_volt_rms = EpsiDataModel.rms(mat: epsi.s2_volt)
-
-        epsi_t1_volt_range = EpsiDataModel.minmax(mat: epsi.t1_volt)
-        epsi_t2_volt_range = EpsiDataModel.minmax(mat: epsi.t2_volt)
-        epsi_s1_volt_range = EpsiDataModel.minmax(mat: epsi.s1_volt)
-        epsi_s2_volt_range = EpsiDataModel.minmax(mat: epsi.s2_volt)
-        epsi_a1_g_range = EpsiDataModel.minmax(mat: epsi.a1_g)
-        epsi_a2_g_range = EpsiDataModel.minmax(mat: epsi.a2_g)
-        epsi_a3_g_range = EpsiDataModel.minmax(mat: epsi.a3_g)
- 
-        ctd_P_range = EpsiDataModel.minmax(mat: ctd.P)
-        ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
-        ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
-        ctd_C_range = EpsiDataModel.minmax(mat: ctd.C)
-        ctd_dPdt_range = EpsiDataModel.minmax(mat: ctd.dPdt)
-        ctd_dPdt_range = (ctd_dPdt_range.1, ctd_dPdt_range.0)
+        if (epsi.time_s.count > 0)
+        {
+            epsi_t1_volt_mean = EpsiDataModel.mean(mat: epsi.t1_volt)
+            epsi_t2_volt_mean = EpsiDataModel.mean(mat: epsi.t2_volt)
+            epsi_s1_volt_rms = EpsiDataModel.rms(mat: epsi.s1_volt)
+            epsi_s2_volt_rms = EpsiDataModel.rms(mat: epsi.s2_volt)
+            
+            epsi_t1_volt_range = EpsiDataModel.minmax(mat: epsi.t1_volt)
+            epsi_t2_volt_range = EpsiDataModel.minmax(mat: epsi.t2_volt)
+            epsi_s1_volt_range = EpsiDataModel.minmax(mat: epsi.s1_volt)
+            epsi_s2_volt_range = EpsiDataModel.minmax(mat: epsi.s2_volt)
+            epsi_a1_g_range = EpsiDataModel.minmax(mat: epsi.a1_g)
+            epsi_a2_g_range = EpsiDataModel.minmax(mat: epsi.a2_g)
+            epsi_a3_g_range = EpsiDataModel.minmax(mat: epsi.a3_g)
+        }
+        if (ctd.time_s.count > 0)
+        {
+            ctd_P_range = EpsiDataModel.minmax(mat: ctd.P)
+            ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
+            ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
+            ctd_C_range = EpsiDataModel.minmax(mat: ctd.C)
+            ctd_dPdt_movmean = EpsiDataModel.movmean(mat: ctd.dPdt, window: 100)
+            ctd_dPdt_range = EpsiDataModel.minmax(mat: ctd.dPdt)
+            ctd_dPdt_range = (ctd_dPdt_range.1, ctd_dPdt_range.0)
+        }
     }
     func printValues()
     {
-        print("epsi.time_s: \(epsi.time_s[0])")
-        print("ctd.time_s: \(ctd.time_s[0])")
         /*print("------- \(epsi_t1_volt.count)")
         print("t1_volt: \(epsi_t1_volt[0])")
         print("t2_volt: \(epsi_t2_volt[0])")
@@ -171,15 +209,14 @@ class EpsiDataModel
         print("dPdt: \(ctd_dPdt[0]) (\(dPdt_min),\(dPdt_max))")
         print("-------")*/
     }
-    // Time window
-    // How many elements in the window to render
-    // On a timer go look at files on disk, read delta, render into view data
-    // Source data in 2 buffers, sampled into view data based on window
+
+    func selectFolder(_ folderUrl: URL)
+    {
+    }
     
-    // Timer on the UI thread
-    //  call dataModel.Update()
-    //  getChannel()
-    //  render
+    func selectFiles(_ files: [String])
+    {
+    }
 
     init() throws
     {

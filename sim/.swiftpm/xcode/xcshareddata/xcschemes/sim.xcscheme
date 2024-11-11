@@ -53,15 +53,15 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i @../data/list.txt"
+            argument = "-i /Users/catalin/Downloads/OCEAN/epsiPlot/EPSI24_11_06_054202.modraw"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-s 10000"
+            argument = "-s 2"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-o ../out"
+            argument = "-o /Users/catalin/Downloads/OCEAN/out"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
