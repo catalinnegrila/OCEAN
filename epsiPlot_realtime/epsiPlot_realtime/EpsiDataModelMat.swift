@@ -20,8 +20,11 @@ class EpsiDataModelMat: EpsiDataModel
         ctd.P = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.P"))
         ctd.T = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.T"))
         ctd.S = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.S"))
-        ctd.C = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.C"))
-        ctd.dPdt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.dPdt"))
+        ctd.z = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.z"))
+        ctd.dzdt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.dzdt"))
+
+        update()
+        printValues()
 
         time_window_start = min(epsi.time_s.first!, ctd.time_s.first!)
         time_window_length = max(epsi.time_s.last!, ctd.time_s.last!) - time_window_start

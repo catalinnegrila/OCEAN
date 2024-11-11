@@ -30,7 +30,7 @@ class EpsiDataModelModraw: EpsiDataModel
     var sbe_cal_cj : Double = 0
     var sbe_cal_ctcor : Double = 0
     var sbe_cal_cpcor : Double = 0
-    let sbe_c3515 = 42.914
+    var PCodeData_lat : Double = 0
 
     var epsi_blocks : [EpsiData] = []
     var ctd_blocks : [CtdData] = []
@@ -123,6 +123,7 @@ class EpsiDataModelModraw: EpsiDataModel
         sbe_cal_cj = EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header)
         sbe_cal_ctcor = EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header)
         sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header)
+        PCodeData_lat = EpsiDataModelModraw.getKeyValue(key: "\nPCodeData.lat =", header: header)
     }
 
     var currentModraw: ModrawParser? = nil
@@ -459,6 +460,22 @@ class EpsiDataModelModraw: EpsiDataModel
         let Rt = R / (Rp * rt)
         return EpsiDataModelModraw.sw_sals(Rt: Rt, T: T)
     }
+    static func sw_dpth(P: Double, LAT: Double) -> Double {
+        assert(LAT >= -90 && LAT <= 90)
+        
+        let c1 = +9.72659
+        let c2 = -2.2512E-5
+        let c3 = +2.279E-10
+        let c4 = -1.82E-15
+        let gam_dash = 2.184e-6
+        
+        let X = sin(abs(LAT) * Double.pi / 180.0)
+        let X2 = X * X
+        let bot_line = 9.780318 * (1.0 + (5.2788 - 3 + 2.36 - 5 * X2) * X2) + gam_dash * 0.5 * P
+        let top_line = (((c4 * P + c3) * P + c2) * P + c1) * P
+        return top_line / bot_line
+    }
+
     func parseSB49(packet : ModrawPacket, sbe_format : SBE_Format) {
         //let sbe_data_recs_per_block = Meta_Data.CTD.sample_per_record;
         var i = packet.payloadStart
@@ -504,13 +521,13 @@ class EpsiDataModelModraw: EpsiDataModel
                 let T = sbe49_get_temperature(T_raw: T_raw)
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
+                let sbe_c3515 = 42.914
                 let S = EpsiDataModelModraw.sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
-                //ctd.dPdt = [0; diff(ctd.P)./diff(ctd.time_s)];
+                let z = EpsiDataModelModraw.sw_dpth(P: P, LAT: PCodeData_lat)
                 ctd_block.P.append(P)
                 ctd_block.T.append(T)
                 ctd_block.S.append(S)
-                ctd_block.C.append(C)
-                ctd_block.dPdt.append(0)
+                ctd_block.z.append(z)
             }
             i += 2 // skip the <CR><LF>
         }

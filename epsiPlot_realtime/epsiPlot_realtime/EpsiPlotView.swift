@@ -1,5 +1,6 @@
 import SwiftUI
 
+let PRINT_PERF = false
 var epsiDataModel : EpsiDataModel?
 
 struct EpsiPlotView: View {
@@ -123,7 +124,7 @@ struct EpsiPlotView: View {
         return valueToPoint(rc: rc, x: x, yAxis: yAxis, value: value + yOffset)
     }
 
-    private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double, data: inout [Double], time_s: inout [Double], color: Color) {
+    private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double = 0, data: inout [Double], time_s: inout [Double], color: Color) {
 
         let noDataGray = isDarkTheme() ? 0.15 : 0.9
         let noDataColor = Color(red: noDataGray, green: noDataGray, blue: noDataGray)
@@ -166,8 +167,8 @@ struct EpsiPlotView: View {
     let a3_color = Color(red: 240/255, green: 207/255, blue: 140/255)
     let T_color = Color(red: 212/255, green: 35/255, blue: 36/255)
     let S_color = Color(red: 82/255, green: 135/255, blue: 187/255)
-    let dPdt_color = Color(red: 233/255, green: 145/255, blue: 195/255)
-    let P_color = Color(red: 24/255, green: 200/255, blue: 24/255)
+    let dzdt_color = Color(red: 233/255, green: 145/255, blue: 195/255)
+    let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
     let leftLabelsWidth = CGFloat(30)
     let vgap = CGFloat(25);
     let hgap = CGFloat(30)
@@ -187,9 +188,11 @@ struct EpsiPlotView: View {
             if (epsiDataModel != nil) {
                 let start_time = ProcessInfo.processInfo.systemUptime
                 epsiDataModel!.update()
-                let end_time = ProcessInfo.processInfo.systemUptime
-                let msec = Int((end_time - start_time) * 1000)
-                print("Updating took \(msec) ms.")
+                if PRINT_PERF {
+                    let end_time = ProcessInfo.processInfo.systemUptime
+                    let msec = Int((end_time - start_time) * 1000)
+                    print("Updating took \(msec) ms.")
+                }
             }
 
             if (epsiDataModel == nil /*|| (epsiDataModel!.epsi.time_s.isEmpty && epsiDataModel!.ctd.time_s.isEmpty)*/) {
@@ -254,7 +257,7 @@ struct EpsiPlotView: View {
             
             let a1_yAxis = EpsiDataModel.yAxis(range: dataModel.epsi_a1_g_range)
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a1_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: halfRect, yAxis: dataModel.epsi_a1_g_range, yOffset: 0, data: &dataModel.epsi.a1_g, time_s: &dataModel.epsi.time_s, color: a1_color)
+            render1D(context: context, rc: halfRect, yAxis: dataModel.epsi_a1_g_range, data: &dataModel.epsi.a1_g, time_s: &dataModel.epsi.time_s, color: a1_color)
 
             // EPSI a2, a3
             halfRect = halfRect.offsetBy(dx: 0, dy: halfRect.height)
@@ -262,8 +265,8 @@ struct EpsiPlotView: View {
 
             let a23_yAxis = EpsiDataModel.yAxis(range: epsi_a23_g_range)
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a23_yAxis, leftLabels: false, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: &dataModel.epsi.a2_g, time_s: &dataModel.epsi.time_s, color: a2_color)
-            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, yOffset: 0, data: &dataModel.epsi.a3_g, time_s: &dataModel.epsi.time_s, color: a3_color)
+            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &dataModel.epsi.a2_g, time_s: &dataModel.epsi.time_s, color: a2_color)
+            render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &dataModel.epsi.a3_g, time_s: &dataModel.epsi.time_s, color: a3_color)
 
             // CTD T
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -271,7 +274,7 @@ struct EpsiPlotView: View {
 
             let T_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_T_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: T_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_T_range, yOffset: 0, data: &dataModel.ctd.T, time_s: &dataModel.ctd.time_s, color: T_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_T_range, data: &dataModel.ctd.T, time_s: &dataModel.ctd.time_s, color: T_color)
 
             // CTD S
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
@@ -279,24 +282,32 @@ struct EpsiPlotView: View {
 
             let S_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_S_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: S_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_S_range, yOffset: 0, data: &dataModel.ctd.S, time_s: &dataModel.ctd.time_s, color: S_color)
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_S_range, data: &dataModel.ctd.S, time_s: &dataModel.ctd.time_s, color: S_color)
 
-            // CTD dPdt
+            // CTD dzdt
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-            drawLabel(context: context, rc: rect, text: "C")
+            drawLabel(context: context, rc: rect, text: "dzdt [m/s]")
 
-            let dPdt_yAxis = [dataModel.ctd_C_range.1, 0.0, dataModel.ctd_C_range.0]
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dPdt_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_C_range, yOffset: 0, data: &dataModel.ctd.C, time_s: &dataModel.ctd.time_s, color: dPdt_color)
+            let dzdt_yAxis = [dataModel.ctd_dzdt_range.0, 0.0, dataModel.ctd_dzdt_range.1]
+            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_s: &dataModel.ctd.time_s, color: dzdt_color)
 
+            // CTD z
+            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
+            drawLabel(context: context, rc: rect, text: "z [m]")
+
+            let z_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_z_range)
+            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: z_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_z_range, data: &dataModel.ctd.z, time_s: &dataModel.ctd.time_s, color: P_color)
+/*
             // CTD P
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
             drawLabel(context: context, rc: rect, text: "P [db]")
 
             let P_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_P_range)
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: P_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_P_range, yOffset: 0, data: &dataModel.ctd.P, time_s: &dataModel.ctd.time_s, color: P_color)
-
+            render1D(context: context, rc: rect, yAxis: dataModel.ctd_P_range, data: &dataModel.ctd.P, time_s: &dataModel.ctd.time_s, color: P_color)
+*/
             // Time labels
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "mm:ss.S"
@@ -311,10 +322,11 @@ struct EpsiPlotView: View {
                              at: CGPoint(x: x, y: rect.maxY + vgap/2),
                              anchor: .center)
             }
-
-            let end_time2 = ProcessInfo.processInfo.systemUptime
-            let msec2 = Int((end_time2 - start_time2) * 1000)
-            print("Rendering took \(msec2) ms.")
+            if PRINT_PERF {
+                let end_time2 = ProcessInfo.processInfo.systemUptime
+                let msec2 = Int((end_time2 - start_time2) * 1000)
+                print("Rendering took \(msec2) ms.")
+            }
         }
     }
 }
