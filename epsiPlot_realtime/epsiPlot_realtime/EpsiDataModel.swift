@@ -90,9 +90,9 @@ class CtdData : TimestampedData
     var P : [Double] = []
     var T : [Double] = []
     var S : [Double] = []
-    var C : [Double] = []
-    var dPdt : [Double] = []
-    
+    var z : [Double] = []
+    var dzdt : [Double] = []
+
     override init() {
         super.init()
         capacity = 1000
@@ -103,16 +103,16 @@ class CtdData : TimestampedData
         P.reserveCapacity(newCapacity)
         T.reserveCapacity(newCapacity)
         S.reserveCapacity(newCapacity)
-        C.reserveCapacity(newCapacity)
-        dPdt.reserveCapacity(newCapacity)
+        z.reserveCapacity(newCapacity)
+        dzdt.reserveCapacity(newCapacity)
     }
     override func removeAll() {
         super.removeAll()
         P.removeAll()
         T.removeAll()
         S.removeAll()
-        C.removeAll()
-        dPdt.removeAll()
+        z.removeAll()
+        dzdt.removeAll()
     }
     func append(from: CtdData, first: Int, count: Int)
     {
@@ -120,8 +120,8 @@ class CtdData : TimestampedData
         P.append(contentsOf: from.P[first..<first+count])
         T.append(contentsOf: from.T[first..<first+count])
         S.append(contentsOf: from.S[first..<first+count])
-        C.append(contentsOf: from.C[first..<first+count])
-        dPdt.append(contentsOf: from.dPdt[first..<first+count])
+        z.append(contentsOf: from.z[first..<first+count])
+        //dzdt.append(contentsOf: from.dzdt[first..<first+count])
     }
 }
 
@@ -130,8 +130,6 @@ class EpsiDataModel
     var windowTitle : String = ""
     var epsi : EpsiData = EpsiData()
     var ctd : CtdData = CtdData()
-
-    var ctd_dPdt_movmean : [Double] = []
 
     var epsi_t1_volt_mean : Double = 0
     var epsi_t2_volt_mean : Double = 0
@@ -148,8 +146,10 @@ class EpsiDataModel
     var ctd_P_range : (Double, Double) = (0, 0)
     var ctd_T_range : (Double, Double) = (0, 0)
     var ctd_S_range : (Double, Double) = (0, 0)
-    var ctd_C_range : (Double, Double) = (0, 0)
-    var ctd_dPdt_range : (Double, Double) = (0, 0)
+    var ctd_z_range : (Double, Double) = (0, 0)
+    // Calculated from ctd.z
+    var ctd_dzdt_movmean : [Double] = []
+    var ctd_dzdt_range : (Double, Double) = (0, 0)
 
     var time_window_start = 0.0
     var time_window_length = 0.0
@@ -176,14 +176,28 @@ class EpsiDataModel
             ctd_P_range = EpsiDataModel.minmax(mat: ctd.P)
             ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
             ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
-            ctd_C_range = EpsiDataModel.minmax(mat: ctd.C)
-            ctd_dPdt_movmean = EpsiDataModel.movmean(mat: ctd.dPdt, window: 100)
-            ctd_dPdt_range = EpsiDataModel.minmax(mat: ctd.dPdt)
-            ctd_dPdt_range = (ctd_dPdt_range.1, ctd_dPdt_range.0)
+            ctd_z_range = EpsiDataModel.minmax(mat: ctd.z)
+
+            if (ctd.dzdt.count == 0) {
+                ctd.dzdt.removeAll()
+                ctd.dzdt.append(0.0)
+                for i in 1..<ctd.z.count {
+                    ctd.dzdt.append(-(ctd.z[i] - ctd.z[i - 1]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
+                }
+                if (ctd.dzdt.count > 1) {
+                    ctd.dzdt[0] = ctd.dzdt[1]
+                }
+            }
+            ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd.dzdt, window: 40)
+            ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
         }
     }
     func printValues()
     {
+        print("z: \(ctd.z[0..<5])")
+        print("z.range: \(ctd_z_range)")
+        print("dzdt: \(ctd.dzdt[0..<5])")
+        print("dzdt.range: \(ctd_dzdt_range)")
         /*print("------- \(epsi_t1_volt.count)")
         print("t1_volt: \(epsi_t1_volt[0])")
         print("t2_volt: \(epsi_t2_volt[0])")
