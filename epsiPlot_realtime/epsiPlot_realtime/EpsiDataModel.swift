@@ -263,17 +263,6 @@ class EpsiDataModel
         return result
     }
 
-    static func shortenMat1(mat : [Double], newCount: Int) -> [Double]
-    {
-        assert(newCount < mat.count)
-        var result = Array(repeating: 0.0, count: newCount)
-        let slice = Double(mat.count) / Double(newCount)
-        for i in 0..<newCount {
-            result[i] = mat[Int(slice * Double(i))]
-        }
-        return result
-    }
-    
     static func mat2ToMat1(mat : [[Double]]) -> [Double]
     {
         assert(mat[0].count == 1)

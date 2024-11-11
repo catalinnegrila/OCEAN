@@ -199,6 +199,7 @@ struct ModrawParser {
         return c >= ASCII_A && c <= ASCII_Z
     }
     mutating func parsePacket() -> ModrawPacket? {
+        let packetStartCursor = cursor
         var packet = [UInt8]()
         var c = parseByte()
         while (c != nil) {
@@ -232,10 +233,13 @@ struct ModrawParser {
                 }
             }
             if foundMarker(endMarker) {
-                // TODO: mark as incomplete packet
                 return nil
             }
             c = parseByte()
+        }
+        if (c == nil) {
+            cursor = packetStartCursor
+            return nil
         }
         guard packet.count > 5 else { return nil }
         let p = ModrawPacket(data: packet)
@@ -245,9 +249,13 @@ struct ModrawParser {
             var timestamp = 0
             i = i + 1
             var c = packet[i]
-            while i < packet.count && ModrawParser.isDigit(c) {
+            while ModrawParser.isDigit(c) {
                 timestamp = timestamp * 10 + Int(c - ModrawParser.ASCII_0)
                 i = i + 1
+                if (i >= packet.count) {
+                    cursor = packetStartCursor
+                    return nil
+                }
                 c = packet[i]
             }
             if c == ModrawParser.ASCII_DOLLAR {
@@ -261,19 +269,25 @@ struct ModrawParser {
             }
         }
         // Parse the signature following the <DOLLAR>
-        if i < packet.count - 1 && packet[i] == ModrawParser.ASCII_DOLLAR {
-            p.signature = "$"
-            i = i + 1
-            var c = packet[i]
-            for _ in 0..<4  {
-                assert(i < packet.count)
-                p.signature = p.signature + String(Character(UnicodeScalar(c)))
-                i = i + 1
-                c = packet[i]
-            }
+        let sigLen = 5
+        if i < packet.count - sigLen && packet[i] == ModrawParser.ASCII_DOLLAR {
+            p.signature = p.parseString(start: i, len: sigLen)
+            p.payloadStart = i + sigLen
         }
-        p.payloadStart = i
-        return p
+
+        var validPacket : Bool
+        if (p.signature == "$SOM3") {
+            validPacket = (p.timeOffsetMs == nil)
+        } else {
+            validPacket = (p.signature != "" && p.timeOffsetMs != nil && p.date != nil)
+        }
+
+        if (validPacket) {
+            return p
+        } else {
+            cursor = packetStartCursor
+            return nil
+        }
     }
     func progress() -> Double {
         let fullPercent = 100.0 * Double(cursor) / Double(data.count)
