@@ -1,13 +1,15 @@
 import Foundation
 
-struct ModrawPacket {
-    //public var data : Data
+class ModrawPacket {
     public var data : [UInt8]
     public var timeOffsetMs : Int?
     public var date : NSDate?
     public var signature = ""
     public var payloadStart : Int = 0
 
+    init(data: [UInt8]) {
+        self.data = data
+    }
     func parseString(start: Int, len: Int) -> String {
         assert(start + len <= data.count)
         var str = ""
@@ -16,7 +18,6 @@ struct ModrawPacket {
         }
         return str
     }
-
     func parseHex(start: Int, len: Int) -> Int {
         return Int(parseString(start: start, len: len), radix: 16)!
     }
@@ -44,6 +45,12 @@ struct ModrawParser {
     init(data: Data) {
         self.data = [UInt8](repeating: 0, count: data.count)
         data.copyBytes(to: &self.data, count: data.count)
+    }
+    func getSize() -> Int {
+        return data.count
+    }
+    mutating func appendData(data: [UInt8]) {
+        self.data.append(contentsOf: data)
     }
     private func peekByte() -> UInt8? {
         guard cursor < data.count else { return nil }
@@ -230,7 +237,7 @@ struct ModrawParser {
             c = parseByte()
         }
         guard packet.count > 5 else { return nil }
-        var p = ModrawPacket(data: packet)
+        let p = ModrawPacket(data: packet)
         var i = 0
         // Parse the timestamp immediately following the <T>
         if packet.count > 2 && packet[i] == ModrawParser.ASCII_T {

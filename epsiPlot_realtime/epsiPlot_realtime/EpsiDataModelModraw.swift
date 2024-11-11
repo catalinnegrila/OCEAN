@@ -2,8 +2,6 @@ import Foundation
 
 class EpsiDataModelModraw: EpsiDataModel
 {
-    var modraw : ModrawParser
-
     enum SBE_Format : Int {
         case eng = 1, PTS
     }
@@ -38,73 +36,52 @@ class EpsiDataModelModraw: EpsiDataModel
     var ctd_blocks : [CtdData] = []
 
     override func update() {
-        // EPSI
-        while epsi_blocks.count > 0 {
-            if (epsi_blocks[0].time_s[0] > time_cursor) {
-                time_cursor = epsi_blocks[0].time_s[0]
-                break
-            } else if (epsi_blocks[1].time_s[0] < time_cursor) {
-                epsi_blocks.remove(at: 0)
-            } else {
-                break
+        tryReadMoreData()
+
+        if (epsi_blocks.isEmpty) {
+            epsi.removeAll()
+        }
+        if (ctd_blocks.isEmpty) {
+            ctd.removeAll()
+        }
+        if (epsi_blocks.isEmpty && ctd_blocks.isEmpty) {
+            super.update()
+            return
+        }
+
+        let epsi_time = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last! - time_window_length
+        let ctd_time = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last! - time_window_length
+        time_window_start = max(epsi_time, ctd_time)
+
+        while !epsi_blocks.isEmpty && epsi_blocks.first!.time_s.last! < time_window_start {
+            epsi_blocks.remove(at: 0)
+        }
+        if (!epsi_blocks.isEmpty) {
+            let epsi_num_samples = Int(ceil(time_window_length / epsi_blocks[0].getSampleDuration()))
+            //let epsi_freq = Int(1/epsi_blocks[0].getSampleDuration())
+            //print("EPSI: \(epsi_freq) samples/s, \(epsi_num_samples) samples in window")
+            epsi.removeAll()
+            epsi.reserveCapacity(epsi_num_samples)
+            for block_index in 0..<epsi_blocks.count {
+                let block_size = epsi_blocks[block_index].time_s.count
+                let first_entry = block_index == 0 ? epsi_blocks[0].getFirstEntryIndex(time_window_start) : 0
+                epsi.append(from: epsi_blocks[block_index], first: first_entry, count: block_size - first_entry)
             }
         }
-        var entry_index = epsi_blocks[0].getFirstEntryIndex(time_cursor)
-        let epsi_sample_duration = epsi_blocks[0].getSampleDuration()
-        let epsi_num_samples = Int(ceil(time_window / epsi_sample_duration))
-        print("EPSI: \(epsi_num_samples) samples, \(epsi_sample_duration) seconds")
-        epsi.removeAll()
-        epsi.reserveCapacity(epsi_num_samples)
-        var j = 0
-        var block_index = 0
-        while j < epsi_num_samples && block_index < epsi_blocks.count {
-            while j < epsi_num_samples && entry_index < epsi_blocks[block_index].time_s.count {
-                epsi.time_s.append(epsi_blocks[block_index].time_s[entry_index])
-                epsi.t1_volt.append(epsi_blocks[block_index].t1_volt[entry_index])
-                epsi.t2_volt.append(epsi_blocks[block_index].t2_volt[entry_index])
-                epsi.s1_volt.append(epsi_blocks[block_index].s1_volt[entry_index])
-                epsi.s2_volt.append(epsi_blocks[block_index].s2_volt[entry_index])
-                epsi.a1_g.append(epsi_blocks[block_index].a1_g[entry_index])
-                epsi.a2_g.append(epsi_blocks[block_index].a2_g[entry_index])
-                epsi.a3_g.append(epsi_blocks[block_index].a3_g[entry_index])
-                entry_index += 1
-                j += 1
-            }
-            entry_index = 0
-            block_index += 1
+        while !ctd_blocks.isEmpty && ctd_blocks.first!.time_s.last! < time_window_start {
+            ctd_blocks.remove(at: 0)
         }
-        // CTD
-        while ctd_blocks.count > 0 {
-            if (ctd_blocks[0].time_s[0] > time_cursor) {
-                time_cursor = ctd_blocks[0].time_s[0]
-                break
-            } else if (ctd_blocks[1].time_s[0] < time_cursor) {
-                ctd_blocks.remove(at: 0)
-            } else {
-                break
+        if (!ctd_blocks.isEmpty) {
+            let ctd_num_samples = Int(ceil(time_window_length / ctd_blocks[0].getSampleDuration()))
+            //let ctd_freq = Int(1/ctd_blocks[0].getSampleDuration())
+            //print("CTD: \(ctd_freq) samples/s, \(ctd_num_samples) samples in window")
+            ctd.removeAll()
+            ctd.reserveCapacity(ctd_num_samples)
+            for block_index in 0..<ctd_blocks.count {
+                let block_size = ctd_blocks[block_index].time_s.count
+                let first_entry = block_index == 0 ? ctd_blocks[0].getFirstEntryIndex(time_window_start) : 0
+                ctd.append(from: ctd_blocks[block_index], first: first_entry, count: block_size - first_entry)
             }
-        }
-        entry_index = ctd_blocks[0].getFirstEntryIndex(time_cursor)
-        let ctd_sample_duration = ctd_blocks[0].getSampleDuration()
-        let ctd_num_samples = Int(ceil(time_window / ctd_sample_duration))
-        print("CTD: \(ctd_num_samples) samples, \(ctd_sample_duration) seconds")
-        ctd.removeAll()
-        ctd.reserveCapacity(ctd_num_samples)
-        j = 0
-        block_index = 0
-        while j < ctd_num_samples && block_index < ctd_blocks.count {
-            while j < ctd_num_samples && entry_index < ctd_blocks[block_index].time_s.count {
-                ctd.time_s.append(ctd_blocks[block_index].time_s[entry_index])
-                ctd.P.append(ctd_blocks[block_index].P[entry_index])
-                ctd.T.append(ctd_blocks[block_index].T[entry_index])
-                ctd.S.append(ctd_blocks[block_index].S[entry_index])
-                ctd.C.append(ctd_blocks[block_index].C[entry_index])
-                ctd.dPdt.append(ctd_blocks[block_index].dPdt[entry_index])
-                entry_index += 1
-                j += 1
-            }
-            entry_index = 0
-            block_index += 1
         }
         super.update()
     }
@@ -149,28 +126,19 @@ class EpsiDataModelModraw: EpsiDataModel
 
     override init() throws
     {
-        //let _ = try! EpsiDataModelMat()
-
-        let fileUrl = URL(fileURLWithPath: "/Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.modraw")
-        let inputFileData = try! Data(contentsOf: fileUrl)
-        modraw = ModrawParser(data: inputFileData)
-
         try super.init()
 
-        let header = self.modraw.parseHeader()
-        guard header != nil else {
-            throw MyError.runtimeError("Invalid file format. Could not parse header.")
-        }
+        //selectFiles(["file:///Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.modraw"])
+        selectFiles(["file:///Users/catalin/Downloads/OCEAN/out/EPSI24_11_06_054202.modraw"])
 
-        readCalibrationData(header: header!)
-
+/*
         let som = self.modraw.parsePacket()
         guard som != nil &&
                 som!.timeOffsetMs == nil &&
                 som!.signature == "$SOM3" else {
             throw MyError.runtimeError("Expected $SOM3 first packet.")
         }
-
+*/
         /* TODO: handle partial packets
          if partialEndPacket != nil {
             print("Patching partial first packet with \(partialEndPacket!).")
@@ -180,30 +148,82 @@ class EpsiDataModelModraw: EpsiDataModel
         if partialEndPacket != nil {
             print("Extracted partial last packet of \(partialEndPacket!).")
         }*/
-
-        var packet = self.modraw.parsePacket()
-        while packet != nil {
-            if packet!.timeOffsetMs == nil || packet!.date == nil {
-                throw MyError.runtimeError("Expected timestamp on packet.")
-            }
-            if (packet!.signature == "$EFE4") {
-                parseEFE4(packet: packet!)
-            } else if (packet!.signature == "$SB49") {
-                parseSB49(packet: packet!, sbe_format: SBE_Format.eng)
-            } else if (packet!.signature == "$SB41") {
-                parseSB49(packet: packet!, sbe_format: SBE_Format.PTS)
-            }
-            packet = self.modraw.parsePacket()
-        }
-
-        update()
-
-        //time_cursor = min(epsi.time_s[0], ctd.time_s[0])
-
-        print("MODRAW:")
-        printValues()
     }
 
+    var currentModraw : ModrawParser? = nil
+    var currentModrawURL : URL? = nil
+
+    func beginParsing(parser: inout ModrawParser)
+    {
+        let header = parser.parseHeader()
+        assert(header != nil)
+        readCalibrationData(header: header!)
+    }
+    func parsePacketsLoop(parser: inout ModrawParser)
+    {
+        var packet = parser.parsePacket()
+        while packet != nil {
+            if (packet!.signature == "$SOM3") {
+                assert(packet!.timeOffsetMs == nil)
+            } else {
+                assert(packet!.timeOffsetMs != nil)
+                assert(packet!.date != nil)
+            }
+            switch packet!.signature {
+            case "$EFE4":
+                parseEFE4(packet: packet!)
+            case "$SB49":
+                parseSB49(packet: packet!, sbe_format: SBE_Format.eng)
+            default:
+                break
+            }
+            packet = parser.parsePacket()
+        }
+    }
+    override func selectFolder(_ folderUrl: URL)
+    {
+        var files = [String]()
+        if let enumerator = FileManager.default.enumerator(at: folderUrl, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+            for case let fileURL as URL in enumerator {
+                do {
+                    let fileAttributes = try fileURL.resourceValues(forKeys:[.isRegularFileKey])
+                    if fileAttributes.isRegularFile! {
+                        let fileURLString = fileURL.absoluteString
+                        if fileURLString.lowercased().hasSuffix(".modraw") {
+                            files.append(fileURLString)
+                        }
+                    }
+                } catch {
+                    print(error, fileURL)
+                }
+            }
+            files.sort()
+        }
+        selectFiles(files)
+    }
+    override func selectFiles(_ files: [String])
+    {
+        print("Reading: \(files.last!)")
+        currentModrawURL = URL(string: files.last!)
+        let inputFileData = try! Data(contentsOf: currentModrawURL!)
+        currentModraw = ModrawParser(data: inputFileData)
+        beginParsing(parser: &currentModraw!)
+        parsePacketsLoop(parser: &currentModraw!)
+    }
+    func tryReadMoreData()
+    {
+        let fileAttributes = try! FileManager.default.attributesOfItem(atPath: currentModrawURL!.path)
+        let newModrawSize = fileAttributes[.size] as! Int
+        let oldModrawSize = currentModraw!.getSize()
+        if (oldModrawSize < newModrawSize)
+        {
+            let inputFileData = try! Data(contentsOf: currentModrawURL!)
+            var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
+            inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
+            currentModraw!.appendData(data: newData)
+            parsePacketsLoop(parser: &currentModraw!)
+        }
+    }
     static let hextimestamplength = 16
     static let hexblocksizelength = 8
     static let chksum1length = 3 // *<HEX><HEX>
@@ -251,8 +271,14 @@ class EpsiDataModelModraw: EpsiDataModel
         assert(hexlengthblock == block_data_len)
         assert(block_data_len == EpsiDataModelModraw.efe_n_elements * EpsiDataModelModraw.efe_recs_per_block)
 
-        let epsi_block = EpsiData()
-        epsi_block.reserveCapacity(EpsiDataModelModraw.efe_recs_per_block)
+        var epsi_block : EpsiData
+        if (epsi_blocks.isEmpty || epsi_blocks.last!.isFull()) {
+            epsi_block = EpsiData()
+            epsi_block.reserveCapacity(epsi_block.capacity)
+            epsi_blocks.append(epsi_block)
+        } else {
+            epsi_block = epsi_blocks.last!
+        }
 
         for _ in 0..<EpsiDataModelModraw.efe_recs_per_block {
             var time_s = UInt64(0) // Inverse endianness
@@ -284,7 +310,6 @@ class EpsiDataModelModraw: EpsiDataModel
             epsi_block.a2_g.append(EpsiDataModelModraw.volt_to_g(data: a2_volt))
             epsi_block.a3_g.append(EpsiDataModelModraw.volt_to_g(data: a3_volt))
         }
-        epsi_blocks.append(epsi_block)
     }
 
     static let sbe_recs_per_block = 2
@@ -413,8 +438,14 @@ class EpsiDataModelModraw: EpsiDataModel
         //print("checksum2: \(packet.parseString(start: packet.data.count - EpsiDataModelModraw.chksum2length, len: EpsiDataModelModraw.chksum1length))")
         assert(packet.data[packet.data.count - EpsiDataModelModraw.chksum2length] == ModrawParser.ASCII_STAR)
 
-        let ctd_block = CtdData()
-        ctd_block.reserveCapacity(EpsiDataModelModraw.sbe_recs_per_block)
+        var ctd_block : CtdData
+        if (ctd_blocks.isEmpty || ctd_blocks.last!.isFull()) {
+            ctd_block = CtdData()
+            ctd_block.reserveCapacity(ctd_block.capacity)
+            ctd_blocks.append(ctd_block)
+        } else {
+            ctd_block = ctd_blocks.last!
+        }
 
         for _ in 0..<EpsiDataModelModraw.sbe_recs_per_block {
             //print("[\(j)] hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.sbe_timestamp_length))")
@@ -432,11 +463,6 @@ class EpsiDataModelModraw: EpsiDataModel
                 let P_raw = EpsiDataModelModraw.parseSbeChannel6(packet: packet, i: &i)
                 let PT_raw = EpsiDataModelModraw.parseSbeChannel4(packet: packet, i: &i)
 
-                //ctd_block.T_raw.append(T_raw)
-                //ctd_block.C_raw.append(C_raw)
-                //ctd_block.P_raw.append(P_raw)
-                //ctd_block.PT_raw.append(PT_raw)
-
                 let T = sbe49_get_temperature(T_raw: T_raw)
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
@@ -450,6 +476,5 @@ class EpsiDataModelModraw: EpsiDataModel
             }
             i += 2 // skip the <CR><LF>
         }
-        ctd_blocks.append(ctd_block)
     }
 }
