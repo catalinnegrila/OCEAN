@@ -35,15 +35,18 @@ class EpsiDataModelModraw: EpsiDataModel
     var epsi_blocks : [EpsiData] = []
     var ctd_blocks : [CtdData] = []
 
-    override func update() {
-        tryReadMoreData()
+    var scanningFolderUrl : URL?
 
-        if (epsi_blocks.isEmpty) {
-            epsi.removeAll()
+    override func update() {
+        if (scanningFolderUrl != nil) {
+            scanFolder()
+        } else if (!epsi.time_s.isEmpty || !ctd.time_s.isEmpty) {
+            return
         }
-        if (ctd_blocks.isEmpty) {
-            ctd.removeAll()
-        }
+
+        epsi.removeAll()
+        ctd.removeAll()
+
         if (epsi_blocks.isEmpty && ctd_blocks.isEmpty) {
             super.update()
             return
@@ -60,7 +63,6 @@ class EpsiDataModelModraw: EpsiDataModel
             let epsi_num_samples = Int(ceil(time_window_length / epsi_blocks[0].getSampleDuration()))
             //let epsi_freq = Int(1/epsi_blocks[0].getSampleDuration())
             //print("EPSI: \(epsi_freq) samples/s, \(epsi_num_samples) samples in window")
-            epsi.removeAll()
             epsi.reserveCapacity(epsi_num_samples)
             for block_index in 0..<epsi_blocks.count {
                 let block_size = epsi_blocks[block_index].time_s.count
@@ -75,7 +77,6 @@ class EpsiDataModelModraw: EpsiDataModel
             let ctd_num_samples = Int(ceil(time_window_length / ctd_blocks[0].getSampleDuration()))
             //let ctd_freq = Int(1/ctd_blocks[0].getSampleDuration())
             //print("CTD: \(ctd_freq) samples/s, \(ctd_num_samples) samples in window")
-            ctd.removeAll()
             ctd.reserveCapacity(ctd_num_samples)
             for block_index in 0..<ctd_blocks.count {
                 let block_size = ctd_blocks[block_index].time_s.count
@@ -91,7 +92,7 @@ class EpsiDataModelModraw: EpsiDataModel
         let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
         let valueOnwards = header[indexAfterKey...]
         var indexOfCrlf = valueOnwards.index(of: "\r\n")
-        if indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32) {
+        if indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32) {
             indexOfCrlf = valueOnwards.index(of: "\n")
         }
         let value = valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
@@ -100,10 +101,10 @@ class EpsiDataModelModraw: EpsiDataModel
     }
 
     func readCalibrationData(header: String) {
-        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: " TA0 = ", header: header)
-        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: " TA1 = ", header: header)
-        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: " TA2 = ", header: header)
-        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: " TA3 = ", header: header)
+        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: "\nTA0=", header: header)
+        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: "\nTA1=", header: header)
+        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: "\nTA2=", header: header)
+        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: "\nTA3=", header: header)
         sbe_cal_pa0 = EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header)
         sbe_cal_pa1 = EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header)
         sbe_cal_pa2 = EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header)
@@ -124,44 +125,13 @@ class EpsiDataModelModraw: EpsiDataModel
         sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header)
     }
 
-    override init() throws
+    var currentModraw: ModrawParser? = nil
+    var currentModrawUrl: URL? = nil
+    var partialEndPacket: Data? = nil
+
+    func parsePacketsLoop()
     {
-        try super.init()
-
-        //selectFiles(["file:///Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.modraw"])
-        selectFiles(["file:///Users/catalin/Downloads/OCEAN/out/EPSI24_11_06_054202.modraw"])
-
-/*
-        let som = self.modraw.parsePacket()
-        guard som != nil &&
-                som!.timeOffsetMs == nil &&
-                som!.signature == "$SOM3" else {
-            throw MyError.runtimeError("Expected $SOM3 first packet.")
-        }
-*/
-        /* TODO: handle partial packets
-         if partialEndPacket != nil {
-            print("Patching partial first packet with \(partialEndPacket!).")
-            inputFileParser.insertPartialEndPacket(partialEndPacket!)
-        }
-        partialEndPacket = inputFileParser.extractPartialEndPacket()
-        if partialEndPacket != nil {
-            print("Extracted partial last packet of \(partialEndPacket!).")
-        }*/
-    }
-
-    var currentModraw : ModrawParser? = nil
-    var currentModrawURL : URL? = nil
-
-    func beginParsing(parser: inout ModrawParser)
-    {
-        let header = parser.parseHeader()
-        assert(header != nil)
-        readCalibrationData(header: header!)
-    }
-    func parsePacketsLoop(parser: inout ModrawParser)
-    {
-        var packet = parser.parsePacket()
+        var packet = currentModraw!.parsePacket()
         while packet != nil {
             if (packet!.signature == "$SOM3") {
                 assert(packet!.timeOffsetMs == nil)
@@ -177,51 +147,125 @@ class EpsiDataModelModraw: EpsiDataModel
             default:
                 break
             }
-            packet = parser.parsePacket()
+            packet = currentModraw!.parsePacket()
         }
     }
-    override func selectFolder(_ folderUrl: URL)
+    override func openFolder(_ folderUrl: URL)
     {
-        var files = [String]()
-        if let enumerator = FileManager.default.enumerator(at: folderUrl, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+        super.openFolder(folderUrl)
+        scanningFolderUrl = folderUrl
+
+        time_window_start = 0.0
+        time_window_length = 20.0 // seconds
+    }
+    func scanFolder()
+    {
+        if let enumerator = FileManager.default.enumerator(at: scanningFolderUrl!, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+            var allFiles = [String]()
             for case let fileURL as URL in enumerator {
                 do {
                     let fileAttributes = try fileURL.resourceValues(forKeys:[.isRegularFileKey])
                     if fileAttributes.isRegularFile! {
-                        let fileURLString = fileURL.absoluteString
+                        let fileURLString = fileURL.path
                         if fileURLString.lowercased().hasSuffix(".modraw") {
-                            files.append(fileURLString)
+                            allFiles.append(fileURLString)
                         }
                     }
                 } catch {
                     print(error, fileURL)
                 }
             }
-            files.sort()
+
+            allFiles.sort()
+
+            let secondMostRecentFile : String? = allFiles.count > 1 ? allFiles[allFiles.count - 2] : nil
+            let mostRecentFile : String? = allFiles.count > 0 ? allFiles[allFiles.count - 1] : nil
+            if (secondMostRecentFile != nil) {
+                if (currentModrawUrl != nil) {
+                    if (mostRecentFile! == currentModrawUrl!.path) {
+                        // We are parsing the most recent file
+                        tryReadMoreData()
+                    } else if (secondMostRecentFile! == currentModrawUrl!.path) {
+                        // We are parsing the second most recent file
+                        tryReadMoreData()
+                        // Start parsing the most recent one
+                        startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                    }
+                } else {
+                    // Parse the second most recent file first, in the case the most recent is partial
+                    startParsing(fileUrl: URL(fileURLWithPath: secondMostRecentFile!))
+                    // Start parsing the most recent file
+                    startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                }
+            } else if (mostRecentFile != nil) {
+                if (currentModrawUrl != nil && mostRecentFile! == currentModrawUrl!.path) {
+                    // We only have one file and are already parsing it
+                    tryReadMoreData()
+                } else {
+                    // We only have one file, start parsing it
+                    startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                }
+            } // else no files to parse yet in the folder
         }
-        selectFiles(files)
     }
-    override func selectFiles(_ files: [String])
+    func startParsing(fileUrl: URL)
     {
-        print("Reading: \(files.last!)")
-        currentModrawURL = URL(string: files.last!)
-        let inputFileData = try! Data(contentsOf: currentModrawURL!)
-        currentModraw = ModrawParser(data: inputFileData)
-        beginParsing(parser: &currentModraw!)
-        parsePacketsLoop(parser: &currentModraw!)
+        if (currentModraw != nil){
+            partialEndPacket = currentModraw!.extractPartialEndPacket()
+            if partialEndPacket != nil {
+                print("Extracted partial last packet of \(partialEndPacket!).")
+            }
+        }
+
+        currentModrawUrl = fileUrl
+        currentModraw = ModrawParser(fileUrl: fileUrl)
+
+        let header = currentModraw!.parseHeader()
+        readCalibrationData(header: header!)
+
+        if (partialEndPacket != nil) {
+            print("Patching partial first packet with \(partialEndPacket!).")
+            currentModraw!.insertPartialEndPacket(partialEndPacket!)
+            partialEndPacket = nil
+        }
+
+        parsePacketsLoop()
+    }
+    override func openFile(_ fileUrl: URL)
+    {
+        super.openFile(fileUrl)
+        scanningFolderUrl = nil
+
+        startParsing(fileUrl: fileUrl)
+
+        let epsi_time_begin = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.first!.time_s.first!
+        let ctd_time_begin = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.first!.time_s.first!
+        let epsi_time_end = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last!
+        let ctd_time_end = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last!
+
+        if (!epsi_blocks.isEmpty && !ctd_blocks.isEmpty) {
+            time_window_start = min(epsi_time_begin, ctd_time_begin)
+            time_window_length = max(epsi_time_end, ctd_time_end) - time_window_start
+        } else if (!ctd_blocks.isEmpty) {
+            time_window_start = ctd_time_begin
+            time_window_length = ctd_time_end - time_window_start
+        } else if (!epsi_blocks.isEmpty) {
+            time_window_start = epsi_time_begin
+            time_window_length = epsi_time_end - time_window_start
+        }
     }
     func tryReadMoreData()
     {
-        let fileAttributes = try! FileManager.default.attributesOfItem(atPath: currentModrawURL!.path)
+        let fileAttributes = try! FileManager.default.attributesOfItem(atPath: currentModrawUrl!.path)
         let newModrawSize = fileAttributes[.size] as! Int
         let oldModrawSize = currentModraw!.getSize()
         if (oldModrawSize < newModrawSize)
         {
-            let inputFileData = try! Data(contentsOf: currentModrawURL!)
+            let inputFileData = try! Data(contentsOf: currentModrawUrl!)
             var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
             inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
             currentModraw!.appendData(data: newData)
-            parsePacketsLoop(parser: &currentModraw!)
+            parsePacketsLoop()
         }
     }
     static let hextimestamplength = 16

@@ -42,9 +42,10 @@ struct ModrawParser {
     private var cursor = 0
     private var firstTimestamp : Int?
     private var currentYearOffset = 0
-    init(data: Data) {
-        self.data = [UInt8](repeating: 0, count: data.count)
-        data.copyBytes(to: &self.data, count: data.count)
+    init(fileUrl: URL) {
+        let fileData = try! Data(contentsOf: fileUrl)
+        data = [UInt8](repeating: 0, count: fileData.count)
+        fileData.copyBytes(to: &data, count: data.count)
     }
     func getSize() -> Int {
         return data.count

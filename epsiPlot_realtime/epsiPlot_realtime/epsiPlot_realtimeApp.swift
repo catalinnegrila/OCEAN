@@ -6,36 +6,61 @@
 //
 
 import SwiftUI
+import AppKit
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+}
 
 @main
 struct epsiPlot_realtimeApp: App {
-    
-    init() {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    func openPicker(chooseFiles: Bool) -> NSOpenPanel {
+        let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))
+        let picker = NSOpenPanel(contentRect: rect, styleMask: .utilityWindow, backing: .buffered, defer: true)
+        
+        picker.canChooseDirectories = !chooseFiles
+        picker.canChooseFiles = chooseFiles
+        picker.allowsMultipleSelection = false
+        picker.canDownloadUbiquitousContents = true
+        picker.canResolveUbiquitousConflicts = true
+
+        return picker
     }
 
     var body: some Scene {
-        let epsiPlotView = EpsiPlotView()
         WindowGroup {
-            epsiPlotView
+            EpsiPlotView()
         }.commands {
-            CommandGroup(before: CommandGroupPlacement.newItem) {
-                Button("Select folder...") {
-                    let folderChooserPoint = CGPoint(x: 0, y: 0)
-                    let folderChooserSize = CGSize(width: 500, height: 600)
-                    let folderChooserRectangle = CGRect(origin: folderChooserPoint, size: folderChooserSize)
-                    let folderPicker = NSOpenPanel(contentRect: folderChooserRectangle, styleMask: .utilityWindow, backing: .buffered, defer: true)
-                    
-                    folderPicker.canChooseDirectories = true
-                    folderPicker.canChooseFiles = false
-                    folderPicker.allowsMultipleSelection = false
-                    folderPicker.canDownloadUbiquitousContents = true
-                    folderPicker.canResolveUbiquitousConflicts = true
-
-                    let response = folderPicker.runModal()
-                    if response == .OK {
-                        epsiPlotView.dataModel.selectFolder(folderPicker.urls[0])
+            CommandGroup(replacing: CommandGroupPlacement.newItem) {
+                Button("Open folder...") {
+                    let picker = openPicker(chooseFiles: false)
+                    if (picker.runModal() == .OK) {
+                        epsiDataModel = EpsiDataModelModraw()
+                        epsiDataModel!.openFolder(picker.urls[0])
                     }
                 }.keyboardShortcut("f")
+                Button("Open .modraw file...") {
+                    let picker = openPicker(chooseFiles: true)
+                    picker.allowedFileTypes = ["modraw"]
+
+                    if (picker.runModal() == .OK) {
+                        epsiDataModel = EpsiDataModelModraw()
+                        epsiDataModel!.openFile(picker.urls[0])
+                    }
+                }.keyboardShortcut("o")
+                Button("Open .mat file...") {
+                    let picker = openPicker(chooseFiles: true)
+                    picker.allowedFileTypes = ["mat"]
+
+                    if (picker.runModal() == .OK) {
+                        epsiDataModel = EpsiDataModelMat()
+                        epsiDataModel!.openFile(picker.urls[0])
+                    }
+                }.keyboardShortcut("m")
             }
         }
     }

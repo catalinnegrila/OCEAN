@@ -127,6 +127,7 @@ class CtdData : TimestampedData
 
 class EpsiDataModel
 {
+    var windowTitle : String = ""
     var epsi : EpsiData = EpsiData()
     var ctd : CtdData = CtdData()
 
@@ -151,7 +152,7 @@ class EpsiDataModel
     var ctd_dPdt_range : (Double, Double) = (0, 0)
 
     var time_window_start = 0.0
-    var time_window_length = 20.0 // seconds
+    var time_window_length = 0.0
 
     func update()
     {
@@ -210,16 +211,16 @@ class EpsiDataModel
         print("-------")*/
     }
 
-    func selectFolder(_ folderUrl: URL)
+    func openFolder(_ folderUrl: URL)
     {
+        windowTitle = "Scanning \(folderUrl.path)..."
+        print("Reading folder: \(windowTitle)")
     }
     
-    func selectFiles(_ files: [String])
+    func openFile(_ fileUrl: URL)
     {
-    }
-
-    init() throws
-    {
+        windowTitle = fileUrl.path
+        print("Reading file: \(windowTitle)")
     }
 
     static func yAxis(range: (Double, Double)) -> [Double]

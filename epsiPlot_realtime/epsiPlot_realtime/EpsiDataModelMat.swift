@@ -1,13 +1,12 @@
+import Foundation
 
 class EpsiDataModelMat: EpsiDataModel
 {
-    var mat : MatData
-
-    override init() throws
+    override func openFile(_ fileUrl: URL)
     {
-        self.mat = MatData(path: "/Users/catalin/Downloads/OCEAN/EPSI24_11_06_054202.mat")
+        super.openFile(fileUrl)
+        let mat = MatData(fileUrl: fileUrl)
 
-        try super.init()
         epsi.time_s = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "epsi.time_s"))
         epsi.t1_volt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "epsi.t1_volt"))
         epsi.t2_volt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "epsi.t2_volt"))
@@ -24,10 +23,8 @@ class EpsiDataModelMat: EpsiDataModel
         ctd.C = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.C"))
         ctd.dPdt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.dPdt"))
 
-        update()
-
-        print("MAT:")
-        printValues()
+        time_window_start = min(epsi.time_s.first!, ctd.time_s.first!)
+        time_window_length = max(epsi.time_s.last!, ctd.time_s.last!) - time_window_start
     }
 }
 

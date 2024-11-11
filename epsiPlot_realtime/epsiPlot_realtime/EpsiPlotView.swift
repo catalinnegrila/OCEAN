@@ -1,25 +1,25 @@
 import SwiftUI
 
+var epsiDataModel : EpsiDataModel?
+
 struct EpsiPlotView: View {
-    var dataModel : EpsiDataModel
     @State private var refreshView = false
+    @State private var windowTitle = "Realtime Plot"
     let refreshTimer = Timer.publish(every: 1.0/20, on: .main, in: .common).autoconnect()
 
-    init() {
-        self.dataModel = try! EpsiDataModelModraw()
-        //self.dataModel = try! EpsiDataModelMat()
-    }
-
-        var body: some View {
+    var body: some View {
         chart
             .id(refreshView)
             .padding()
             .frame(alignment: .topLeading)
-        .navigationTitle("Realtime Plot")
-        .onReceive(refreshTimer) { _ in
-            Task {
-                refreshView.toggle()
-            }
+            .navigationTitle($windowTitle)
+            .onReceive(refreshTimer) { _ in
+                Task {
+                    if (epsiDataModel != nil) {
+                        windowTitle = epsiDataModel!.windowTitle
+                    }
+                    refreshView.toggle()
+                }
         }
     }
 
@@ -125,12 +125,12 @@ struct EpsiPlotView: View {
     private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), yOffset: Double, data: inout [Double], time_s: inout [Double], color: Color) {
 
         if (!data.isEmpty) {
-            let minX = rc.minX + rc.width * (time_s.first! - dataModel.time_window_start) / dataModel.time_window_length
+            let minX = rc.minX + rc.width * (time_s.first! - epsiDataModel!.time_window_start) / epsiDataModel!.time_window_length
             if (minX - rc.minX > 2) {
                 let rcEmpty = CGRect(x: rc.minX, y: rc.minY, width: minX - rc.minX, height: rc.height)
                 context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
             }
-            let maxX = rc.minX + rc.width * (time_s.last! - dataModel.time_window_start) / dataModel.time_window_length
+            let maxX = rc.minX + rc.width * (time_s.last! - epsiDataModel!.time_window_start) / epsiDataModel!.time_window_length
             if (rc.maxX - maxX > 2) {
                 let rcEmpty = CGRect(x: maxX, y: rc.minY, width: rc.maxX - maxX, height: rc.height)
                 context.fill(Path(rcEmpty), with: .color(Color(red: 0.9, green: 0.9, blue: 0.9)))
@@ -180,20 +180,23 @@ struct EpsiPlotView: View {
     }
     private var chart: some View {
         return Canvas{ context, size in
-            let start_time = ProcessInfo.processInfo.systemUptime
-            dataModel.update()
-            let end_time = ProcessInfo.processInfo.systemUptime
-            let msec = Int((end_time - start_time) * 1000)
-            print("Updating took \(msec) ms.")
+            if (epsiDataModel != nil) {
+                let start_time = ProcessInfo.processInfo.systemUptime
+                epsiDataModel!.update()
+                let end_time = ProcessInfo.processInfo.systemUptime
+                let msec = Int((end_time - start_time) * 1000)
+                print("Updating took \(msec) ms.")
+            }
 
-            if (dataModel.epsi.time_s.isEmpty && dataModel.ctd.time_s.isEmpty) {
-                context.draw(Text("No data. Use File -> Select folder..."),
+            if (epsiDataModel == nil /*|| (epsiDataModel!.epsi.time_s.isEmpty && epsiDataModel!.ctd.time_s.isEmpty)*/) {
+                context.draw(Text("Choose an option from the File menu..."),
                              at: CGPoint(x: 10, y: 10),
                              anchor: .topLeading)
                 return
             }
 
             let start_time2 = ProcessInfo.processInfo.systemUptime
+            let dataModel = epsiDataModel!
             var rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
 
             let timeTickCount = 5
