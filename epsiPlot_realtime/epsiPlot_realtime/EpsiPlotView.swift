@@ -1,7 +1,7 @@
 import SwiftUI
 
 let PRINT_PERF = true
-var epsiDataModel : EpsiDataModel?
+var epsiDataModel : EpsiDataModel? = EpsiDataModelModraw(mode: .EPSI)
 
 struct EpsiPlotView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -176,7 +176,7 @@ struct EpsiPlotView: View {
     let hgap = CGFloat(30)
 
     func drawMainLabel(context: GraphicsContext, rc: CGRect, text: String) {
-        context.drawLayer { ctx in // adds a layer that can be indepentently modified
+        context.drawLayer { ctx in
             ctx.translateBy(x: leftLabelsWidth/2, y: (rc.maxY + rc.minY) / 2)
             ctx.rotate(by: Angle(degrees: -90))
             ctx.draw(Text(text).bold(), at: CGPoint(x: 0, y: 0), anchor: .center)
@@ -256,9 +256,11 @@ struct EpsiPlotView: View {
                 render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, yOffset: -dataModel.epsi_t2_volt_mean, data: &dataModel.epsi.t2_volt, time_s: &dataModel.epsi.time_s, color: t2_color)
 
                 drawMainLabel(context: context, rc: rect, text: "FP07 [Volt]")
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (t1_color, "t1 - \(String(format: "%.1f", dataModel.epsi_t1_volt_mean))"),
-                    (t2_color, "t2 - \(String(format: "%.1f", dataModel.epsi_t2_volt_mean))")])
+                if (dataModel.epsi.time_s.count > 0) {
+                    drawSubLabels(context: context, rc: rect, labels: [
+                        (t1_color, "t1 - \(String(format: "%.1f", dataModel.epsi_t1_volt_mean))"),
+                        (t2_color, "t2 - \(String(format: "%.1f", dataModel.epsi_t2_volt_mean))")])
+                }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
 
                 // EPSI s1, s2
@@ -271,9 +273,11 @@ struct EpsiPlotView: View {
                 render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, yOffset: -dataModel.epsi_s2_volt_rms, data: &dataModel.epsi.s2_volt, time_s: &dataModel.epsi.time_s, color: s2_color)
 
                 drawMainLabel(context: context, rc: rect, text: "Shear [Volt]")
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (s1_color, "s1 - rms \(String(format: "%.1f", dataModel.epsi_s1_volt_rms))"),
-                    (s2_color, "s2 - rms \(String(format: "%.1f", dataModel.epsi_s2_volt_rms))")])
+                if (dataModel.epsi.time_s.count > 0) {
+                    drawSubLabels(context: context, rc: rect, labels: [
+                        (s1_color, "s1 - rms \(String(format: "%.1f", dataModel.epsi_s1_volt_rms))"),
+                        (s2_color, "s2 - rms \(String(format: "%.1f", dataModel.epsi_s2_volt_rms))")])
+                }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
 
             case .FCTD:
@@ -306,7 +310,9 @@ struct EpsiPlotView: View {
             let a1_yAxis = EpsiDataModel.yAxis(range: dataModel.epsi_a1_g_range)
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a1_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
             render1D(context: context, rc: halfRect, yAxis: dataModel.epsi_a1_g_range, data: &dataModel.epsi.a1_g, time_s: &dataModel.epsi.time_s, color: a1_color)
-            drawSubLabels(context: context, rc: halfRect, labels: [(a1_color, "a1")])
+            if (dataModel.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: halfRect, labels: [(a1_color, "a1")])
+            }
 
             // EPSI a2, a3
             halfRect = halfRect.offsetBy(dx: 0, dy: halfRect.height)
@@ -316,8 +322,9 @@ struct EpsiPlotView: View {
             renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a23_yAxis, leftLabels: false, formatter: { String(format: "%.1f", Double($0)) })
             render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &dataModel.epsi.a2_g, time_s: &dataModel.epsi.time_s, color: a2_color)
             render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &dataModel.epsi.a3_g, time_s: &dataModel.epsi.time_s, color: a3_color)
-            drawSubLabels(context: context, rc: halfRect, labels: [(a2_color, "a2"), (a3_color, "a3")])
-
+            if (dataModel.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: halfRect, labels: [(a2_color, "a2"), (a3_color, "a3")])
+            }
             drawMainLabel(context: context, rc: rect, text: "Accel [g]")
             rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
 
