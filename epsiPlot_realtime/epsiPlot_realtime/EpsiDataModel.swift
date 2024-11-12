@@ -127,7 +127,17 @@ class CtdData : TimestampedData
 
 class EpsiDataModel
 {
+    enum Mode : Int {
+        case EPSI = 1, FCTD
+    }
+
+    let mode : Mode
+    init(mode: Mode) {
+        self.mode = mode
+    }
+
     var windowTitle : String = ""
+
     var epsi : EpsiData = EpsiData()
     var ctd : CtdData = CtdData()
 
@@ -227,13 +237,13 @@ class EpsiDataModel
 
     func openFolder(_ folderUrl: URL)
     {
-        windowTitle = "Scanning \(folderUrl.path)..."
+        windowTitle = "Scanning \(folderUrl.path) -- \(mode) mode"
         print("Reading folder: \(windowTitle)")
     }
     
     func openFile(_ fileUrl: URL)
     {
-        windowTitle = fileUrl.path
+        windowTitle = "\(fileUrl.path) -- \(mode) mode"
         print("Reading file: \(windowTitle)")
     }
 

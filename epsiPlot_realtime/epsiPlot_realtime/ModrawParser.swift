@@ -276,10 +276,15 @@ struct ModrawParser {
         }
 
         var validPacket : Bool
-        if (p.signature == "$SOM3") {
-            validPacket = (p.timeOffsetMs == nil)
-        } else {
-            validPacket = (p.signature != "" && p.timeOffsetMs != nil && p.date != nil)
+        switch p.signature {
+        case "$SOM3":
+            validPacket = ModrawParser.isValidPacketSOM3(packet: p)
+        case "$EFE4":
+            validPacket = EpsiDataModelModraw.isValidPacketEFE4(packet: p)
+        case "$SB49":
+            validPacket = EpsiDataModelModraw.isValidPacketSB49(packet: p)
+        default:
+            validPacket = ModrawParser.isValidPacketGeneric(packet: p)
         }
 
         if (validPacket) {
@@ -288,6 +293,17 @@ struct ModrawParser {
             cursor = packetStartCursor
             return nil
         }
+    }
+    static func isValidPacketSOM3(packet: ModrawPacket) -> Bool
+    {
+        return (packet.timeOffsetMs == nil)
+    }
+    static func isValidPacketGeneric(packet: ModrawPacket) -> Bool
+    {
+        return (packet.signature != "" &&
+                packet.timeOffsetMs != nil &&
+                packet.date != nil &&
+                packet.payloadStart != 0)
     }
     func progress() -> Double {
         let fullPercent = 100.0 * Double(cursor) / Double(data.count)
