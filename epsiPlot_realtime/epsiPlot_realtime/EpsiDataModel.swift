@@ -165,7 +165,12 @@ class EpsiDataModel
     var time_window_start = 0.0
     var time_window_length = 0.0
 
+    var dataChanged = false
     func update()
+    {
+    }
+
+    func onDataChanged()
     {
         if (epsi.time_s.count > 0)
         {
@@ -209,7 +214,9 @@ class EpsiDataModel
             ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd.dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
         }
+        dataChanged = true
     }
+
     func printValues()
     {
         print("z: \(ctd.z[0..<5])")

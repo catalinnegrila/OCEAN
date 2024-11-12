@@ -22,7 +22,10 @@ struct EpsiPlotView: View {
                     } else {
                         windowTitle = "No data source"
                     }
-                    refreshView.toggle()
+                    if (epsiDataModel != nil && epsiDataModel!.dataChanged) {
+                        refreshView.toggle()
+                        epsiDataModel!.dataChanged = false
+                    }
                 }
         }
     }

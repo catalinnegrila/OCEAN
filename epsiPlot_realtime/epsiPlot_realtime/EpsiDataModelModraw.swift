@@ -52,7 +52,7 @@ class EpsiDataModelModraw: EpsiDataModel
         ctd.removeAll()
 
         if (epsi_blocks.isEmpty && ctd_blocks.isEmpty) {
-            super.update()
+            super.onDataChanged()
             return
         }
 
@@ -88,7 +88,7 @@ class EpsiDataModelModraw: EpsiDataModel
                 ctd.append(from: ctd_blocks[block_index], first: first_entry, count: block_size - first_entry)
             }
         }
-        super.update()
+        super.onDataChanged()
     }
 
     static func getKeyValue(key: String, header: String) -> Double {
@@ -242,6 +242,7 @@ class EpsiDataModelModraw: EpsiDataModel
     }
     override func openFile(_ fileUrl: URL)
     {
+        assert(fileUrl.pathExtension == "modraw")
         super.openFile(fileUrl)
         scanningFolderUrl = nil
 

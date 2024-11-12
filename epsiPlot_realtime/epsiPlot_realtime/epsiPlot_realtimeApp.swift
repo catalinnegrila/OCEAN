@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -18,7 +19,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct epsiPlot_realtimeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    func openPicker(chooseFiles: Bool, ext: String? = nil) -> NSOpenPanel {
+    func modalFilePicker(chooseFiles: Bool) -> URL? {
         let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))
         let picker = NSOpenPanel(contentRect: rect, styleMask: .utilityWindow, backing: .buffered, defer: true)
         
@@ -27,24 +28,40 @@ struct epsiPlot_realtimeApp: App {
         picker.allowsMultipleSelection = false
         picker.canDownloadUbiquitousContents = true
         picker.canResolveUbiquitousConflicts = true
-        if (chooseFiles && ext != nil) {
-            picker.allowedFileTypes = [ext!]
+
+        if (chooseFiles) {
+            picker.allowedFileTypes = ["mat", "modraw"]
+            /*
+            picker.allowedContentTypes = [UTType]()
+            for ext in ["mat", "modraw"] {
+                picker.allowedContentTypes.append(UTType(tag: ext, tagClass: .filenameExtension, conformingTo: nil)!)
+            }*/
         }
-        return picker
+
+        if (picker.runModal() == .OK) {
+            return picker.urls[0]
+        } else {
+            return nil
+        }
     }
 
-    func openFolder(dataModel: EpsiDataModel) {
-        let picker = openPicker(chooseFiles: false)
-        if (picker.runModal() == .OK) {
-            epsiDataModel = dataModel
-            epsiDataModel!.openFolder(picker.urls[0])
+    func openFolder(mode: EpsiDataModel.Mode) {
+        if let folderUrl = modalFilePicker(chooseFiles: false) {
+            epsiDataModel = EpsiDataModelModraw(mode: mode)
+            epsiDataModel!.openFolder(folderUrl)
         }
     }
-    func openFile(dataModel: EpsiDataModel, ext: String) {
-        let picker = openPicker(chooseFiles: true, ext: ext)
-        if (picker.runModal() == .OK) {
-            epsiDataModel = dataModel
-            epsiDataModel!.openFile(picker.urls[0])
+    func openFile(mode: EpsiDataModel.Mode) {
+        if let fileUrl = modalFilePicker(chooseFiles: true) {
+            switch fileUrl.pathExtension {
+            case "modraw":
+                epsiDataModel = EpsiDataModelModraw(mode: mode)
+            case "mat":
+                epsiDataModel = EpsiDataModelMat(mode: mode)
+            default:
+                assert(false)
+            }
+            epsiDataModel!.openFile(fileUrl)
         }
     }
     var body: some Scene {
@@ -57,34 +74,20 @@ struct epsiPlot_realtimeApp: App {
             CommandGroup(replacing: CommandGroupPlacement.newItem) {}
 
             CommandMenu("EPSI") {
-                Section {
-                    Button("Open folder...") {
-                        openFolder(dataModel: EpsiDataModelModraw(mode: .EPSI))
-                    }.keyboardShortcut("f")
-                }
-                Section {
-                    Button("Open .modraw file...") {
-                        openFile(dataModel: EpsiDataModelModraw(mode: .EPSI), ext: "modraw")
-                    }.keyboardShortcut("o")
-                    Button("Open .mat file...") {
-                        openFile(dataModel: EpsiDataModelMat(mode: .EPSI), ext: "mat")
-                    }.keyboardShortcut("a")
-                }
+                Button("Open Folder...") {
+                    openFolder(mode: .EPSI)
+                }.keyboardShortcut("o")
+                Button("Open File...") {
+                    openFile(mode: .EPSI)
+                }.keyboardShortcut("f")
             }
             CommandMenu("FCTD") {
-                Section {
-                    Button("Open folder...") {
-                        openFolder(dataModel: EpsiDataModelModraw(mode: .FCTD))
-                    }.keyboardShortcut("f")
-                }
-                Section {
-                    Button("Open .modraw file...") {
-                        openFile(dataModel: EpsiDataModelModraw(mode: .FCTD), ext: "modraw")
-                    }.keyboardShortcut("o")
-                    Button("Open .mat file...") {
-                        openFile(dataModel: EpsiDataModelMat(mode: .FCTD), ext: "mat")
-                    }.keyboardShortcut("a")
-                }
+                Button("Open Folder...") {
+                    openFolder(mode: .FCTD)
+                }.keyboardShortcut("o")
+                Button("Open File...") {
+                    openFile(mode: .FCTD)
+                }.keyboardShortcut("f")
             }
         }
     }
