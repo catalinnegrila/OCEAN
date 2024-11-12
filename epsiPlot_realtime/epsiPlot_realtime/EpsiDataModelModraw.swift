@@ -263,20 +263,21 @@ class EpsiDataModelModraw: EpsiDataModel
             parsePacketsLoop()
         }
     }
-    static let hextimestamplength = 16
-    static let hexblocksizelength = 8
-    static let chksum1length = 3 // *<HEX><HEX>
-    static let chksum2length = 5 // *<HEX><HEX><CR><LF>
+    static let block_timestamp_len = 16
+    static let block_size_len = 8
+    static let chksum1_len = 3 // *<HEX><HEX>
+    static let chksum2_len = 5 // *<HEX><HEX><CR><LF>
 
     static let efe_gain = Double(1)
     static let efe_bit_counts = 24
     static let efe_acc_offset = 1.8 / 2
     static let efe_acc_factor = 0.4
-    static let efe_timestamp_length = 8
+    static let efe_timestamp_len = 8
     static let efe_n_channels = 7
-    static let efe_bytes_per_channel = 3
+    static let efe_channel_len = 3
     static let efe_recs_per_block = 80
-    static let efe_n_elements = EpsiDataModelModraw.efe_timestamp_length + EpsiDataModelModraw.efe_n_channels * EpsiDataModelModraw.efe_bytes_per_channel
+    static let efe_rec_len = EpsiDataModelModraw.efe_timestamp_len + EpsiDataModelModraw.efe_n_channels * EpsiDataModelModraw.efe_channel_len
+    static let efe_block_data_len = EpsiDataModelModraw.efe_rec_len * EpsiDataModelModraw.efe_recs_per_block
 
     static func Unipolar(FR: Double, data: Int) -> Double {
         return FR / EpsiDataModelModraw.efe_gain * (Double(data) / Double(pow(Double(2), Double(EpsiDataModelModraw.efe_bit_counts))))
@@ -288,27 +289,19 @@ class EpsiDataModelModraw: EpsiDataModel
         return (data - EpsiDataModelModraw.efe_acc_offset) / EpsiDataModelModraw.efe_acc_factor
     }
     static func parseEfeChannel(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = Int(packet.parseBin(start: i, len: EpsiDataModelModraw.efe_bytes_per_channel))
-        i += EpsiDataModelModraw.efe_bytes_per_channel
+        let channel = Int(packet.parseBin(start: i, len: EpsiDataModelModraw.efe_channel_len))
+        i += EpsiDataModelModraw.efe_channel_len
         return channel
     }
     func parseEFE4(packet : ModrawPacket) {
         var i = packet.payloadStart
         //print("hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.hextimestamplength))")
-        i += EpsiDataModelModraw.hextimestamplength
+        i += EpsiDataModelModraw.block_timestamp_len
         //print("hexlengthblock: \(packet.parseString(start: i, len: EpsiDataModelModraw.hexblocksizelength))")
-        let hexlengthblock = packet.parseHex(start: i, len: EpsiDataModelModraw.hexblocksizelength)
-        i += EpsiDataModelModraw.hexblocksizelength
+        i += EpsiDataModelModraw.block_size_len
         //print("checksum1: \(packet.parseString(start: i, len: EpsiDataModelModraw.chksum1length))")
-        assert(packet.data[i] == ModrawParser.ASCII_STAR)
-        i += EpsiDataModelModraw.chksum1length
+        i += EpsiDataModelModraw.chksum1_len
         //print("checksum2: \(packet.parseString(start: packet.data.count - EpsiDataModelModraw.chksum2length, len: EpsiDataModelModraw.chksum1length))")
-        assert(packet.data[packet.data.count - EpsiDataModelModraw.chksum2length] == ModrawParser.ASCII_STAR)
-
-        //print("ending: \(packet.parseString(start: packet.data.count - 16, len: 16))")
-        let block_data_len = packet.data.count - i - EpsiDataModelModraw.chksum2length
-        assert(hexlengthblock == block_data_len)
-        assert(block_data_len == EpsiDataModelModraw.efe_n_elements * EpsiDataModelModraw.efe_recs_per_block)
 
         var epsi_block : EpsiData
         if (epsi_blocks.isEmpty || epsi_blocks.last!.isFull()) {
@@ -321,11 +314,11 @@ class EpsiDataModelModraw: EpsiDataModel
 
         for _ in 0..<EpsiDataModelModraw.efe_recs_per_block {
             var time_s = UInt64(0) // Inverse endianness
-            for j in 0..<EpsiDataModelModraw.efe_timestamp_length {
+            for j in 0..<EpsiDataModelModraw.efe_timestamp_len {
                 time_s += UInt64(packet.data[i + j]) * UInt64(pow(256, Double(j)))
             }
             epsi_block.time_s.append(Double(time_s) / 1000.0)
-            i += EpsiDataModelModraw.efe_timestamp_length
+            i += EpsiDataModelModraw.efe_timestamp_len
 
             let t1_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
             let t2_count = EpsiDataModelModraw.parseEfeChannel(packet: packet, i: &i)
@@ -338,8 +331,14 @@ class EpsiDataModelModraw: EpsiDataModel
             epsi_block.t1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t1_count))
             epsi_block.t2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t2_count))
 
-            epsi_block.s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
-            epsi_block.s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
+            switch mode {
+            case .EPSI:
+                epsi_block.s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
+                epsi_block.s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
+            case .FCTD:
+                epsi_block.s1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s1_count))
+                epsi_block.s2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s2_count))
+            }
 
             let a1_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a1_count)
             let a2_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a2_count)
@@ -353,17 +352,19 @@ class EpsiDataModelModraw: EpsiDataModel
 
     static let sbe_recs_per_block = 2
     static let sbe_timestamp_length = 16
-    static let sbe_block_length = (24 + EpsiDataModelModraw.sbe_timestamp_length) * EpsiDataModelModraw.sbe_recs_per_block
-    static let sbe_hex_per_channel1 = 6
-    static let sbe_hex_per_channel2 = 4
+    static let sbe_channel6_len = 6
+    static let sbe_channel4_len = 4
+    static let sbe_block_rec_len = EpsiDataModelModraw.sbe_timestamp_length + 3 * EpsiDataModelModraw.sbe_channel6_len + EpsiDataModelModraw.sbe_channel4_len + 2 // <CR><LF>
+    static let sbe_block_data_len = EpsiDataModelModraw.sbe_block_rec_len * EpsiDataModelModraw.sbe_recs_per_block
+
     static func parseSbeChannel6(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_hex_per_channel1)
-        i += EpsiDataModelModraw.sbe_hex_per_channel1
+        let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_channel6_len)
+        i += EpsiDataModelModraw.sbe_channel6_len
         return channel
     }
     static func parseSbeChannel4(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_hex_per_channel2)
-        i += EpsiDataModelModraw.sbe_hex_per_channel2
+        let channel = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_channel4_len)
+        i += EpsiDataModelModraw.sbe_channel4_len
         return channel
     }
     func sbe49_get_temperature(T_raw: Int) -> Double {
@@ -475,23 +476,15 @@ class EpsiDataModelModraw: EpsiDataModel
         let top_line = (((c4 * P + c3) * P + c2) * P + c1) * P
         return top_line / bot_line
     }
-
     func parseSB49(packet : ModrawPacket, sbe_format : SBE_Format) {
-        //let sbe_data_recs_per_block = Meta_Data.CTD.sample_per_record;
         var i = packet.payloadStart
         //print("hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.hextimestamplength))")
-        i += EpsiDataModelModraw.hextimestamplength
+        i += EpsiDataModelModraw.block_timestamp_len
         //print("hexlengthblock: \(packet.parseString(start: i, len: EpsiDataModelModraw.hexblocksizelength))")
-        let hexlengthblock = packet.parseHex(start: i, len: EpsiDataModelModraw.hexblocksizelength)
-        i += EpsiDataModelModraw.hexblocksizelength
-        assert(hexlengthblock == EpsiDataModelModraw.sbe_block_length)
+        i += EpsiDataModelModraw.block_size_len
         //print("checksum1: \(packet.parseString(start: i, len: EpsiDataModelModraw.chksum1length))")
-        assert(packet.data[i] == ModrawParser.ASCII_STAR)
-        i += EpsiDataModelModraw.chksum1length
-        assert(hexlengthblock == packet.data.count - i - EpsiDataModelModraw.chksum2length)
-
+        i += EpsiDataModelModraw.chksum1_len
         //print("checksum2: \(packet.parseString(start: packet.data.count - EpsiDataModelModraw.chksum2length, len: EpsiDataModelModraw.chksum1length))")
-        assert(packet.data[packet.data.count - EpsiDataModelModraw.chksum2length] == ModrawParser.ASCII_STAR)
 
         var ctd_block : CtdData
         if (ctd_blocks.isEmpty || ctd_blocks.last!.isFull()) {
@@ -503,7 +496,6 @@ class EpsiDataModelModraw: EpsiDataModel
         }
 
         for _ in 0..<EpsiDataModelModraw.sbe_recs_per_block {
-            //print("[\(j)] hextimestamp: \(packet.parseString(start: i, len: EpsiDataModelModraw.sbe_timestamp_length))")
             let time_s = packet.parseHex(start: i, len: EpsiDataModelModraw.sbe_timestamp_length)
             ctd_block.time_s.append(Double(time_s) / 1000.0)
             i += EpsiDataModelModraw.sbe_timestamp_length
@@ -531,5 +523,31 @@ class EpsiDataModelModraw: EpsiDataModel
             }
             i += 2 // skip the <CR><LF>
         }
+    }
+    static func isValidPacket(packet : ModrawPacket, expectedDataLen: Int) -> Bool {
+        var i = packet.payloadStart
+        if (i + EpsiDataModelModraw.block_timestamp_len >= packet.data.count) { return false }
+        i += EpsiDataModelModraw.block_timestamp_len
+
+        if (i + EpsiDataModelModraw.block_size_len >= packet.data.count) { return false }
+        let block_size = packet.parseHex(start: i, len: EpsiDataModelModraw.block_size_len)
+        if (block_size != expectedDataLen) { return false }
+        i += EpsiDataModelModraw.block_size_len
+
+        if (i + EpsiDataModelModraw.chksum1_len >= packet.data.count) { return false }
+        if (packet.data[i] != ModrawParser.ASCII_STAR) { return false }
+        i += EpsiDataModelModraw.chksum1_len
+
+        let actual_data_len = packet.data.count - i - EpsiDataModelModraw.chksum2_len
+        if (actual_data_len != expectedDataLen) { return false }
+        if (packet.data[packet.data.count - EpsiDataModelModraw.chksum2_len] != ModrawParser.ASCII_STAR) { return false }
+
+        return true
+    }
+    static func isValidPacketEFE4(packet : ModrawPacket) -> Bool {
+        return EpsiDataModelModraw.isValidPacket(packet: packet, expectedDataLen: EpsiDataModelModraw.efe_block_data_len)
+    }
+    static func isValidPacketSB49(packet : ModrawPacket) -> Bool {
+        return EpsiDataModelModraw.isValidPacket(packet: packet, expectedDataLen: EpsiDataModelModraw.sbe_block_data_len)
     }
 }
