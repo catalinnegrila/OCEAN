@@ -172,7 +172,14 @@ class EpsiDataModel
             epsi_t2_volt_mean = EpsiDataModel.mean(mat: epsi.t2_volt)
             epsi_s1_volt_rms = EpsiDataModel.rms(mat: epsi.s1_volt)
             epsi_s2_volt_rms = EpsiDataModel.rms(mat: epsi.s2_volt)
-            
+
+            for i in 0..<epsi.time_s.count {
+                epsi.t1_volt[i] -= epsi_t1_volt_mean
+                epsi.t2_volt[i] -= epsi_t2_volt_mean
+                epsi.s1_volt[i] -= epsi_s1_volt_rms
+                epsi.s2_volt[i] -= epsi_s2_volt_rms
+            }
+
             epsi_t1_volt_range = EpsiDataModel.minmax(mat: epsi.t1_volt)
             epsi_t2_volt_range = EpsiDataModel.minmax(mat: epsi.t2_volt)
             epsi_s1_volt_range = EpsiDataModel.minmax(mat: epsi.s1_volt)
@@ -278,6 +285,7 @@ class EpsiDataModel
         for i in 0..<mat.count {
             let window_start = max(0, i - window/2)
             let window_end = min(i + window/2, mat.count)
+
             var sum = 0.0
             for j in window_start..<window_end {
                 sum += mat[j]
@@ -302,9 +310,9 @@ class EpsiDataModel
         return (mat.min()!, mat.max()!)
     }
 
-    static func minmaxoff(v1: (Double, Double), off1: Double, v2: (Double, Double), off2: Double) -> (Double, Double)
+    static func minmax(v1: (Double, Double), v2: (Double, Double)) -> (Double, Double)
     {
-        return (min(v1.0 + off1, v2.0 + off2), max(v1.1 + off1, v2.1 + off2))
+        return (min(v1.0, v2.0), max(v1.1, v2.1))
 
     }
 }
