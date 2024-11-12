@@ -4,6 +4,7 @@ class EpsiDataModelMat: EpsiDataModel
 {
     override func openFile(_ fileUrl: URL)
     {
+        assert(fileUrl.pathExtension == "mat")
         super.openFile(fileUrl)
         let mat = MatData(fileUrl: fileUrl)
 
@@ -23,7 +24,7 @@ class EpsiDataModelMat: EpsiDataModel
         ctd.z = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.z"))
         ctd.dzdt = EpsiDataModel.mat2ToMat1(mat: mat.getMatrixDouble2(name: "ctd.dzdt"))
 
-        update()
+        onDataChanged()
         printValues()
 
         time_window_start = min(epsi.time_s.first!, ctd.time_s.first!)
