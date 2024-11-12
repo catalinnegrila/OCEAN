@@ -29,6 +29,7 @@ class TimestampedData
             }
         }
         assert(false)
+        return -1
     }
     func getSampleDuration() -> Double
     {
