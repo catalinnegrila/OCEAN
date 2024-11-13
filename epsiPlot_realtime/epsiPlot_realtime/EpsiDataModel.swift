@@ -3,9 +3,15 @@ import RegexBuilder
 
 class TimestampedData
 {
-    var capacity : Int = 0
-    var time_s : [Double] = []
+    let capacity : Int
+    let expected_sample_duration : Double
+    var time_s = [Double]()
+    var dataGaps = [(Double, Double)]()
 
+    init(capacity: Int, samples_per_sec: Int) {
+        self.capacity = capacity
+        self.expected_sample_duration = 1.0 / Double(samples_per_sec)
+    }
     func isFull() -> Bool {
         return time_s.count >= capacity
     }
@@ -16,24 +22,34 @@ class TimestampedData
     func removeAll()
     {
         time_s.removeAll()
+        dataGaps.removeAll()
     }
     func append(from: TimestampedData, first: Int, count: Int)
     {
         time_s.append(contentsOf: from.time_s[first..<first+count])
+        for dataGap in from.dataGaps {
+            if (dataGap.1 >= from.time_s[first] && dataGap.0 <= from.time_s[first+count - 1]) {
+                dataGaps.append(dataGap)
+            }
+        }
     }
-    func getFirstEntryIndex(_ time_cursor : Double) -> Int
+    func checkAndAppendGap(t0: Double, t1: Double)
+    {
+        if ((t1 - t0) > 2 * expected_sample_duration) {
+            //print("Gap: N = \(Int((t1 - t0) / expected_sample_duration)) dt = \(t1 - t0) sd = \(expected_sample_duration)")
+            //dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
+        }
+    }
+
+    func getIndexForTime(_ t : Double) -> Int
     {
         for i in 0..<time_s.count {
-            if (time_s[i] >= time_cursor) {
+            if (time_s[i] >= t) {
                 return i
             }
         }
         assert(false)
-        return -1
-    }
-    func getSampleDuration() -> Double
-    {
-        return time_s[1] - time_s[0]
+        return 0
     }
 }
 
@@ -47,9 +63,9 @@ class EpsiData : TimestampedData
     var a2_g : [Double] = []
     var a3_g : [Double] = []
     
-    override init() {
-        super.init()
-        capacity = 8000
+    init() {
+        super.init(capacity: 8000, samples_per_sec: 333) // 100 blocks
+        reserveCapacity(capacity)
     }
     override func reserveCapacity(_ newCapacity: Int)
     {
@@ -92,11 +108,10 @@ class CtdData : TimestampedData
     var T : [Double] = []
     var S : [Double] = []
     var z : [Double] = []
-    var dzdt : [Double] = []
 
-    override init() {
-        super.init()
-        capacity = 1000
+    init() {
+        super.init(capacity: 200, samples_per_sec: 16) // 100 blocks
+        reserveCapacity(capacity)
     }
     override func reserveCapacity(_ newCapacity: Int)
     {
@@ -105,7 +120,6 @@ class CtdData : TimestampedData
         T.reserveCapacity(newCapacity)
         S.reserveCapacity(newCapacity)
         z.reserveCapacity(newCapacity)
-        dzdt.reserveCapacity(newCapacity)
     }
     override func removeAll() {
         super.removeAll()
@@ -113,7 +127,6 @@ class CtdData : TimestampedData
         T.removeAll()
         S.removeAll()
         z.removeAll()
-        dzdt.removeAll()
     }
     func append(from: CtdData, first: Int, count: Int)
     {
@@ -122,7 +135,6 @@ class CtdData : TimestampedData
         T.append(contentsOf: from.T[first..<first+count])
         S.append(contentsOf: from.S[first..<first+count])
         z.append(contentsOf: from.z[first..<first+count])
-        //dzdt.append(contentsOf: from.dzdt[first..<first+count])
     }
 }
 
@@ -159,6 +171,7 @@ class EpsiDataModel
     var ctd_S_range : (Double, Double) = (0, 0)
     var ctd_z_range : (Double, Double) = (0, 0)
     // Calculated from ctd.z
+    var ctd_dzdt : [Double] = []
     var ctd_dzdt_movmean : [Double] = []
     var ctd_dzdt_range : (Double, Double) = (0, 0)
 
@@ -166,8 +179,9 @@ class EpsiDataModel
     var time_window_length = 0.0
 
     var dataChanged = false
-    func update()
+    func updateViewData() ->  Bool
     {
+        return false
     }
 
     func onDataChanged()
@@ -201,28 +215,23 @@ class EpsiDataModel
             ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
             ctd_z_range = EpsiDataModel.minmax(mat: ctd.z)
 
-            if (ctd.dzdt.count == 0) {
-                ctd.dzdt.removeAll()
-                ctd.dzdt.append(0.0)
-                for i in 1..<ctd.z.count {
-                    ctd.dzdt.append(-(ctd.z[i] - ctd.z[i - 1]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
-                }
-                if (ctd.dzdt.count > 1) {
-                    ctd.dzdt[0] = ctd.dzdt[1]
-                }
+            ctd_dzdt.removeAll()
+            ctd_dzdt.reserveCapacity(ctd.z.count)
+            ctd_dzdt.append(0.0)
+            for i in 1..<ctd.z.count {
+                ctd_dzdt.append((ctd.z[i - 1] - ctd.z[i]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
             }
-            ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd.dzdt, window: 40)
+            if (ctd_dzdt.count > 1) {
+                ctd_dzdt[0] = ctd_dzdt[1]
+            }
+
+            ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd_dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
         }
-        dataChanged = true
     }
 
     func printValues()
     {
-        print("z: \(ctd.z[0..<5])")
-        print("z.range: \(ctd_z_range)")
-        print("dzdt: \(ctd.dzdt[0..<5])")
-        print("dzdt.range: \(ctd_dzdt_range)")
         /*print("------- \(epsi_t1_volt.count)")
         print("t1_volt: \(epsi_t1_volt[0])")
         print("t2_volt: \(epsi_t2_volt[0])")

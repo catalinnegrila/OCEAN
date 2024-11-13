@@ -41,20 +41,19 @@ class EpsiDataModelModraw: EpsiDataModel
         // Debugging:
         //openFile(URL(fileURLWithPath: "/Users/catalin/Documents/epsiPlot/EPSI24_11_06_054202.modraw"))
     }
-    override func update() {
+    var lastUpdateTime = 0.0
+    var prev_time_window_start = 0.0
+    override func updateViewData() -> Bool {
         if (scanningFolderUrl != nil) {
             scanFolder()
-        } else if (!epsi.time_s.isEmpty || !ctd.time_s.isEmpty) {
-            return
+        }
+
+        if (!dataChanged) {
+            return false
         }
 
         epsi.removeAll()
         ctd.removeAll()
-
-        if (epsi_blocks.isEmpty && ctd_blocks.isEmpty) {
-            super.onDataChanged()
-            return
-        }
 
         let epsi_time = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last! - time_window_length
         let ctd_time = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last! - time_window_length
@@ -64,44 +63,49 @@ class EpsiDataModelModraw: EpsiDataModel
             epsi_blocks.remove(at: 0)
         }
         if (!epsi_blocks.isEmpty) {
-            let epsi_num_samples = Int(ceil(time_window_length / epsi_blocks[0].getSampleDuration()))
-            //let epsi_freq = Int(1/epsi_blocks[0].getSampleDuration())
-            //print("EPSI: \(epsi_freq) samples/s, \(epsi_num_samples) samples in window")
-            epsi.reserveCapacity(epsi_num_samples)
-            for block_index in 0..<epsi_blocks.count {
-                let block_size = epsi_blocks[block_index].time_s.count
-                let first_entry = block_index == 0 ? epsi_blocks[0].getFirstEntryIndex(time_window_start) : 0
-                epsi.append(from: epsi_blocks[block_index], first: first_entry, count: block_size - first_entry)
+            epsi.reserveCapacity(epsi_blocks.reduce(0) { $0 + $1.time_s.count })
+            var first_entry = epsi_blocks[0].getIndexForTime(time_window_start)
+            for block in epsi_blocks {
+                epsi.append(from: block, first: first_entry, count: block.time_s.count - first_entry)
+                first_entry = 0
             }
         }
         while !ctd_blocks.isEmpty && ctd_blocks.first!.time_s.last! < time_window_start {
             ctd_blocks.remove(at: 0)
         }
         if (!ctd_blocks.isEmpty) {
-            let ctd_num_samples = Int(ceil(time_window_length / ctd_blocks[0].getSampleDuration()))
-            //let ctd_freq = Int(1/ctd_blocks[0].getSampleDuration())
-            //print("CTD: \(ctd_freq) samples/s, \(ctd_num_samples) samples in window")
-            ctd.reserveCapacity(ctd_num_samples)
-            for block_index in 0..<ctd_blocks.count {
-                let block_size = ctd_blocks[block_index].time_s.count
-                let first_entry = block_index == 0 ? ctd_blocks[0].getFirstEntryIndex(time_window_start) : 0
-                ctd.append(from: ctd_blocks[block_index], first: first_entry, count: block_size - first_entry)
+            ctd.reserveCapacity(ctd_blocks.reduce(0) { $0 + $1.time_s.count })
+            var first_entry = ctd_blocks[0].getIndexForTime(time_window_start)
+            for block in ctd_blocks {
+                ctd.append(from: block, first: first_entry, count: block.time_s.count - first_entry)
+                first_entry = 0
             }
         }
         super.onDataChanged()
+        return true
     }
 
     static func getKeyValue(key: String, header: String) -> Double {
         let indexOfKey = header.index(of: key)
+        if (indexOfKey == nil) {
+            print("Key '\(key)' not found in header!")
+            assert(false)
+            return 0
+        }
         let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
         let valueOnwards = header[indexAfterKey...]
         var indexOfCrlf = valueOnwards.index(of: "\r\n")
-        if indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32) {
+        if (indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32)) {
             indexOfCrlf = valueOnwards.index(of: "\n")
         }
-        let value = valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
+        if (indexOfCrlf == nil) {
+            print("Unterminated key '\(key)' value '\(valueOnwards)'")
+            assert(false)
+            return 0
+        }
+        let valueStr = valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
         //print("\(key.trimmingCharacters(in: .whitespacesAndNewlines))\(value)")
-        return Double(value)!
+        return Double(valueStr)!
     }
 
     func readCalibrationData(header: String) {
@@ -142,12 +146,14 @@ class EpsiDataModelModraw: EpsiDataModel
             case "$EFE4":
                 if (isValidPacketEFE4(packet: packet!)) {
                     parseEFE4(packet: packet!)
+                    dataChanged = true
                 } else {
                     currentModraw!.rewindPacket(packet: packet!)
                 }
             case "$SB49":
                 if (isValidPacketSB49(packet: packet!)) {
                     parseSB49(packet: packet!, sbe_format: SBE_Format.eng)
+                    dataChanged = true
                 } else {
                     currentModraw!.rewindPacket(packet: packet!)
                 }
@@ -314,19 +320,25 @@ class EpsiDataModelModraw: EpsiDataModel
         i += EpsiDataModelModraw.block_size_len
         i += EpsiDataModelModraw.chksum1_len
 
-        var epsi_block : EpsiData
-        if (epsi_blocks.isEmpty || epsi_blocks.last!.isFull()) {
-            epsi_block = EpsiData()
-            epsi_block.reserveCapacity(epsi_block.capacity)
-            epsi_blocks.append(epsi_block)
+        let prev_block = epsi_blocks.last
+        var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
+
+        let this_block : EpsiData
+        if (prev_block == nil || prev_block!.isFull()) {
+            this_block = EpsiData()
+            epsi_blocks.append(this_block)
         } else {
-            epsi_block = epsi_blocks.last!
+            this_block = prev_block!
         }
 
         for _ in 0..<EpsiDataModelModraw.efe_recs_per_block {
-            let time_s = currentModraw!.parseBinBE(start: i, len: EpsiDataModelModraw.efe_timestamp_len)
-            epsi_block.time_s.append(Double(time_s) / 1000.0)
+            let time_s = Double(currentModraw!.parseBinBE(start: i, len: EpsiDataModelModraw.efe_timestamp_len)) / 1000.0
             i += EpsiDataModelModraw.efe_timestamp_len
+
+            if (prev_time_s != nil) {
+                this_block.checkAndAppendGap(t0: prev_time_s!, t1: time_s)
+            }
+            prev_time_s = time_s
 
             let t1_count = parseEfeChannel(&i)
             let t2_count = parseEfeChannel(&i)
@@ -336,25 +348,26 @@ class EpsiDataModelModraw: EpsiDataModel
             let a2_count = parseEfeChannel(&i)
             let a3_count = parseEfeChannel(&i)
 
-            epsi_block.t1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t1_count))
-            epsi_block.t2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t2_count))
+            this_block.time_s.append(time_s)
+            this_block.t1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t1_count))
+            this_block.t2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: t2_count))
 
             switch mode {
             case .EPSI:
-                epsi_block.s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
-                epsi_block.s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
+                this_block.s1_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s1_count))
+                this_block.s2_volt.append(EpsiDataModelModraw.Bipolar(FR: 2.5, data: s2_count))
             case .FCTD:
-                epsi_block.s1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s1_count))
-                epsi_block.s2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s2_count))
+                this_block.s1_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s1_count))
+                this_block.s2_volt.append(EpsiDataModelModraw.Unipolar(FR: 2.5, data: s2_count))
             }
 
             let a1_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a1_count)
             let a2_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a2_count)
             let a3_volt = EpsiDataModelModraw.Unipolar(FR: 1.8, data: a3_count)
 
-            epsi_block.a1_g.append(EpsiDataModelModraw.volt_to_g(data: a1_volt))
-            epsi_block.a2_g.append(EpsiDataModelModraw.volt_to_g(data: a2_volt))
-            epsi_block.a3_g.append(EpsiDataModelModraw.volt_to_g(data: a3_volt))
+            this_block.a1_g.append(EpsiDataModelModraw.volt_to_g(data: a1_volt))
+            this_block.a2_g.append(EpsiDataModelModraw.volt_to_g(data: a2_volt))
+            this_block.a3_g.append(EpsiDataModelModraw.volt_to_g(data: a3_volt))
         }
     }
 
@@ -490,20 +503,26 @@ class EpsiDataModelModraw: EpsiDataModel
         i += EpsiDataModelModraw.block_size_len
         i += EpsiDataModelModraw.chksum1_len
 
-        var ctd_block : CtdData
-        if (ctd_blocks.isEmpty || ctd_blocks.last!.isFull()) {
-            ctd_block = CtdData()
-            ctd_block.reserveCapacity(ctd_block.capacity)
-            ctd_blocks.append(ctd_block)
-        } else {
-            ctd_block = ctd_blocks.last!
-        }
+        let prev_block = ctd_blocks.last
+        var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
 
+        let this_block : CtdData
+        if (prev_block == nil || prev_block!.isFull()) {
+            this_block = CtdData()
+            ctd_blocks.append(this_block)
+        } else {
+            this_block = prev_block!
+        }
         for _ in 0..<EpsiDataModelModraw.sbe_recs_per_block {
-            let time_s = currentModraw!.parseHex(start: i, len: EpsiDataModelModraw.sbe_timestamp_length)
-            ctd_block.time_s.append(Double(time_s) / 1000.0)
+            let time_s = Double(currentModraw!.parseHex(start: i, len: EpsiDataModelModraw.sbe_timestamp_length)) / 1000.0
             i += EpsiDataModelModraw.sbe_timestamp_length
 
+            if (prev_time_s != nil) {
+                this_block.checkAndAppendGap(t0: prev_time_s!, t1: time_s)
+            }
+            prev_time_s = time_s
+
+            this_block.time_s.append(time_s)
             switch sbe_format {
             case SBE_Format.PTS:
                 assert(false)
@@ -520,10 +539,10 @@ class EpsiDataModelModraw: EpsiDataModel
                 let sbe_c3515 = 42.914
                 let S = EpsiDataModelModraw.sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
                 let z = EpsiDataModelModraw.sw_dpth(P: P, LAT: PCodeData_lat)
-                ctd_block.P.append(P)
-                ctd_block.T.append(T)
-                ctd_block.S.append(S)
-                ctd_block.z.append(z)
+                this_block.P.append(P)
+                this_block.T.append(T)
+                this_block.S.append(S)
+                this_block.z.append(z)
             }
             i += 2 // skip the <CR><LF>
         }
