@@ -39,7 +39,9 @@ class EpsiDataModelModraw: EpsiDataModel
     override init(mode: Mode) {
         super.init(mode: mode)
         // Debugging:
-        //openFile(URL(fileURLWithPath: "/Users/catalin/Documents/epsiPlot/EPSI24_11_06_054202.modraw"))
+#if DEBUG
+        openFile(URL(fileURLWithPath: "/Usjnjners/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
+#endif
     }
     var lastUpdateTime = 0.0
     var prev_time_window_start = 0.0
@@ -185,6 +187,7 @@ class EpsiDataModelModraw: EpsiDataModel
                         }
                     }
                 } catch {
+                    windowTitle = error.localizedDescription
                     print(error, fileURL)
                 }
             }
@@ -231,7 +234,13 @@ class EpsiDataModelModraw: EpsiDataModel
         }
 
         currentModrawUrl = fileUrl
-        currentModraw = ModrawParser(fileUrl: fileUrl)
+        do {
+            currentModraw = try ModrawParser(fileUrl: fileUrl)
+        } catch {
+            windowTitle = error.localizedDescription
+            print(error)
+            return
+        }
 
         let header = currentModraw!.parseHeader()
         readCalibrationData(header: header!)

@@ -14,8 +14,8 @@ class ModrawParser {
     private var cursor = 0
     private var firstTimestamp : Int?
     private var currentYearOffset = 0
-    init(fileUrl: URL) {
-        let fileData = try! Data(contentsOf: fileUrl)
+    init(fileUrl: URL) throws {
+        let fileData = try Data(contentsOf: fileUrl)
         data = [UInt8](repeating: 0, count: fileData.count)
         fileData.copyBytes(to: &data, count: data.count)
     }
