@@ -23,7 +23,7 @@ class ModrawParser {
         return data.count
     }
     func appendData(data: [UInt8]) {
-        self.data.append(contentsOf: data)
+        self.data.append(contentsOf: data[0..<data.count])
     }
     func peekByte() -> UInt8? {
         guard cursor < data.count else { return nil }
