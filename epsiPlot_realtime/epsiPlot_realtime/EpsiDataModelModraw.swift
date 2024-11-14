@@ -41,7 +41,7 @@ class EpsiDataModelModraw: EpsiDataModel
         // Debugging:
 #if DEBUG
 //        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
-        openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/out/"))
+        openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
 #endif
     }
     var lastUpdateTime = 0.0
@@ -67,8 +67,8 @@ class EpsiDataModelModraw: EpsiDataModel
         let t1 = time_window_start + time_window_length
 
         while !epsi_blocks.isEmpty && epsi_blocks.first!.time_s.last! < time_window_start {
-            if (epsi_blocks.count > 1 && epsi_blocks[0].dataGaps.last!.1 > epsi_blocks[0].time_s.last!) {
-                epsi_blocks[1].dataGaps.insert(epsi_blocks[0].dataGaps.last!, at: 0)
+            if (epsi_blocks.count > 1) {
+                epsi_blocks[1].checkAndAppendGap(prevBlock: epsi_blocks[0])
             }
             epsi_blocks.remove(at: 0)
         }
@@ -81,6 +81,9 @@ class EpsiDataModelModraw: EpsiDataModel
             }
         }
         while !ctd_blocks.isEmpty && ctd_blocks.first!.time_s.last! < time_window_start {
+            if (ctd_blocks.count > 1) {
+                ctd_blocks[1].checkAndAppendGap(prevBlock: ctd_blocks[0])
+            }
             ctd_blocks.remove(at: 0)
         }
         if (!ctd_blocks.isEmpty) {

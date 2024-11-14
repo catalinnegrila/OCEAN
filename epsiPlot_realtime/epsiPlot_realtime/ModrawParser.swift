@@ -226,6 +226,9 @@ class ModrawParser {
         return val
     }
     func parsePacket() -> ModrawPacket? {
+        if (cursor >= data.count) {
+            return nil
+        }
         let p = ModrawPacket()
         p.packetStart = cursor
         if (data[cursor] == ModrawParser.ASCII_T)

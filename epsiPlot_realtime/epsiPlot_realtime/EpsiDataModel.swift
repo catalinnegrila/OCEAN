@@ -43,6 +43,15 @@ class TimestampedData
             dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
         }
     }
+
+    func checkAndAppendGap(prevBlock: TimestampedData)
+    {
+        if let dataGap = prevBlock.dataGaps.last {
+            if (dataGap.1 > time_s.first!) {
+                dataGaps.insert(dataGap, at: 0)
+            }
+        }
+    }
     func getIndexFromStart(t : Double) -> Int
     {
         var i = 0
