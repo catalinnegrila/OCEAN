@@ -6,6 +6,7 @@ class TimestampedData
     let capacity : Int
     let expected_sample_duration : Double
     var time_s = [Double]()
+    var time_f = [Double]()
     var dataGaps = [(Double, Double)]()
 
     init(capacity: Int, samples_per_sec: Int) {
@@ -18,10 +19,12 @@ class TimestampedData
     func reserveCapacity(_ newCapacity: Int)
     {
         time_s.reserveCapacity(newCapacity)
+        time_f.reserveCapacity(newCapacity)
     }
     func removeAll()
     {
         time_s.removeAll()
+        time_f.removeAll()
         dataGaps.removeAll()
     }
     func append(from: TimestampedData, first: Int, count: Int)
@@ -37,19 +40,29 @@ class TimestampedData
     {
         if ((t1 - t0) > 2 * expected_sample_duration) {
             //print("Gap: N = \(Int((t1 - t0) / expected_sample_duration)) dt = \(t1 - t0) sd = \(expected_sample_duration)")
-            //dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
+            dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
         }
     }
-
-    func getIndexForTime(_ t : Double) -> Int
+    func getIndexFromStart(t : Double) -> Int
     {
-        for i in 0..<time_s.count {
-            if (time_s[i] >= t) {
-                return i
-            }
+        var i = 0
+        while i < time_s.count && time_s[i] < t {
+            i = i + 1
         }
-        assert(false)
-        return 0
+        return i
+    }
+    func getIndexFromEnd(t : Double) -> Int
+    {
+        var i = time_s.count - 1
+        while i >= 0 && time_s[i] > t {
+            i -= 1
+        }
+        return i
+    }
+    func computeTimeF(t0: Double, dt: Double) {
+        for i in 0..<time_s.count {
+            time_f.append((time_s[i] - t0) / dt)
+        }
     }
 }
 
@@ -178,16 +191,17 @@ class EpsiDataModel
     var time_window_start = 0.0
     var time_window_length = 0.0
 
-    var dataChanged = false
-    func updateViewData() ->  Bool
+    var sourceDataChanged = false
+
+    func updateSourceData() -> Bool
     {
         return false
     }
-
-    func onDataChanged()
+    func updateViewData(pixel_width: Int)
     {
         if (epsi.time_s.count > 0)
         {
+            epsi.computeTimeF(t0: time_window_start, dt: time_window_length)
             epsi_t1_volt_mean = EpsiDataModel.mean(mat: epsi.t1_volt)
             epsi_t2_volt_mean = EpsiDataModel.mean(mat: epsi.t2_volt)
             epsi_s1_volt_rms = EpsiDataModel.rms(mat: epsi.s1_volt)
@@ -210,6 +224,7 @@ class EpsiDataModel
         }
         if (ctd.time_s.count > 0)
         {
+            ctd.computeTimeF(t0: time_window_start, dt: time_window_length)
             ctd_P_range = EpsiDataModel.minmax(mat: ctd.P)
             ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
             ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
@@ -228,6 +243,8 @@ class EpsiDataModel
             ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd_dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
         }
+
+        sourceDataChanged = false
     }
 
     func printValues()
@@ -263,12 +280,14 @@ class EpsiDataModel
     {
         windowTitle = "Scanning \(folderUrl.path) -- \(mode) mode"
         print("Reading folder: \(windowTitle)")
+        sourceDataChanged = true
     }
     
     func openFile(_ fileUrl: URL)
     {
         windowTitle = "\(fileUrl.path) -- \(mode) mode"
         print("Reading file: \(windowTitle)")
+        sourceDataChanged = true
     }
 
     static func yAxis(range: (Double, Double)) -> [Double]
