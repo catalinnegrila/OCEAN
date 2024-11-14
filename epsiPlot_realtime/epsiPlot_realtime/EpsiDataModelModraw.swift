@@ -40,36 +40,44 @@ class EpsiDataModelModraw: EpsiDataModel
         super.init(mode: mode)
         // Debugging:
 #if DEBUG
-        openFile(URL(fileURLWithPath: "/Usjnjners/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
+//        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
+        openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/out/"))
 #endif
     }
     var lastUpdateTime = 0.0
     var prev_time_window_start = 0.0
-    override func updateViewData() -> Bool {
+
+    override func updateSourceData() -> Bool {
         if (scanningFolderUrl != nil) {
             scanFolder()
         }
-
-        if (!dataChanged) {
-            return false
-        }
-
+        return sourceDataChanged
+    }
+    override func updateViewData(pixel_width: Int) {
         epsi.removeAll()
         ctd.removeAll()
 
         let epsi_time = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last! - time_window_length
         let ctd_time = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last! - time_window_length
         time_window_start = max(epsi_time, ctd_time)
+        // Round time to pixel increments for consistent sampling
+        let time_per_pixel = time_window_length / Double(pixel_width)
+        time_window_start = floor(time_window_start / time_per_pixel) * time_per_pixel
+        let t0 = time_window_start
+        let t1 = time_window_start + time_window_length
 
         while !epsi_blocks.isEmpty && epsi_blocks.first!.time_s.last! < time_window_start {
+            if (epsi_blocks.count > 1 && epsi_blocks[0].dataGaps.last!.1 > epsi_blocks[0].time_s.last!) {
+                epsi_blocks[1].dataGaps.insert(epsi_blocks[0].dataGaps.last!, at: 0)
+            }
             epsi_blocks.remove(at: 0)
         }
         if (!epsi_blocks.isEmpty) {
             epsi.reserveCapacity(epsi_blocks.reduce(0) { $0 + $1.time_s.count })
-            var first_entry = epsi_blocks[0].getIndexForTime(time_window_start)
             for block in epsi_blocks {
-                epsi.append(from: block, first: first_entry, count: block.time_s.count - first_entry)
-                first_entry = 0
+                let first_entry = block.getIndexFromStart(t: t0)
+                let last_entry = block.getIndexFromEnd(t: t1)
+                epsi.append(from: block, first: first_entry, count: last_entry - first_entry)
             }
         }
         while !ctd_blocks.isEmpty && ctd_blocks.first!.time_s.last! < time_window_start {
@@ -77,14 +85,14 @@ class EpsiDataModelModraw: EpsiDataModel
         }
         if (!ctd_blocks.isEmpty) {
             ctd.reserveCapacity(ctd_blocks.reduce(0) { $0 + $1.time_s.count })
-            var first_entry = ctd_blocks[0].getIndexForTime(time_window_start)
             for block in ctd_blocks {
-                ctd.append(from: block, first: first_entry, count: block.time_s.count - first_entry)
-                first_entry = 0
+                let first_entry = block.getIndexFromStart(t: t0)
+                let last_entry = block.getIndexFromEnd(t: t1)
+                ctd.append(from: block, first: first_entry, count: last_entry - first_entry)
             }
         }
-        super.onDataChanged()
-        return true
+
+        super.updateViewData(pixel_width: pixel_width)
     }
 
     static func getKeyValue(key: String, header: String) -> Double {
@@ -148,14 +156,14 @@ class EpsiDataModelModraw: EpsiDataModel
             case "$EFE4":
                 if (isValidPacketEFE4(packet: packet!)) {
                     parseEFE4(packet: packet!)
-                    dataChanged = true
+                    sourceDataChanged = true
                 } else {
                     currentModraw!.rewindPacket(packet: packet!)
                 }
             case "$SB49":
                 if (isValidPacketSB49(packet: packet!)) {
                     parseSB49(packet: packet!, sbe_format: SBE_Format.eng)
-                    dataChanged = true
+                    sourceDataChanged = true
                 } else {
                     currentModraw!.rewindPacket(packet: packet!)
                 }
