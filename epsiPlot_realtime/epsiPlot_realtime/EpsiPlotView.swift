@@ -216,7 +216,8 @@ struct EpsiPlotView: View {
     let a3_color = Color(red: 240/255, green: 207/255, blue: 140/255)
     let T_color = Color(red: 212/255, green: 35/255, blue: 36/255)
     let S_color = Color(red: 82/255, green: 135/255, blue: 187/255)
-    let dzdt_color = Color(red: 233/255, green: 145/255, blue: 195/255)
+    let dzdt_pos_color = Color(red: 233/255, green: 145/255, blue: 195/255)
+    let dzdt_neg_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
     let leftLabelsWidth = CGFloat(30)
     let vgap = CGFloat(25)
@@ -226,7 +227,7 @@ struct EpsiPlotView: View {
         context.drawLayer { ctx in
             ctx.translateBy(x: leftLabelsWidth/2, y: (rc.maxY + rc.minY) / 2)
             ctx.rotate(by: Angle(degrees: -90))
-            ctx.draw(Text(text).bold(), at: CGPoint(x: 0, y: 0), anchor: .center)
+            ctx.draw(Text(text).bold(), at: CGPoint(x: 0, y: -3), anchor: .center)
         }
     }
     func drawSubLabels(context: GraphicsContext, rc: CGRect, labels: [(Color, String)]) {
@@ -257,6 +258,27 @@ struct EpsiPlotView: View {
             context.draw(Text(labels[i].1).foregroundColor(.black).font(textFont), at: ptText, anchor: .topLeading)
             ptText.y += textHeight
             rcDot = rcDot.offsetBy(dx: 0, dy: textHeight)
+        }
+    }
+
+    func drawArrow(context: GraphicsContext, from: CGPoint, to: CGPoint, thick: Double, head: Double, color: Color) {
+        let dx = to.x - from.x
+        let dy = to.y - from.y
+        let len = sqrt(dx * dx + dy * dy)
+        let dir = atan2(dy, dx)
+        context.drawLayer { ctx in
+            ctx.translateBy(x: from.x, y: from.y)
+            ctx.rotate(by: Angle(radians: dir))
+            ctx.stroke(Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: len - head, y: 0))
+            }, with: .color(color),
+                           lineWidth: thick)
+            ctx.fill(Path { path in
+                path.move(to: CGPoint(x: len, y: 0))
+                path.addLine(to: CGPoint(x: len - head, y: head / 2))
+                path.addLine(to: CGPoint(x: len - head, y: -head / 2))
+            }, with: .color(color))
         }
     }
     private var chart: some View {
@@ -297,8 +319,8 @@ struct EpsiPlotView: View {
                 drawMainLabel(context: context, rc: rect, text: "FP07 [Volt]")
                 if (dataModel.epsi.time_s.count > 0) {
                     drawSubLabels(context: context, rc: rect, labels: [
-                        (t1_color, "t1 - \(String(format: "%.1f", dataModel.epsi_t1_volt_mean))"),
-                        (t2_color, "t2 - \(String(format: "%.1f", dataModel.epsi_t2_volt_mean))")])
+                        (t1_color, "t1 - \(String(format: "%.2g", dataModel.epsi_t1_volt_mean))"),
+                        (t2_color, "t2 - \(String(format: "%.2g", dataModel.epsi_t2_volt_mean))")])
                 }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
 
@@ -306,7 +328,7 @@ struct EpsiPlotView: View {
                 let epsi_s_volt_range = EpsiDataModel.minmax(v1: dataModel.epsi_s1_volt_range, v2: dataModel.epsi_s2_volt_range)
                 
                 let s_yAxis = EpsiDataModel.yAxis(range: epsi_s_volt_range)
-                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
+                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
                 
                 render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, data: &dataModel.epsi.s1_volt, time_f: &dataModel.epsi.time_f, color: s1_color)
                 render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, data: &dataModel.epsi.s2_volt, time_f: &dataModel.epsi.time_f, color: s2_color)
@@ -315,30 +337,38 @@ struct EpsiPlotView: View {
                 drawMainLabel(context: context, rc: rect, text: "Shear [Volt]")
                 if (dataModel.epsi.time_s.count > 0) {
                     drawSubLabels(context: context, rc: rect, labels: [
-                        (s1_color, "s1 - rms \(String(format: "%.1f", dataModel.epsi_s1_volt_rms))"),
-                        (s2_color, "s2 - rms \(String(format: "%.1f", dataModel.epsi_s2_volt_rms))")])
+                        (s1_color, "s1 - rms \(String(format: "%.2g", dataModel.epsi_s1_volt_rms))"),
+                        (s2_color, "s2 - rms \(String(format: "%.2g", dataModel.epsi_s2_volt_rms))")])
                 }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
 
             case .FCTD:
                 // EPSI s1
                 let s1_yAxis = EpsiDataModel.yAxis(range: dataModel.epsi_s1_volt_range)
-                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s1_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
+                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s1_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
                 
                 render1D(context: context, rc: rect, yAxis: dataModel.epsi_s1_volt_range, data: &dataModel.epsi.s1_volt, time_f: &dataModel.epsi.time_f, color: s1_color)
                 renderDataGaps(context: context, rc: rect, dataGaps: &dataModel.epsi.dataGaps)
 
                 drawMainLabel(context: context, rc: rect, text: "s1 [Volt]")
+                if (dataModel.epsi.time_s.count > 0) {
+                    drawSubLabels(context: context, rc: rect, labels: [
+                        (s1_color, "s1 - rms \(String(format: "%.2g", dataModel.epsi_s1_volt_rms))")])
+                }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
 
                 // EPSI s2
                 let s2_yAxis = EpsiDataModel.yAxis(range: dataModel.epsi_s2_volt_range)
-                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s2_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
+                renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s2_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
                 
                 render1D(context: context, rc: rect, yAxis: dataModel.epsi_s2_volt_range, data: &dataModel.epsi.s2_volt, time_f: &dataModel.epsi.time_f, color: s2_color)
                 renderDataGaps(context: context, rc: rect, dataGaps: &dataModel.epsi.dataGaps)
 
                 drawMainLabel(context: context, rc: rect, text: "s2 [Volt]")
+                if (dataModel.epsi.time_s.count > 0) {
+                    drawSubLabels(context: context, rc: rect, labels: [
+                        (s2_color, "s2 - rms \(String(format: "%.2g", dataModel.epsi_s2_volt_rms))")])
+                }
                 rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
             }
 
@@ -388,13 +418,45 @@ struct EpsiPlotView: View {
 
             // CTD dzdt
             var dzdt_yAxis : [Double]
-            if (dataModel.ctd_dzdt_range.0 < 0.0 && 0.0 < dataModel.ctd_dzdt_range.1) {
-                dzdt_yAxis = [dataModel.ctd_dzdt_range.0, 0.0, dataModel.ctd_dzdt_range.1]
+            let dzdt_min = dataModel.ctd_dzdt_range.0
+            let dzdt_max = dataModel.ctd_dzdt_range.1
+            let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
+            var zero_y = zero_s * rect.minY + (1.0 - zero_s) * rect.maxY
+            if (dzdt_min < 0.0 && 0.0 < dzdt_max) {
+                // Plot contains zero level, highlight that instead of middle
+                dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
             } else {
                 dzdt_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_dzdt_range)
             }
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-            render1D(context: context, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_color)
+            if zero_s < 0 {
+                zero_y = rect.minY
+            } else if zero_s > 1 {
+                zero_y = rect.maxY
+            }
+            let arrow_x = rect.maxX + 10.0
+            let arrow_headLen = 15.0
+            let arrow_len = 40.0
+            let arrow_thick = 5.0
+            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+            if (zero_y - arrow_len >= rect.minY) {
+                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y - 1), to: CGPoint(x: arrow_x, y: zero_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_pos_color)
+                context.drawLayer { ctx in
+                    ctx.clip(to: Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: zero_y - rect.minY)))
+                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_pos_color)
+                }
+            }
+            if (zero_y + arrow_len <= rect.maxY) {
+                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y + 1), to: CGPoint(x: arrow_x, y: zero_y + arrow_len), thick:    arrow_thick, head: arrow_headLen, color: dzdt_neg_color)
+                context.drawLayer { ctx in
+                    ctx.clip(to: Path(CGRect(x: rect.minX, y: zero_y, width: rect.width, height: rect.maxY - zero_y)))
+                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_neg_color)
+                }
+            }
+            if (dzdt_max == dzdt_min)
+            {
+                // Still render the no data
+                render1D(context: context, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_neg_color)
+            }
             renderDataGaps(context: context, rc: rect, dataGaps: &dataModel.ctd.dataGaps)
 
             drawMainLabel(context: context, rc: rect, text: "dzdt [m/s]")
@@ -431,3 +493,6 @@ struct EpsiPlotView: View {
         }
     }
 }
+
+// Add arrow
+
