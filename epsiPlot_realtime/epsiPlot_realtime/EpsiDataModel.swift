@@ -238,17 +238,19 @@ class EpsiDataModel
             ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
             ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
             ctd_z_range = EpsiDataModel.minmax(mat: ctd.z)
+            ctd_z_range = (ctd_z_range.1, ctd_z_range.0)
 
             ctd_dzdt.removeAll()
-            ctd_dzdt.reserveCapacity(ctd.z.count)
-            ctd_dzdt.append(0.0)
-            for i in 1..<ctd.z.count {
-                ctd_dzdt.append((ctd.z[i - 1] - ctd.z[i]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
+            if (!ctd.z.isEmpty) {
+                ctd_dzdt.reserveCapacity(ctd.z.count)
+                ctd_dzdt.append(0.0)
+                for i in 1..<ctd.z.count {
+                    ctd_dzdt.append((ctd.z[i - 1] - ctd.z[i]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
+                }
+                if (ctd_dzdt.count > 1) {
+                    ctd_dzdt[0] = ctd_dzdt[1]
+                }
             }
-            if (ctd_dzdt.count > 1) {
-                ctd_dzdt[0] = ctd_dzdt[1]
-            }
-
             ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd_dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
         }

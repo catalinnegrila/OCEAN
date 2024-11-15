@@ -41,7 +41,7 @@ class EpsiDataModelModraw: EpsiDataModel
         // Debugging:
 #if DEBUG
 //        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
-        openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
+        //openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
 #endif
     }
     var lastUpdateTime = 0.0
