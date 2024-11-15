@@ -422,7 +422,7 @@ struct EpsiPlotView: View {
             let dzdt_max = dataModel.ctd_dzdt_range.1
             let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
             var zero_y = zero_s * rect.minY + (1.0 - zero_s) * rect.maxY
-            if (dzdt_min < 0.0 && 0.0 < dzdt_max) {
+            if (dzdt_min * dzdt_max < 0) {
                 // Plot contains zero level, highlight that instead of middle
                 dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
             } else {
@@ -437,16 +437,21 @@ struct EpsiPlotView: View {
             let arrow_headLen = 15.0
             let arrow_len = 40.0
             let arrow_thick = 5.0
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
-            if (zero_y - arrow_len >= rect.minY) {
+            if (zero_y - arrow_len / 2 >= rect.minY) {
                 drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y - 1), to: CGPoint(x: arrow_x, y: zero_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_pos_color)
+            }
+            if (zero_y + arrow_len / 2 <= rect.maxY) {
+                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y + 1), to: CGPoint(x: arrow_x, y: zero_y + arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_neg_color)
+            }
+
+            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+            if (zero_y > rect.minY) {
                 context.drawLayer { ctx in
                     ctx.clip(to: Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: zero_y - rect.minY)))
                     render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_pos_color)
                 }
             }
-            if (zero_y + arrow_len <= rect.maxY) {
-                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y + 1), to: CGPoint(x: arrow_x, y: zero_y + arrow_len), thick:    arrow_thick, head: arrow_headLen, color: dzdt_neg_color)
+            if (zero_y < rect.maxY) {
                 context.drawLayer { ctx in
                     ctx.clip(to: Path(CGRect(x: rect.minX, y: zero_y, width: rect.width, height: rect.maxY - zero_y)))
                     render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_neg_color)
