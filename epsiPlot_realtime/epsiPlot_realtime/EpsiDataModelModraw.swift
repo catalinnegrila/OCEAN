@@ -40,7 +40,7 @@ class EpsiDataModelModraw: EpsiDataModel
         super.init(mode: mode)
         // Debugging:
 #if DEBUG
-//        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
+        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
         //openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
 #endif
     }

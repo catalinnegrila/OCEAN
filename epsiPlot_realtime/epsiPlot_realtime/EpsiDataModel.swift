@@ -245,7 +245,7 @@ class EpsiDataModel
                 ctd_dzdt.reserveCapacity(ctd.z.count)
                 ctd_dzdt.append(0.0)
                 for i in 1..<ctd.z.count {
-                    ctd_dzdt.append((ctd.z[i - 1] - ctd.z[i]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
+                    ctd_dzdt.append((ctd.z[i] - ctd.z[i - 1]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
                 }
                 if (ctd_dzdt.count > 1) {
                     ctd_dzdt[0] = ctd_dzdt[1]
@@ -253,6 +253,7 @@ class EpsiDataModel
             }
             ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd_dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
+            ctd_dzdt_range = (ctd_dzdt_range.1, ctd_dzdt_range.0)
         }
 
         sourceDataChanged = false
