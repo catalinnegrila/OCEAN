@@ -214,8 +214,8 @@ struct RealtimePlotView: View {
     let a3_color = Color(red: 240/255, green: 207/255, blue: 140/255)
     let T_color = Color(red: 212/255, green: 35/255, blue: 36/255)
     let S_color = Color(red: 82/255, green: 135/255, blue: 187/255)
-    let dzdt_pos_color = Color(red: 233/255, green: 145/255, blue: 195/255)
-    let dzdt_neg_color = Color(red: 82/255, green: 135/255, blue: 187/255)
+    let dzdt_up_color = Color(red: 233/255, green: 145/255, blue: 195/255)
+    let dzdt_down_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
     let leftLabelsWidth = CGFloat(30)
     let vgap = CGFloat(25)
@@ -419,46 +419,38 @@ struct RealtimePlotView: View {
             let dzdt_min = dataModel.ctd_dzdt_range.0
             let dzdt_max = dataModel.ctd_dzdt_range.1
             let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
-            var zero_y = zero_s * rect.minY + (1.0 - zero_s) * rect.maxY
+            let zero_y = zero_s * rect.minY + (1.0 - zero_s) * rect.maxY
             if (dzdt_min * dzdt_max < 0) {
                 // Plot contains zero level, highlight that instead of middle
                 dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
             } else {
                 dzdt_yAxis = EpsiDataModel.yAxis(range: dataModel.ctd_dzdt_range)
             }
-            if zero_s < 0 {
-                zero_y = rect.minY
-            } else if zero_s > 1 {
-                zero_y = rect.maxY
-            }
             let arrow_x = rect.maxX + 10.0
             let arrow_headLen = 15.0
             let arrow_len = 40.0
             let arrow_thick = 5.0
-            if (zero_y - arrow_len / 2 >= rect.minY) {
-                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y - 1), to: CGPoint(x: arrow_x, y: zero_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_pos_color)
-            }
-            if (zero_y + arrow_len / 2 <= rect.maxY) {
-                drawArrow(context: context, from: CGPoint(x: arrow_x, y: zero_y + 1), to: CGPoint(x: arrow_x, y: zero_y + arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_neg_color)
-            }
-
             renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
-            if (zero_y > rect.minY) {
+            if (zero_y > rect.minY + 2) {
                 context.drawLayer { ctx in
                     ctx.clip(to: Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: zero_y - rect.minY)))
-                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_pos_color)
+                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_up_color)
                 }
+                let arrow_y = min(zero_y, rect.maxY)
+                drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y - 1), to: CGPoint(x: arrow_x, y: arrow_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_up_color)
             }
-            if (zero_y < rect.maxY) {
+            if (zero_y < rect.maxY - 2) {
                 context.drawLayer { ctx in
                     ctx.clip(to: Path(CGRect(x: rect.minX, y: zero_y, width: rect.width, height: rect.maxY - zero_y)))
-                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_neg_color)
+                    render1D(context: ctx, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_down_color)
                 }
+                let arrow_y = max(zero_y, rect.minY)
+                drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y + 1), to: CGPoint(x: arrow_x, y: arrow_y + arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_down_color)
             }
             if (dzdt_max == dzdt_min)
             {
                 // Still render the no data
-                render1D(context: context, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: dzdt_neg_color)
+                render1D(context: context, rc: rect, yAxis: dataModel.ctd_dzdt_range, data: &dataModel.ctd_dzdt_movmean, time_f: &dataModel.ctd.time_f, color: .black)
             }
             renderDataGaps(context: context, rc: rect, dataGaps: &dataModel.ctd.dataGaps)
 

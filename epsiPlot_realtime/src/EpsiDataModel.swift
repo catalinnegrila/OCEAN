@@ -293,14 +293,14 @@ class EpsiDataModel
     func openFolder(_ folderUrl: URL)
     {
         windowTitle = "Scanning \(folderUrl.path) -- \(mode) mode"
-        print("Reading folder: \(windowTitle)")
+        print(windowTitle)
         sourceDataChanged = true
     }
     
     func openFile(_ fileUrl: URL)
     {
         windowTitle = "\(fileUrl.path) -- \(mode) mode"
-        print("Reading file: \(windowTitle)")
+        print(windowTitle)
         sourceDataChanged = true
     }
 
