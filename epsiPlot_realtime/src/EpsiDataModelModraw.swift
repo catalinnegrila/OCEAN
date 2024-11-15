@@ -38,10 +38,10 @@ class EpsiDataModelModraw: EpsiDataModel
     var scanningFolderUrl : URL?
     override init(mode: Mode) {
         super.init(mode: mode)
-        // Debugging:
 #if DEBUG
         openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
         //openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
+        //openFolder(URL(fileURLWithPath: "/Volumes/FCTD_EPSI_DATA/Current_Cruise"))
 #endif
     }
     var lastUpdateTime = 0.0
