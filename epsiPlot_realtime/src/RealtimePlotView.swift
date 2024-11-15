@@ -3,7 +3,7 @@ import SwiftUI
 let PRINT_PERF = true
 var epsiDataModel : EpsiDataModel? = EpsiDataModelModraw(mode: .EPSI)
 
-struct EpsiPlotView: View {
+struct RealtimePlotView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var refreshView = false
     @State private var windowTitle = ""
@@ -37,7 +37,7 @@ struct EpsiPlotView: View {
         }
     }
 
-    private func renderGrid(context: GraphicsContext, rc: CGRect, xAxis: [Double], yAxis: [Double], leftLabels: Bool, formatter: (Double) -> String) {
+    func renderGrid(context: GraphicsContext, rc: CGRect, xAxis: [Double], yAxis: [Double], leftLabels: Bool, formatter: (Double) -> String) {
         let nub = 7.0
         let thickLine = 1.5
         let textGap = 5.0
@@ -117,37 +117,34 @@ struct EpsiPlotView: View {
         }
     }
 
-    static func valueToY(rc: CGRect, yAxis: (Double, Double), v: Double) -> Double {
+    func valueToY(rc: CGRect, yAxis: (Double, Double), v: Double) -> Double {
         return lerpToY(rc: rc, s: valueToLerp(yAxis: yAxis, v: v))
     }
-
-    static func lerpToY(rc: CGRect, s: Double) -> Double {
+    func lerpToY(rc: CGRect, s: Double) -> Double {
         return rc.maxY - floor(s * rc.height)
     }
-
-    static func valueToLerp(yAxis: (Double, Double), v: Double) -> Double {
+    func valueToLerp(yAxis: (Double, Double), v: Double) -> Double {
         return (v - yAxis.0) / (yAxis.1 - yAxis.0)
     }
-
-    static func timeToLerp(t: Double) -> Double {
+    func timeToLerp(t: Double) -> Double {
         return (t - epsiDataModel!.time_window_start) / epsiDataModel!.time_window_length
     }
-    static func timeToX(rc: CGRect, t: Double) -> Double {
-        return lerpToX(rc: rc, s: EpsiPlotView.timeToLerp(t: t))
+    func timeToX(rc: CGRect, t: Double) -> Double {
+        return lerpToX(rc: rc, s: timeToLerp(t: t))
     }
-    static func lerpToX(rc: CGRect, s: Double) -> Double {
+    func lerpToX(rc: CGRect, s: Double) -> Double {
         return floor(rc.minX + rc.width * s)
     }
-    private func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), data: inout [Double], time_f: inout [Double], color: Color) {
+    func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), data: inout [Double], time_f: inout [Double], color: Color) {
         let noDataColor = getNoDataColor()
         if (!data.isEmpty) {
-            let minX = EpsiPlotView.lerpToX(rc: rc, s: time_f.first!)
+            let minX = lerpToX(rc: rc, s: time_f.first!)
             assert(minX >= rc.minX)
             if (minX - rc.minX > 2) {
                 let rcEmpty = CGRect(x: rc.minX + 1, y: rc.minY + 1, width: minX - rc.minX - 1, height: rc.height - 2)
                 context.fill(Path(rcEmpty), with: .color(noDataColor))
             }
-            let maxX = EpsiPlotView.lerpToX(rc: rc, s: time_f.last!)
+            let maxX = lerpToX(rc: rc, s: time_f.last!)
             if (rc.maxX - maxX > 2) {
                 let rcEmpty = CGRect(x: maxX, y: rc.minY + 1, width: rc.maxX - maxX - 1, height: rc.height - 2)
                 context.fill(Path(rcEmpty), with: .color(noDataColor))
@@ -156,23 +153,23 @@ struct EpsiPlotView: View {
             context.stroke(Path { path in
                 var sample_index = 0
                 if (data.count <= Int(maxX - minX)) {
-                    path.move(to: CGPoint(x: minX, y: EpsiPlotView.valueToY(rc: rc, yAxis: yAxis, v: data[0])))
+                    path.move(to: CGPoint(x: minX, y: valueToY(rc: rc, yAxis: yAxis, v: data[0])))
                     for x in stride(from: minX + 1, to: maxX, by: 1.0) {
                         let s = min((x - rc.minX) / Double(rc.width), time_f.last!)
                         while (time_f[sample_index] < s) {
                             sample_index += 1
                         }
-                        path.addLine(to: CGPoint(x: x, y: EpsiPlotView.valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])))
+                        path.addLine(to: CGPoint(x: x, y: valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])))
                     }
                 } else {
                     for x in stride(from: minX, to: maxX, by: 1.0) {
                         let s = (x - rc.minX) / Double(rc.width - 1)
-                        let v = EpsiPlotView.valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
+                        let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
                         var minv = v
                         var maxv = v
                         while (time_f[sample_index] < s) {
                             sample_index += 1
-                            let v = EpsiPlotView.valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
+                            let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
                             minv = min(minv, v)
                             maxv = max(maxv, v)
                         }
@@ -193,8 +190,8 @@ struct EpsiPlotView: View {
     func renderDataGaps(context: GraphicsContext, rc: CGRect, dataGaps: inout [(Double, Double)]) {
         let noDataColor = getNoDataColor()
         for dataGap in dataGaps {
-            let x0 = max(rc.minX + 1, EpsiPlotView.timeToX(rc: rc, t: dataGap.0))
-            let x1 = min(rc.maxX - 1, EpsiPlotView.timeToX(rc: rc, t: dataGap.1))
+            let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0))
+            let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1))
             if (x1 - x0 >= 1) {
                 let rcGap = CGRect(x: x0, y: rc.minY + 1, width: x1 - x0, height: rc.height - 2)
                 context.fill(Path(rcGap), with: .color(noDataColor))
@@ -209,6 +206,7 @@ struct EpsiPlotView: View {
         let noDataGray = isDarkTheme() ? 0.15 : 0.85
         return Color(red: noDataGray, green: noDataGray, blue: noDataGray)
     }
+
     let s1_color = Color(red: 88/255, green: 143/255, blue: 92/255)
     let s2_color = Color(red: 189/255, green: 219/255, blue: 154/255)
     let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)

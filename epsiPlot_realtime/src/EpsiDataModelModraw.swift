@@ -395,8 +395,8 @@ class EpsiDataModelModraw: EpsiDataModel
     static let sbe_timestamp_length = 16
     static let sbe_channel6_len = 6
     static let sbe_channel4_len = 4
-    static let sbe_block_rec_len = EpsiDataModelModraw.sbe_timestamp_length + 3 * EpsiDataModelModraw.sbe_channel6_len + EpsiDataModelModraw.sbe_channel4_len + 2 // <CR><LF>
-    static let sbe_block_data_len = EpsiDataModelModraw.sbe_block_rec_len * EpsiDataModelModraw.sbe_recs_per_block
+    static let sbe_block_rec_len = sbe_timestamp_length + 3 * sbe_channel6_len + sbe_channel4_len + 2 // <CR><LF>
+    static let sbe_block_data_len = sbe_block_rec_len * sbe_recs_per_block
 
     func parseSbeChannel6(_ i: inout Int) -> Int {
         let channel = currentModraw!.parseHex(start: i, len: EpsiDataModelModraw.sbe_channel6_len)
@@ -446,15 +446,13 @@ class EpsiDataModelModraw: EpsiDataModel
         let ptcb0 = sbe_cal_ptcb0
         let ptcb1 = sbe_cal_ptcb1
         let ptcb2 = sbe_cal_ptcb2
-        
-        
         let y = Double(PT_raw / 13107)
         let t = ptempa0 + ptempa1 * y + ptempa2 * y*y
         let x = Double(P_raw) - ptca0 - ptca1 * t - ptca2 * t*t
         let n = x * ptcb0 / (ptcb0 + ptcb1 * t + ptcb2 * t*t)
         return (pa0 + pa1 * n + pa2 * n*n - 14.7) * 0.689476
     }
-    static func sw_salrt(T: Double) -> Double {
+    func sw_salrt(T: Double) -> Double {
         let c0 =  0.6766097
         let c1 =  2.00564e-2
         let c2 =  1.104259e-4
@@ -462,7 +460,7 @@ class EpsiDataModelModraw: EpsiDataModel
         let c4 =  1.0031e-9
         return c0 + (c1 + (c2 + (c3 + c4 * T) * T) * T) * T
     }
-    static func sw_salrp(R: Double, T: Double, P: Double) -> Double {
+    func sw_salrp(R: Double, T: Double, P: Double) -> Double {
         let d1 =  3.426e-2
         let d2 =  4.464e-4
         let d3 =  4.215e-1
@@ -473,7 +471,7 @@ class EpsiDataModelModraw: EpsiDataModel
         
         return 1 + (P * (e1 + e2 * P + e3 * P*P)) / (1 + d1 * T + d2 * T*T + (d3 + d4 * T) * R)
     }
-    static func sw_sals(Rt: Double, T: Double) -> Double {
+    func sw_sals(Rt: Double, T: Double) -> Double {
         let a0 =  0.0080
         let a1 = -0.1692
         let a2 = 25.3851
@@ -495,14 +493,14 @@ class EpsiDataModelModraw: EpsiDataModel
         let del_S = (del_T / (1 + k * del_T)) * (b0 + (b1 + (b2 + (b3 + (b4 + b5 * Rtx) * Rtx) * Rtx) * Rtx) * Rtx)
         return a0 + (a1 + (a2 + (a3 + (a4 + a5 * Rtx) * Rtx) * Rtx) * Rtx) * Rtx + del_S
     }
-    static func sw_salt(cndr: Double, T: Double, P: Double) -> Double {
+    func sw_salt(cndr: Double, T: Double, P: Double) -> Double {
         let R = cndr
-        let rt = EpsiDataModelModraw.sw_salrt(T: T)
-        let Rp = EpsiDataModelModraw.sw_salrp(R: R, T: T, P: P)
+        let rt = sw_salrt(T: T)
+        let Rp = sw_salrp(R: R, T: T, P: P)
         let Rt = R / (Rp * rt)
-        return EpsiDataModelModraw.sw_sals(Rt: Rt, T: T)
+        return sw_sals(Rt: Rt, T: T)
     }
-    static func sw_dpth(P: Double, LAT: Double) -> Double {
+    func sw_dpth(P: Double, LAT: Double) -> Double {
         assert(LAT >= -90 && LAT <= 90)
         
         let c1 = +9.72659
@@ -557,8 +555,8 @@ class EpsiDataModelModraw: EpsiDataModel
                 let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
                 let C = sbe49_get_conductivity(C_raw: C_raw, T: T, P: P)
                 let sbe_c3515 = 42.914
-                let S = EpsiDataModelModraw.sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
-                let z = EpsiDataModelModraw.sw_dpth(P: P, LAT: PCodeData_lat)
+                let S = sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
+                let z = sw_dpth(P: P, LAT: PCodeData_lat)
                 this_block.P.append(P)
                 this_block.T.append(T)
                 this_block.S.append(S)
