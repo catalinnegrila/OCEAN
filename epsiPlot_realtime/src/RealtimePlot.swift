@@ -16,7 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct epsiPlot_realtimeApp: App {
+struct RealtimePlotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     func modalFilePicker(chooseFiles: Bool) -> URL? {
@@ -66,7 +66,7 @@ struct epsiPlot_realtimeApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            EpsiPlotView()
+            RealtimePlotView()
                 .onAppear {
                     let _ = NSApplication.shared.windows.map { $0.tabbingMode = .disallowed }
                 }

@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		AD96DE3E2CDD432E001FA567 /* epsiPlot_realtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = epsiPlot_realtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD96DE3E2CDD432E001FA567 /* FCTD EPSI Realtime Plot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FCTD EPSI Realtime Plot.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AD96DE402CDD432E001FA567 /* epsiPlot_realtime */ = {
+		AD96DE402CDD432E001FA567 /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = epsiPlot_realtime;
+			path = src;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		AD96DE352CDD432E001FA567 = {
 			isa = PBXGroup;
 			children = (
-				AD96DE402CDD432E001FA567 /* epsiPlot_realtime */,
+				AD96DE402CDD432E001FA567 /* src */,
 				AD96DE3F2CDD432E001FA567 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		AD96DE3F2CDD432E001FA567 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AD96DE3E2CDD432E001FA567 /* epsiPlot_realtime.app */,
+				AD96DE3E2CDD432E001FA567 /* FCTD EPSI Realtime Plot.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AD96DE3D2CDD432E001FA567 /* epsiPlot_realtime */ = {
+		AD96DE3D2CDD432E001FA567 /* FCTD EPSI Realtime Plot */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "epsiPlot_realtime" */;
+			buildConfigurationList = AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "FCTD EPSI Realtime Plot" */;
 			buildPhases = (
 				AD96DE3A2CDD432E001FA567 /* Sources */,
 				AD96DE3B2CDD432E001FA567 /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AD96DE402CDD432E001FA567 /* epsiPlot_realtime */,
+				AD96DE402CDD432E001FA567 /* src */,
 			);
-			name = epsiPlot_realtime;
+			name = "FCTD EPSI Realtime Plot";
 			packageProductDependencies = (
 			);
 			productName = epsiPlot_realtime;
-			productReference = AD96DE3E2CDD432E001FA567 /* epsiPlot_realtime.app */;
+			productReference = AD96DE3E2CDD432E001FA567 /* FCTD EPSI Realtime Plot.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "epsiPlot_realtime" */;
+			buildConfigurationList = AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "FCTD EPSI Realtime Plot" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AD96DE3D2CDD432E001FA567 /* epsiPlot_realtime */,
+				AD96DE3D2CDD432E001FA567 /* FCTD EPSI Realtime Plot */,
 			);
 		};
 /* End PBXProject section */
@@ -248,11 +248,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = epsiPlot_realtime/epsiPlot_realtime.entitlements;
+				CODE_SIGN_ENTITLEMENTS = src/Entitlements.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"epsiPlot_realtime/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				DEVELOPMENT_TEAM = ZJ29KCD5KX;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -276,11 +276,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = epsiPlot_realtime/epsiPlot_realtime.entitlements;
+				CODE_SIGN_ENTITLEMENTS = src/Entitlements.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"epsiPlot_realtime/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				DEVELOPMENT_TEAM = ZJ29KCD5KX;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -304,7 +304,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "epsiPlot_realtime" */ = {
+		AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "FCTD EPSI Realtime Plot" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AD96DE4B2CDD432F001FA567 /* Debug */,
@@ -313,7 +313,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "epsiPlot_realtime" */ = {
+		AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "FCTD EPSI Realtime Plot" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AD96DE4E2CDD432F001FA567 /* Debug */,

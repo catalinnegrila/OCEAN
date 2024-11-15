@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
-               BuildableName = "epsiPlot_realtime.app"
-               BlueprintName = "epsiPlot_realtime"
-               ReferencedContainer = "container:epsiPlot_realtime.xcodeproj">
+               BuildableName = "FCTD EPSI Realtime Plot.app"
+               BlueprintName = "FCTD EPSI Realtime Plot"
+               ReferencedContainer = "container:FCTD EPSI Realtime Plot.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,9 +46,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
-            BuildableName = "epsiPlot_realtime.app"
-            BlueprintName = "epsiPlot_realtime"
-            ReferencedContainer = "container:epsiPlot_realtime.xcodeproj">
+            BuildableName = "FCTD EPSI Realtime Plot.app"
+            BlueprintName = "FCTD EPSI Realtime Plot"
+            ReferencedContainer = "container:FCTD EPSI Realtime Plot.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -63,9 +63,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
-            BuildableName = "epsiPlot_realtime.app"
-            BlueprintName = "epsiPlot_realtime"
-            ReferencedContainer = "container:epsiPlot_realtime.xcodeproj">
+            BuildableName = "FCTD EPSI Realtime Plot.app"
+            BlueprintName = "FCTD EPSI Realtime Plot"
+            ReferencedContainer = "container:FCTD EPSI Realtime Plot.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

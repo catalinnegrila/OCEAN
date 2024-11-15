@@ -173,9 +173,11 @@ class EpsiDataModel
 
     var windowTitle : String = ""
 
+    // Source data
     var epsi : EpsiData = EpsiData()
     var ctd : CtdData = CtdData()
 
+    // View data
     var epsi_t1_volt_mean : Double = 0
     var epsi_t2_volt_mean : Double = 0
     var epsi_s1_volt_rms : Double = 0
