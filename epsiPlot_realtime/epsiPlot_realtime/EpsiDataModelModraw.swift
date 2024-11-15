@@ -40,7 +40,8 @@ class EpsiDataModelModraw: EpsiDataModel
         super.init(mode: mode)
         // Debugging:
 #if DEBUG
-//        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
+        //openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/EPSI24_11_05_234133.modraw"))
+        //openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
         openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
 #endif
     }
@@ -54,6 +55,7 @@ class EpsiDataModelModraw: EpsiDataModel
         return sourceDataChanged
     }
     override func updateViewData(pixel_width: Int) {
+        print("Update view")
         epsi.removeAll()
         ctd.removeAll()
 
@@ -155,22 +157,27 @@ class EpsiDataModelModraw: EpsiDataModel
     {
         var packet = currentModraw!.parsePacket()
         while packet != nil {
+            var validPacket = true
             switch packet!.signature {
             case "$EFE4":
                 if (isValidPacketEFE4(packet: packet!)) {
                     parseEFE4(packet: packet!)
                     sourceDataChanged = true
                 } else {
-                    currentModraw!.rewindPacket(packet: packet!)
+                    validPacket = false
                 }
             case "$SB49":
                 if (isValidPacketSB49(packet: packet!)) {
                     parseSB49(packet: packet!, sbe_format: SBE_Format.eng)
                     sourceDataChanged = true
                 } else {
-                    currentModraw!.rewindPacket(packet: packet!)
+                    validPacket = false
                 }
             default:
+                break
+            }
+            if (!validPacket) {
+                currentModraw!.rewindPacket(packet: packet!)
                 break
             }
             packet = currentModraw!.parsePacket()
@@ -217,6 +224,12 @@ class EpsiDataModelModraw: EpsiDataModel
                         tryReadMoreData()
                         // Start parsing the most recent one
                         startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                    } else {
+                        epsi_blocks.removeAll()
+                        ctd_blocks.removeAll()
+                        sourceDataChanged = true
+                        // Start parsing this file instead
+                        startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
                     }
                 } else {
                     // Parse the second most recent file first, in the case the most recent is partial
@@ -229,6 +242,9 @@ class EpsiDataModelModraw: EpsiDataModel
                     // We only have one file and are already parsing it
                     tryReadMoreData()
                 } else {
+                    epsi_blocks.removeAll()
+                    ctd_blocks.removeAll()
+                    sourceDataChanged = true
                     // We only have one file, start parsing it
                     startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
                 }
@@ -334,6 +350,7 @@ class EpsiDataModelModraw: EpsiDataModel
         i += EpsiDataModelModraw.efe_channel_len
         return channel
     }
+    var prev_packet_start : UInt64 = 0
     func parseEFE4(packet : ModrawPacket) {
         var i = packet.payloadStart
         i += EpsiDataModelModraw.block_timestamp_len
@@ -351,8 +368,16 @@ class EpsiDataModelModraw: EpsiDataModel
             this_block = prev_block!
         }
 
-        for _ in 0..<EpsiDataModelModraw.efe_recs_per_block {
+        for k in 0..<EpsiDataModelModraw.efe_recs_per_block {
             let time_s = Double(currentModraw!.parseBinBE(start: i, len: EpsiDataModelModraw.efe_timestamp_len)) / 1000.0
+            /*if (k == 0) {
+                let t = currentModraw!.parseBinBE(start: i, len: EpsiDataModelModraw.efe_timestamp_len)
+                if (prev_packet_start > 0) {
+                    print(Int(t) - Int(prev_packet_start))
+                    assert(abs(Int(t - prev_packet_start) - 245) < 2)
+                }
+                prev_packet_start = t
+            }*/
             i += EpsiDataModelModraw.efe_timestamp_len
 
             if (prev_time_s != nil) {

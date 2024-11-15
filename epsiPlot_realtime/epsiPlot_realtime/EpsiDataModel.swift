@@ -301,7 +301,11 @@ class EpsiDataModel
 
     static func yAxis(range: (Double, Double)) -> [Double]
     {
-        return [range.0, (range.1 + range.0) / 2, range.1]
+        if (range.1 != range.0) {
+            return [range.0, (range.1 + range.0) / 2, range.1]
+        } else {
+            return [range.0]
+        }
     }
 
     static func mean(mat : [Double]) -> Double

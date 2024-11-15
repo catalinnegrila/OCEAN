@@ -1,6 +1,6 @@
 import Foundation
 
-class ModrawPacket {
+public class ModrawPacket {
     public var timeOffsetMs : Int?
     public var date : NSDate?
     public var signature = ""
@@ -9,20 +9,20 @@ class ModrawPacket {
     public var packetEnd = 0
 }
 
-class ModrawParser {
+public class ModrawParser {
     public var data : [UInt8]
     private var cursor = 0
     private var firstTimestamp : Int?
     private var currentYearOffset = 0
-    init(fileUrl: URL) throws {
+    public init(fileUrl: URL) throws {
         let fileData = try Data(contentsOf: fileUrl)
         data = [UInt8](repeating: 0, count: fileData.count)
         fileData.copyBytes(to: &data, count: data.count)
     }
-    func getSize() -> Int {
+    public func getSize() -> Int {
         return data.count
     }
-    func appendData(data: [UInt8]) {
+    public func appendData(data: [UInt8]) {
         self.data.append(contentsOf: data[0..<data.count])
     }
     func peekByte() -> UInt8? {
@@ -64,7 +64,7 @@ class ModrawParser {
         }
         return true
     }
-    func parseHeader() -> String? {
+    public func parseHeader() -> String? {
         var header = ""
         var line = parseLine()
         //guard line != nil else { return nil }
@@ -99,7 +99,7 @@ class ModrawParser {
         return header
     }
 
-    func skipToFirstPacket() {
+    public func skipToFirstPacket() {
         while (cursor < data.count && data[cursor] != ModrawParser.ASCII_DOLLAR)
         {
             cursor += 1
@@ -107,7 +107,7 @@ class ModrawParser {
     }
 
     private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
-    func extractPartialEndPacket() -> Data? {
+    public func extractPartialEndPacket() -> Data? {
         let oldCursor = cursor
         defer { cursor = oldCursor }
         cursor = data.count - endMarker.count
@@ -141,7 +141,7 @@ class ModrawParser {
         }
         return partialPacket
     }
-    func insertPartialEndPacket(_ packet: Data) {
+    public func insertPartialEndPacket(_ packet: Data) {
         data.insert(contentsOf: packet, at: cursor)
     }
 
@@ -225,7 +225,7 @@ class ModrawParser {
         }
         return val
     }
-    func parsePacket() -> ModrawPacket? {
+    public func parsePacket() -> ModrawPacket? {
         if (cursor >= data.count) {
             return nil
         }
@@ -271,7 +271,7 @@ class ModrawParser {
             p.signature += String(Character(UnicodeScalar(data[cursor])))
             cursor += 1
         }
-
+        //print(p.signature)
         if (p.signature == "$SOM3" && p.timeOffsetMs != nil)
         {
             cursor = p.packetStart
@@ -313,10 +313,10 @@ class ModrawParser {
 
         return p
     }
-    func rewindPacket(packet: ModrawPacket) {
+    public func rewindPacket(packet: ModrawPacket) {
         cursor = packet.packetStart
     }
-    func progress() -> Double {
+    public func progress() -> Double {
         let fullPercent = 100.0 * Double(cursor) / Double(data.count)
         return Double(round(10.0 * fullPercent) / 10.0)
     }
