@@ -53,11 +53,19 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
+            argument = "-s 10"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-v"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-o  /Users/catalin/Documents/OCEAN_data/out/"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-i /Users/catalin/Documents/OCEAN_data/new_data"
+            argument = "-i /Users/catalin/Documents/OCEAN_data/new_data/"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

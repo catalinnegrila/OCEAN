@@ -39,39 +39,15 @@ for (index, inputFileUrl) in inputFileUrlListWithIndex {
         throw MyError.runtimeError("Invalid file format. Could not parse header.")
     }
     try header!.appendToURL(fileURL: outputFileUrl)
-
-    let som = inputFileParser.parsePacket()
-    if (som == nil) {
-        continue
-    }
-    guard som != nil &&
-            som!.timeOffsetMs == nil &&
-            som!.signature == "$SOM3" else {
-        throw MyError.runtimeError("Expected $SOM3 first packet.")
-    }
-    try som!.data.appendToURL(fileURL: outputFileUrl)
-    
-    if partialEndPacket != nil {
-        print("Patching partial first packet with \(partialEndPacket!).")
-        inputFileParser.insertPartialEndPacket(partialEndPacket!)
-    }
-    partialEndPacket = inputFileParser.extractPartialEndPacket()
-    if partialEndPacket != nil {
-        print("Extracted partial last packet of \(partialEndPacket!).")
-    }
-    
+        
     let startTime = getCurrentTimeMs()
     var lastProgress = -1.0
     
     var packet = inputFileParser.parsePacket()
     while packet != nil {
-        if packet!.timeOffsetMs == nil || packet!.date == nil {
-            throw MyError.runtimeError("Expected timestamp on packet.")
-        }
-        
         let currentProgress = inputFileParser.progress()
         if lastProgress != currentProgress {
-            if options.verbose {
+            if options.verbose &&  packet!.date != nil {
                 let date = dateFormatter.string(for: packet!.date!)
                 print("\(currentProgress)% - T\(date!) \(packet!.signature)")
             } else {
@@ -80,12 +56,13 @@ for (index, inputFileUrl) in inputFileUrlListWithIndex {
             }
             lastProgress = currentProgress
         }
-        
-        let relativeTime = getCurrentTimeMs() - startTime
-        if packet!.timeOffsetMs! > relativeTime {
-            usleep(UInt32(Double(packet!.timeOffsetMs! - relativeTime) / options.speed))
+            
+        if packet!.timeOffsetMs != nil {
+            let relativeTime = getCurrentTimeMs() - startTime
+            if packet!.timeOffsetMs! > relativeTime {
+                usleep(UInt32(Double(packet!.timeOffsetMs! - relativeTime) / options.speed))
+            }
         }
-        
         try packet!.data.appendToURL(fileURL: outputFileUrl)
         packet = inputFileParser.parsePacket()
     }

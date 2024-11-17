@@ -35,20 +35,11 @@ class EpsiDataModelModraw: EpsiDataModel
     var epsi_blocks : [EpsiData] = []
     var ctd_blocks : [CtdData] = []
 
-    var scanningFolderUrl : URL?
-    override init(mode: Mode) {
-        super.init(mode: mode)
-#if DEBUG
-        openFile(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/epsiPlot/EPSI24_11_06_054202.modraw"))
-        //openFolder(URL(fileURLWithPath: "/Users/catalin/Documents/OCEAN_data/new_data/"))
-        //openFolder(URL(fileURLWithPath: "/Volumes/FCTD_EPSI_DATA/Current_Cruise"))
-#endif
-    }
     var lastUpdateTime = 0.0
     var prev_time_window_start = 0.0
 
     override func updateSourceData() -> Bool {
-        if (scanningFolderUrl != nil) {
+        if (currentFolderUrl != nil) {
             scanFolder()
         }
         return sourceDataChanged
@@ -57,15 +48,17 @@ class EpsiDataModelModraw: EpsiDataModel
         epsi.removeAll()
         ctd.removeAll()
 
-        let epsi_time = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last! - time_window_length
-        let ctd_time = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last! - time_window_length
-        time_window_start = max(epsi_time, ctd_time)
-        // Round time to pixel increments for consistent sampling
-        let time_per_pixel = time_window_length / Double(pixel_width)
-        time_window_start = floor(time_window_start / time_per_pixel) * time_per_pixel
+        if (currentFolderUrl != nil) {
+            let epsi_time = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last! - time_window_length
+            let ctd_time = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last! - time_window_length
+            time_window_start = max(epsi_time, ctd_time)
+            // Round time to pixel increments for consistent sampling
+            let time_per_pixel = time_window_length / Double(pixel_width)
+            time_window_start = floor(time_window_start / time_per_pixel) * time_per_pixel
+        }
         let t0 = time_window_start
         let t1 = time_window_start + time_window_length
-
+        
         while !epsi_blocks.isEmpty && epsi_blocks.first!.time_s.last! < time_window_start {
             if (epsi_blocks.count > 1) {
                 epsi_blocks[1].checkAndAppendGap(prevBlock: epsi_blocks[0])
@@ -75,9 +68,11 @@ class EpsiDataModelModraw: EpsiDataModel
         if (!epsi_blocks.isEmpty) {
             epsi.reserveCapacity(epsi_blocks.reduce(0) { $0 + $1.time_s.count })
             for block in epsi_blocks {
-                let first_entry = block.getIndexFromStart(t: t0)
-                let last_entry = block.getIndexFromEnd(t: t1)
-                epsi.append(from: block, first: first_entry, count: last_entry - first_entry)
+                let slice = block.getTimeSlice(t0: t0, t1: t1)
+                assert(slice != nil)
+                if (slice != nil) {
+                    epsi.append(from: block, first: slice!.0, count: slice!.1 - slice!.0 + 1)
+                }
             }
         }
         while !ctd_blocks.isEmpty && ctd_blocks.first!.time_s.last! < time_window_start {
@@ -89,21 +84,23 @@ class EpsiDataModelModraw: EpsiDataModel
         if (!ctd_blocks.isEmpty) {
             ctd.reserveCapacity(ctd_blocks.reduce(0) { $0 + $1.time_s.count })
             for block in ctd_blocks {
-                let first_entry = block.getIndexFromStart(t: t0)
-                let last_entry = block.getIndexFromEnd(t: t1)
-                ctd.append(from: block, first: first_entry, count: last_entry - first_entry)
+                let slice = block.getTimeSlice(t0: t0, t1: t1)
+                assert(slice != nil)
+                if (slice != nil) {
+                    ctd.append(from: block, first: slice!.0, count: slice!.1 - slice!.0 + 1)
+                }
             }
         }
 
         super.updateViewData(pixel_width: pixel_width)
     }
 
-    static func getKeyValue(key: String, header: String) -> Double {
+    static func getKeyValue(key: String, header: String) -> String {
         let indexOfKey = header.index(of: key)
         if (indexOfKey == nil) {
             print("Key '\(key)' not found in header!")
             assert(false)
-            return 0
+            return "0"
         }
         let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
         let valueOnwards = header[indexAfterKey...]
@@ -114,43 +111,49 @@ class EpsiDataModelModraw: EpsiDataModel
         if (indexOfCrlf == nil) {
             print("Unterminated key '\(key)' value '\(valueOnwards)'")
             assert(false)
-            return 0
+            return "0"
         }
         let valueStr = valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
         //print("\(key.trimmingCharacters(in: .whitespacesAndNewlines))\(value)")
-        return Double(valueStr)!
+        return valueStr
     }
 
-    func readCalibrationData(header: String) {
-        sbe_cal_ta0 = EpsiDataModelModraw.getKeyValue(key: "\nTA0=", header: header)
-        sbe_cal_ta1 = EpsiDataModelModraw.getKeyValue(key: "\nTA1=", header: header)
-        sbe_cal_ta2 = EpsiDataModelModraw.getKeyValue(key: "\nTA2=", header: header)
-        sbe_cal_ta3 = EpsiDataModelModraw.getKeyValue(key: "\nTA3=", header: header)
-        sbe_cal_pa0 = EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header)
-        sbe_cal_pa1 = EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header)
-        sbe_cal_pa2 = EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header)
-        sbe_cal_ptempa0 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA0=", header: header)
-        sbe_cal_ptempa1 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA1=", header: header)
-        sbe_cal_ptempa2 = EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA2=", header: header)
-        sbe_cal_ptca0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA0=", header: header)
-        sbe_cal_ptca1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA1=", header: header)
-        sbe_cal_ptca2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCA2=", header: header)
-        sbe_cal_ptcb0 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB0=", header: header)
-        sbe_cal_ptcb1 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB1=", header: header)
-        sbe_cal_ptcb2 = EpsiDataModelModraw.getKeyValue(key: "\nPTCB2=", header: header)
-        sbe_cal_cg = EpsiDataModelModraw.getKeyValue(key: "\nCG=", header: header)
-        sbe_cal_ch = EpsiDataModelModraw.getKeyValue(key: "\nCH=", header: header)
-        sbe_cal_ci = EpsiDataModelModraw.getKeyValue(key: "\nCI=", header: header)
-        sbe_cal_cj = EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header)
-        sbe_cal_ctcor = EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header)
-        sbe_cal_cpcor = EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header)
-        PCodeData_lat = EpsiDataModelModraw.getKeyValue(key: "\nPCodeData.lat =", header: header)
+    func parseHeaderData(header: String) {
+        sbe_cal_ta0 = Double(EpsiDataModelModraw.getKeyValue(key: "\nTA0=", header: header))!
+        sbe_cal_ta1 = Double(EpsiDataModelModraw.getKeyValue(key: "\nTA1=", header: header))!
+        sbe_cal_ta2 = Double(EpsiDataModelModraw.getKeyValue(key: "\nTA2=", header: header))!
+        sbe_cal_ta3 = Double(EpsiDataModelModraw.getKeyValue(key: "\nTA3=", header: header))!
+        sbe_cal_pa0 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPA0=", header: header))!
+        sbe_cal_pa1 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPA1=", header: header))!
+        sbe_cal_pa2 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPA2=", header: header))!
+        sbe_cal_ptempa0 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA0=", header: header))!
+        sbe_cal_ptempa1 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA1=", header: header))!
+        sbe_cal_ptempa2 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTEMPA2=", header: header))!
+        sbe_cal_ptca0 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCA0=", header: header))!
+        sbe_cal_ptca1 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCA1=", header: header))!
+        sbe_cal_ptca2 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCA2=", header: header))!
+        sbe_cal_ptcb0 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCB0=", header: header))!
+        sbe_cal_ptcb1 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCB1=", header: header))!
+        sbe_cal_ptcb2 = Double(EpsiDataModelModraw.getKeyValue(key: "\nPTCB2=", header: header))!
+        sbe_cal_cg = Double(EpsiDataModelModraw.getKeyValue(key: "\nCG=", header: header))!
+        sbe_cal_ch = Double(EpsiDataModelModraw.getKeyValue(key: "\nCH=", header: header))!
+        sbe_cal_ci = Double(EpsiDataModelModraw.getKeyValue(key: "\nCI=", header: header))!
+        sbe_cal_cj = Double(EpsiDataModelModraw.getKeyValue(key: "\nCJ=", header: header))!
+        sbe_cal_ctcor = Double(EpsiDataModelModraw.getKeyValue(key: "\nCTCOR=", header: header))!
+        sbe_cal_cpcor = Double(EpsiDataModelModraw.getKeyValue(key: "\nCPCOR=", header: header))!
+        PCodeData_lat = Double(EpsiDataModelModraw.getKeyValue(key: "\nPCodeData.lat =", header: header))!
+        let fishFlag = EpsiDataModelModraw.getKeyValue(key: "\nCTD.fishflag=", header: header)
+        switch fishFlag {
+        case "'EPSI'": mode = .EPSI
+        case "'FCTD'": mode = .FCTD
+        default:
+            print("Unknown fishFlag: \(fishFlag)")
+            mode = .EPSI
+        }
     }
 
     var currentModraw: ModrawParser? = nil
-    var currentModrawUrl: URL? = nil
-    var partialEndPacket: Data? = nil
-
+    
     func parsePacketsLoop()
     {
         var packet = currentModraw!.parsePacket()
@@ -179,14 +182,12 @@ class EpsiDataModelModraw: EpsiDataModel
     override func openFolder(_ folderUrl: URL)
     {
         super.openFolder(folderUrl)
-        scanningFolderUrl = folderUrl
-
         time_window_start = 0.0
         time_window_length = 20.0 // seconds
     }
     func scanFolder()
     {
-        if let enumerator = FileManager.default.enumerator(at: scanningFolderUrl!, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+        if let enumerator = FileManager.default.enumerator(at: currentFolderUrl!, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
             var allFiles = [String]()
             for case let fileURL as URL in enumerator {
                 do {
@@ -208,24 +209,24 @@ class EpsiDataModelModraw: EpsiDataModel
             let secondMostRecentFile : String? = allFiles.count > 1 ? allFiles[allFiles.count - 2] : nil
             let mostRecentFile : String? = allFiles.count > 0 ? allFiles[allFiles.count - 1] : nil
             if (secondMostRecentFile != nil) {
-                if (currentModrawUrl != nil) {
-                    if (mostRecentFile! == currentModrawUrl!.path) {
+                if (currentFileUrl != nil) {
+                    if (mostRecentFile! == currentFileUrl!.path) {
                         // We are parsing the most recent file
                         tryReadMoreData()
-                    } else if (secondMostRecentFile! == currentModrawUrl!.path) {
+                    } else if (secondMostRecentFile! == currentFileUrl!.path) {
                         // We are parsing the second most recent file
                         tryReadMoreData()
                         // Start parsing the most recent one
                         startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
                     }
                 } else {
-                    // Parse the second most recent file first, in the case the most recent is partial
+                    // Parse the second most recent file first, in case the most recent is partial
                     startParsing(fileUrl: URL(fileURLWithPath: secondMostRecentFile!))
                     // Start parsing the most recent file
                     startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
                 }
             } else if (mostRecentFile != nil) {
-                if (currentModrawUrl != nil && mostRecentFile! == currentModrawUrl!.path) {
+                if (currentFileUrl != nil && mostRecentFile! == currentFileUrl!.path) {
                     // We only have one file and are already parsing it
                     tryReadMoreData()
                 } else {
@@ -237,14 +238,9 @@ class EpsiDataModelModraw: EpsiDataModel
     }
     func startParsing(fileUrl: URL)
     {
-        if (currentModraw != nil){
-            partialEndPacket = currentModraw!.extractPartialEndPacket()
-            if partialEndPacket != nil {
-                print("Extracted partial last packet of \(partialEndPacket!).")
-            }
-        }
+        currentFileUrl = fileUrl
+        updateWindowTitle()
 
-        currentModrawUrl = fileUrl
         do {
             currentModraw = try ModrawParser(fileUrl: fileUrl)
         } catch {
@@ -254,23 +250,12 @@ class EpsiDataModelModraw: EpsiDataModel
         }
 
         let header = currentModraw!.parseHeader()
-        readCalibrationData(header: header!)
-
-        if (partialEndPacket != nil) {
-            print("Patching partial first packet with \(partialEndPacket!).")
-            currentModraw!.insertPartialEndPacket(partialEndPacket!)
-            partialEndPacket = nil
-        } else {
-            currentModraw!.skipToFirstPacket()
-        }
-
+        parseHeaderData(header: header!)
         parsePacketsLoop()
     }
     override func openFile(_ fileUrl: URL)
     {
         assert(fileUrl.pathExtension == "modraw")
-        super.openFile(fileUrl)
-        scanningFolderUrl = nil
 
         startParsing(fileUrl: fileUrl)
 
@@ -289,15 +274,17 @@ class EpsiDataModelModraw: EpsiDataModel
             time_window_start = epsi_time_begin
             time_window_length = epsi_time_end - time_window_start
         }
+
+        super.openFile(fileUrl)
     }
     func tryReadMoreData()
     {
-        let fileAttributes = try! FileManager.default.attributesOfItem(atPath: currentModrawUrl!.path)
+        let fileAttributes = try! FileManager.default.attributesOfItem(atPath: currentFileUrl!.path)
         let newModrawSize = fileAttributes[.size] as! Int
         let oldModrawSize = currentModraw!.getSize()
         if (oldModrawSize < newModrawSize)
         {
-            let inputFileData = try! Data(contentsOf: currentModrawUrl!)
+            let inputFileData = try! Data(contentsOf: currentFileUrl!)
             var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
             inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
             currentModraw!.appendData(data: newData)
@@ -356,6 +343,7 @@ class EpsiDataModelModraw: EpsiDataModel
             i += EpsiDataModelModraw.efe_timestamp_len
 
             if (prev_time_s != nil) {
+                assert(prev_time_s! < time_s)
                 this_block.checkAndAppendGap(t0: prev_time_s!, t1: time_s)
             }
             prev_time_s = time_s

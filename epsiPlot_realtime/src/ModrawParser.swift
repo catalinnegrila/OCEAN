@@ -14,6 +14,7 @@ class ModrawParser {
     private var cursor = 0
     private var firstTimestamp : Int?
     private var currentYearOffset = 0
+
     init(fileUrl: URL) throws {
         let fileData = try Data(contentsOf: fileUrl)
         data = [UInt8](repeating: 0, count: fileData.count)
@@ -64,25 +65,20 @@ class ModrawParser {
         }
         return true
     }
+    private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
     func parseHeader() -> String? {
         var header = ""
         var line = parseLine()
-        //guard line != nil else { return nil }
-        //guard line!.starts(with: "header_file_size_inbytes =") else { return nil }
         assert(line != nil)
         assert(line!.starts(with: "header_file_size_inbytes ="))
         header = header + line!
 
         line = parseLine()
-        //guard line != nil else { return nil }
-        //guard line!.starts(with: "TOTAL_HEADER_LINES =") else { return nil }
         assert(line != nil)
         assert(line!.starts(with: "TOTAL_HEADER_LINES ="))
         header = header + line!
 
         line = parseLine()
-        //guard line != nil else { return nil }
-        //guard line!.contains("****START_FCTD_HEADER_START_RUN****") else { return nil }
         assert(line != nil)
         assert(line!.contains("****START_FCTD_HEADER_START_RUN****"))
         header = header + line!
@@ -98,51 +94,43 @@ class ModrawParser {
 
         return header
     }
-
-    func skipToFirstPacket() {
-        while (cursor < data.count && data[cursor] != ModrawParser.ASCII_DOLLAR)
-        {
-            cursor += 1
+    func isPacketStart(_ i: Int) -> Bool {
+        if (i + 4 <= data.count &&
+            data[i] == ModrawParser.ASCII_DOLLAR &&
+            data[i + 1] == ModrawParser.ASCII_S &&
+            data[i + 2] == ModrawParser.ASCII_O &&
+            data[i + 3] == ModrawParser.ASCII_M) {
+            return true
         }
-    }
-
-    private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
-    func extractPartialEndPacket() -> Data? {
-        let oldCursor = cursor
-        defer { cursor = oldCursor }
-        cursor = data.count - endMarker.count
-        var partialPacket : Data? = nil
-        while cursor > 2 {
-            if foundMarker(endMarker) {
-                if !(data[cursor - 1] == ModrawParser.ASCII_LF &&
-                    data[cursor - 2] == ModrawParser.ASCII_CR) &&
-                    // Sometimes there's an extra <LF>
-                    !(data[cursor - 1] == ModrawParser.ASCII_LF &&
-                    data[cursor - 2] == ModrawParser.ASCII_LF &&
-                    data[cursor - 3] == ModrawParser.ASCII_CR)
-                {
-                    var partialPacketStart = cursor
-                    while partialPacketStart > 2
-                    {
-                        if (data[partialPacketStart] == ModrawParser.ASCII_T &&
-                            data[partialPacketStart - 1] == ModrawParser.ASCII_LF &&
-                            data[partialPacketStart - 2] == ModrawParser.ASCII_CR)
-                        {
-                            partialPacket = Data(data[partialPacketStart..<cursor])
-                            data.removeSubrange(partialPacketStart..<cursor)
-                            break
-                        }
-                        partialPacketStart -= 1
-                    }
-                }
-                break
-            }
-            cursor -= 1
+        if (i >= data.count) {
+            return false
         }
-        return partialPacket
+        if (data[i] != ModrawParser.ASCII_T) {
+            return false
+        }
+        var j = i + 1
+        while j < data.count && ModrawParser.isDigit(data[j]) {
+            j += 1
+        }
+        return j < data.count && data[j] == ModrawParser.ASCII_DOLLAR
+
     }
-    func insertPartialEndPacket(_ packet: Data) {
-        data.insert(contentsOf: packet, at: cursor)
+    let packetEndChecksumLen = 5 // <*><HEX><HEX><CR><LF>
+    let sigLen = 5 // <$>4*(<sig>)
+    let packetStartLen = 1 + 10 + 5 // <T>10*<dec><$>4*<alphanum>
+    func isPacketEndChecksum(_ i: Int) -> Bool {
+        return i <= data.count - packetEndChecksumLen &&
+                data[i] == ModrawParser.ASCII_STAR &&
+                ModrawParser.isHexDigit(data[i+1]) &&
+                ModrawParser.isHexDigit(data[i+2]) &&
+                data[i+3] == ModrawParser.ASCII_CR &&
+                data[i+4] == ModrawParser.ASCII_LF
+    }
+    func isPacketEnd(_ i: Int) -> Bool {
+        return isPacketEndChecksum(i - packetEndChecksumLen) ||
+                (i <= data.count &&
+                 data[i - 1] == ModrawParser.ASCII_LF &&
+                 isPacketEndChecksum(i - 1 - packetEndChecksumLen))
     }
 
     public static let ASCII_LF     = UInt8(0x0A) // '\n'
@@ -226,14 +214,17 @@ class ModrawParser {
         return val
     }
     func parsePacket() -> ModrawPacket? {
+        while cursor + packetStartLen < data.count && !isPacketStart(cursor) {
+            cursor += 1
+        }
         if (cursor >= data.count) {
             return nil
         }
         let p = ModrawPacket()
         p.packetStart = cursor
+        var timestamp = 0
         if (data[cursor] == ModrawParser.ASCII_T)
         {
-            var timestamp = 0
             cursor += 1
             while cursor < data.count && ModrawParser.isDigit(data[cursor])
             {
@@ -258,7 +249,6 @@ class ModrawParser {
             }
         }
 
-        let sigLen = 5
         if (data[cursor] != ModrawParser.ASCII_DOLLAR ||
             cursor + sigLen > data.count)
         {
@@ -272,33 +262,15 @@ class ModrawParser {
             cursor += 1
         }
 
-        if (p.signature == "$SOM3" && p.timeOffsetMs != nil)
-        {
-            cursor = p.packetStart
-            return nil
-        }
         p.payloadStart = cursor
-        let checksumLen = 5 // <*><HEX><HEX><CR><LF>
-        while (cursor + checksumLen + 1 < data.count)
+        while (cursor < data.count)
         {
-            if (data[cursor] == ModrawParser.ASCII_STAR &&
-                ModrawParser.isHexDigit(data[cursor+1]) &&
-                ModrawParser.isHexDigit(data[cursor+2]) &&
-                data[cursor+3] == ModrawParser.ASCII_CR &&
-                data[cursor+4] == ModrawParser.ASCII_LF)
+            // Does this look like a checksum?
+            if isPacketEndChecksum(cursor)
             {
-                cursor += checksumLen
-                if (cursor < data.count &&
-                    (data[cursor] == ModrawParser.ASCII_T || foundMarker(endMarker)))
-                {
-                    p.packetEnd = cursor
-                    // Sometimes there's an extra <LF>
-                    if (cursor < data.count && data[cursor] == ModrawParser.ASCII_LF)
-                    {
-                        cursor += 1
-                    }
-                    break
-                }
+                cursor += packetEndChecksumLen
+                p.packetEnd = cursor
+                break
             }
             else
             {
@@ -310,7 +282,6 @@ class ModrawParser {
             cursor = p.packetStart
             return nil
         }
-
         return p
     }
     func rewindPacket(packet: ModrawPacket) {

@@ -1,5 +1,6 @@
 import Foundation
 import RegexBuilder
+import AppKit
 
 class TimestampedData
 {
@@ -39,11 +40,9 @@ class TimestampedData
     func checkAndAppendGap(t0: Double, t1: Double)
     {
         if ((t1 - t0) > 2 * expected_sample_duration) {
-            //print("Gap: N = \(Int((t1 - t0) / expected_sample_duration)) dt = \(t1 - t0) sd = \(expected_sample_duration)")
             dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
         }
     }
-
     func checkAndAppendGap(prevBlock: TimestampedData)
     {
         if let dataGap = prevBlock.dataGaps.last {
@@ -52,21 +51,19 @@ class TimestampedData
             }
         }
     }
-    func getIndexFromStart(t : Double) -> Int
-    {
-        var i = 0
-        while i < time_s.count && time_s[i] < t {
-            i = i + 1
+    func getTimeSlice(t0: Double, t1: Double) -> (Int, Int)? {
+        assert(t0 <= t1)
+        if time_s.isEmpty || time_s.first! > t1 || time_s.last! < t0 {
+            return nil
         }
-        return i
-    }
-    func getIndexFromEnd(t : Double) -> Int
-    {
-        var i = time_s.count - 1
-        while i >= 0 && time_s[i] > t {
-            i -= 1
+        var slice = (0, time_s.count - 1)
+        while time_s[slice.0] < t0 {
+            slice.0 += 1
         }
-        return i
+        while time_s[slice.1] > t1 {
+            slice.1 -= 1
+        }
+        return slice
     }
     func computeTimeF(t0: Double, dt: Double) {
         for i in 0..<time_s.count {
@@ -166,11 +163,10 @@ class EpsiDataModel
         case EPSI = 1, FCTD
     }
 
-    let mode : Mode
-    init(mode: Mode) {
+    var mode : Mode = .EPSI
+    func setMode(_ mode: Mode) {
         self.mode = mode
     }
-
     var windowTitle : String = ""
 
     // Source data
@@ -208,11 +204,17 @@ class EpsiDataModel
     {
         return false
     }
+    func time(_ t: Double) -> Int {
+        return Int(t * 1000) - 1730860000000
+    }
     func updateViewData(pixel_width: Int)
     {
         if (epsi.time_s.count > 0)
         {
             epsi.computeTimeF(t0: time_window_start, dt: time_window_length)
+            //print("time window: \(time(time_window_start))..\(time(time_window_start+time_window_length))")
+            //print("EPSI time_s: \(time(epsi.time_s.first!))..\(time(epsi.time_s.last!))")
+            //print("EPSI time_f: \(epsi.time_f.first!)..\(epsi.time_f.last!)")
             epsi_t1_volt_mean = EpsiDataModel.mean(mat: epsi.t1_volt)
             epsi_t2_volt_mean = EpsiDataModel.mean(mat: epsi.t2_volt)
             epsi_s1_volt_rms = EpsiDataModel.rms(mat: epsi.s1_volt)
@@ -233,9 +235,26 @@ class EpsiDataModel
             epsi_a2_g_range = EpsiDataModel.minmax(mat: epsi.a2_g)
             epsi_a3_g_range = EpsiDataModel.minmax(mat: epsi.a3_g)
         }
+        else
+        {
+            epsi_t1_volt_mean = 0
+            epsi_t2_volt_mean = 0
+            epsi_s1_volt_rms = 0
+            epsi_s2_volt_rms = 0
+            epsi_t1_volt_range = (0, 0)
+            epsi_t2_volt_range = (0, 0)
+            epsi_s1_volt_range = (0, 0)
+            epsi_s2_volt_range = (0, 0)
+            epsi_a1_g_range = (0, 0)
+            epsi_a2_g_range = (0, 0)
+            epsi_a3_g_range = (0, 0)
+        }
         if (ctd.time_s.count > 0)
         {
             ctd.computeTimeF(t0: time_window_start, dt: time_window_length)
+            //print("time window: \(time(time_window_start))..\(time(time_window_start+time_window_length))")
+            //print("CTD time_s: \(time(ctd.time_s.first!))..\(time(ctd.time_s.last!))")
+            //print("CTD time_f: \(epsi.time_f.first!)..\(ctd.time_f.last!)")
             ctd_P_range = EpsiDataModel.minmax(mat: ctd.P)
             ctd_T_range = EpsiDataModel.minmax(mat: ctd.T)
             ctd_S_range = EpsiDataModel.minmax(mat: ctd.S)
@@ -243,19 +262,28 @@ class EpsiDataModel
             ctd_z_range = (ctd_z_range.1, ctd_z_range.0)
 
             ctd_dzdt.removeAll()
-            if (!ctd.z.isEmpty) {
-                ctd_dzdt.reserveCapacity(ctd.z.count)
-                ctd_dzdt.append(0.0)
-                for i in 1..<ctd.z.count {
-                    ctd_dzdt.append((ctd.z[i] - ctd.z[i - 1]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
-                }
-                if (ctd_dzdt.count > 1) {
-                    ctd_dzdt[0] = ctd_dzdt[1]
-                }
+            ctd_dzdt.reserveCapacity(ctd.z.count)
+            ctd_dzdt.append(0.0)
+            for i in 1..<ctd.z.count {
+                ctd_dzdt.append((ctd.z[i] - ctd.z[i - 1]) / (ctd.time_s[i] - ctd.time_s[i - 1]))
+            }
+            if (ctd_dzdt.count > 1) {
+                ctd_dzdt[0] = ctd_dzdt[1]
             }
             ctd_dzdt_movmean = EpsiDataModel.movmean(mat: ctd_dzdt, window: 40)
             ctd_dzdt_range = EpsiDataModel.minmax(mat: ctd_dzdt_movmean)
             ctd_dzdt_range = (ctd_dzdt_range.1, ctd_dzdt_range.0)
+        }
+        else
+        {
+            ctd_P_range = (0, 0)
+            ctd_T_range = (0, 0)
+            ctd_S_range = (0, 0)
+            ctd_z_range = (0, 0)
+            ctd_dzdt.removeAll()
+            ctd_dzdt_movmean.removeAll()
+            ctd_dzdt_range = (0, 0)
+            ctd_dzdt_range = (0, 0)
         }
 
         sourceDataChanged = false
@@ -289,18 +317,32 @@ class EpsiDataModel
         print("dPdt: \(ctd_dPdt[0]) (\(dPdt_min),\(dPdt_max))")
         print("-------")*/
     }
-
+    var currentFileUrl : URL?
+    var currentFolderUrl : URL?
+    func updateWindowTitle()
+    {
+        if (currentFolderUrl != nil) {
+            let currentUrl = currentFileUrl != nil ? currentFileUrl : currentFolderUrl
+            windowTitle = "Scanning \(currentUrl!.path) -- \(mode) mode"
+        } else if (currentFileUrl != nil){
+            windowTitle = "\(currentFileUrl!.path) -- \(mode) mode"
+        } else {
+            windowTitle = "No data source"
+        }
+        print(windowTitle)
+    }
     func openFolder(_ folderUrl: URL)
     {
-        windowTitle = "Scanning \(folderUrl.path) -- \(mode) mode"
-        print(windowTitle)
+        currentFileUrl = nil
+        currentFolderUrl = folderUrl
+        updateWindowTitle()
         sourceDataChanged = true
     }
-    
     func openFile(_ fileUrl: URL)
     {
-        windowTitle = "\(fileUrl.path) -- \(mode) mode"
-        print(windowTitle)
+        currentFileUrl = fileUrl
+        currentFolderUrl = nil
+        updateWindowTitle()
         sourceDataChanged = true
     }
 
@@ -363,6 +405,25 @@ class EpsiDataModel
     static func minmax(v1: (Double, Double), v2: (Double, Double)) -> (Double, Double)
     {
         return (min(v1.0, v2.0), max(v1.1, v2.1))
+    }
 
+    static func createInstanceFromFile(_ fileUrl: URL) -> EpsiDataModel? {
+        var dataModel : EpsiDataModel?
+        switch fileUrl.pathExtension {
+        case "mat":
+            dataModel = EpsiDataModelMat()
+            dataModel!.openFile(fileUrl)
+        case "modraw":
+            dataModel = EpsiDataModelModraw()
+            dataModel!.openFile(fileUrl)
+        default:
+            print("Unknown file extension for \(fileUrl.path)")
+        }
+        return dataModel
+    }
+    static func createInstanceFromFolder(_ folderUrl: URL) -> EpsiDataModel? {
+        let dataModel = EpsiDataModelModraw()
+        dataModel.openFolder(folderUrl)
+        return dataModel
     }
 }

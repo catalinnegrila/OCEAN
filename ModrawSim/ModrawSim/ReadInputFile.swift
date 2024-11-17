@@ -82,52 +82,16 @@ struct Parser {
         } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
 
         // skipToFirstPacket
-        while (peekByte() != Parser.ASCII_DOLLAR) {
-            let c = parseByte()
-            if (c == nil) {
+        var c = peekByte()
+        while (c != Parser.ASCII_DOLLAR && c != Parser.ASCII_T) {
+            if (parseByte() == nil) {
                 break
             }
+            c = peekByte()
         }
 
         return header
     }
-
-    mutating func extractPartialEndPacket() -> Data? {
-        let oldCursor = cursor
-        defer { cursor = oldCursor }
-        let marker = "%*****START_FCTD_TAILER_END_RUN*****"
-        cursor = data.count - marker.count
-        var partialPacket : Data? = nil
-        while cursor > 2 {
-            if foundMarker(marker) {
-                if !(data[cursor - 1] == Parser.ASCII_LF &&
-                    data[cursor - 2] == Parser.ASCII_CR) &&
-                    // Sometimes there's an extra <LF>
-                    !(data[cursor - 1] == Parser.ASCII_LF &&
-                    data[cursor - 2] == Parser.ASCII_LF &&
-                    data[cursor - 3] == Parser.ASCII_CR) {
-                    var partialPacketStart = cursor
-                    while partialPacketStart > 2 {
-                        if (data[partialPacketStart] == Parser.ASCII_T &&
-                            data[partialPacketStart - 1] == Parser.ASCII_LF &&
-                            data[partialPacketStart - 2] == Parser.ASCII_CR) {
-                            partialPacket = Data(data[partialPacketStart..<cursor])
-                            data.removeSubrange(partialPacketStart..<cursor)
-                            break
-                        }
-                        partialPacketStart -= 1
-                    }
-                }
-                break
-            }
-            cursor -= 1
-        }
-        return partialPacket
-    }
-    mutating func insertPartialEndPacket(_ packet: Data) {
-        data.insert(contentsOf: packet, at: cursor)
-    }
-
     private static let ASCII_LF     = UInt8(0x0A) // '\n'
     private static let ASCII_CR     = UInt8(0x0D) // '\r'
     private static let ASCII_a      = UInt8(0x61) // 'a'
