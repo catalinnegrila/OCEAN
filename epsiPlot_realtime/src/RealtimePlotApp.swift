@@ -1,10 +1,3 @@
-//
-//  epsiPlot_realtimeApp.swift
-//  epsiPlot_realtime
-//
-//  Created by Catalin Negrila on 11/7/24.
-//
-
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
@@ -20,14 +13,36 @@ struct RealtimePlotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("lastOpenFile") var lastOpenFile : URL?
     @AppStorage("lastOpenFolder") var lastOpenFolder : URL?
-    //@StateObject var menuState = MenuState()
+    @State private var model = Model()
 
     init() {
         if lastOpenFolder != nil {
-            epsiDataModel = EpsiDataModel.createInstanceFromFolder(lastOpenFolder!)
+            modelFromFolder(lastOpenFolder!)
         } else if lastOpenFile != nil {
-            epsiDataModel = EpsiDataModel.createInstanceFromFile(lastOpenFile!)
+            modelFromFile(lastOpenFile!)
         }
+    }
+    func modelFromFile(_ fileUrl: URL) {
+        lastOpenFile = fileUrl
+        lastOpenFolder = nil
+        model.currentFileUrl = fileUrl
+        model.currentFolderUrl = nil
+        switch fileUrl.pathExtension {
+        case "mat":
+            let parser = EpsiMatParser()
+            parser.readFile(model: model)
+        case "modraw":
+            let parser = EpsiModrawParser()
+            parser.readFile(model: model)
+        default:
+            print("Unknown file extension for \(fileUrl.path)")
+        }
+    }
+    func modelFromFolder(_ folderUrl: URL) {
+        lastOpenFile = nil
+        lastOpenFolder = folderUrl
+        model.currentFileUrl = nil
+        model.currentFolderUrl = folderUrl
     }
     func modalFilePicker(chooseFiles: Bool) -> URL? {
         let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))
@@ -56,9 +71,8 @@ struct RealtimePlotApp: App {
     }
 
     var body: some Scene {
-        @State var realtimePlotView = RealtimePlotView()
         WindowGroup {
-            realtimePlotView
+            RealtimePlotView(model: model)
                 .onAppear {
                     let _ = NSApplication.shared.windows.map { $0.tabbingMode = .disallowed }
                 }
@@ -67,19 +81,16 @@ struct RealtimePlotApp: App {
             {
                 Button("Open Folder...") {
                     if let folderUrl = modalFilePicker(chooseFiles: false) {
-                        epsiDataModel = EpsiDataModel.createInstanceFromFolder(folderUrl)
-                        lastOpenFile = nil
-                        lastOpenFolder = folderUrl
+                        modelFromFolder(folderUrl)
                     }
                 }.keyboardShortcut("o")
                 Button("Open File...") {
                     if let fileUrl = modalFilePicker(chooseFiles: true) {
-                        epsiDataModel = EpsiDataModel.createInstanceFromFile(fileUrl)
-                        lastOpenFile = fileUrl
-                        lastOpenFolder = nil
+                        modelFromFile(fileUrl)
                     }
                 }.keyboardShortcut("f")
             }
+/*
             CommandGroup(before: CommandGroupPlacement.toolbar) {
                 Section {
                     Picker("CTD.fishflag", selection: $realtimePlotView.viewMode) {
@@ -97,34 +108,8 @@ struct RealtimePlotApp: App {
                         }
                     }
                 }
-                //ViewModeMenu(menuState: menuState)
             }
-        }
-    }
-}
-
-class MenuState : ObservableObject {
-    @Published var viewMode = EpsiDataModel.Mode.EPSI
-}
-
-struct ViewModeMenu : View {
-    @ObservedObject var menuState : MenuState
-    
-    var body: some View {
-        Section {
-            Picker("CTD.fishflag", selection: $menuState.viewMode) {
-                Text("EPSI Mode").tag(EpsiDataModel.Mode.EPSI)
-                Text("FCTD Mode").tag(EpsiDataModel.Mode.FCTD)
-            }
-            .pickerStyle(InlinePickerStyle())
-            .onChange(of: menuState.viewMode) { value in
-                if (epsiDataModel != nil) {
-                    epsiDataModel!.mode = value
-                    epsiDataModel!.updateWindowTitle()
-                    epsiDataModel!.sourceDataChanged = true
-                    print("changed to \(value)")
-                }
-            }
+ */
         }
     }
 }

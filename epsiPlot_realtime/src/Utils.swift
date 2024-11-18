@@ -1,3 +1,5 @@
+import Foundation
+
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
         range(of: string, options: options)?.lowerBound
@@ -24,4 +26,18 @@ extension StringProtocol {
 
 enum MyError: Error {
     case runtimeError(String)
+}
+
+class Stopwatch {
+    let label: String
+    let start_time: TimeInterval
+    init(label: String) {
+        self.label = label
+        self.start_time = ProcessInfo.processInfo.systemUptime
+    }
+    deinit {
+        let end_time = ProcessInfo.processInfo.systemUptime
+        let msec = Int((end_time - start_time) * 1000)
+        print("\(label): \(msec) ms")
+    }
 }
