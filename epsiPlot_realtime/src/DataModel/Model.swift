@@ -3,29 +3,16 @@ import Foundation
 class Model {
     var epsi_blocks = [EpsiModelData]()
     var ctd_blocks = [CtdModelData]()
+    var status = "No data source"
+    var fileUrl: URL?
+    var isUpdated: Bool = false
 
-    var currentFileUrl: URL?
-    var currentFolderUrl: URL?
-
-    func openFolder(_ folderUrl: URL)
-    {
-        currentFileUrl = nil
-        currentFolderUrl = folderUrl
+    func update() -> Bool {
+        defer { isUpdated = false }
+        return isUpdated
     }
-    func openFile(_ fileUrl: URL)
-    {
-        currentFileUrl = fileUrl
-        currentFolderUrl = nil
-
-        switch fileUrl.pathExtension {
-        case "mat":
-            let parser = EpsiMatParser()
-            parser.readFile(model: self)
-        case "modraw":
-            let parser = EpsiModrawParser()
-            parser.readFile(model: self)
-        default:
-            print("Unknown file extension for \(fileUrl.path)")
-        }
+    func getTimeWindow() -> (Double, Double) {
+        return (0.0, 0.0)
     }
+
 }

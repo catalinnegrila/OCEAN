@@ -2,9 +2,9 @@ import Foundation
 
 class EpsiMatParser
 {
-    func readFile(model: Model)
+    init(model: Model)
     {
-        let mat = MatData(fileUrl: model.currentFileUrl!)
+        let mat = MatData(fileUrl: model.fileUrl!)
 
         model.epsi_blocks = [EpsiModelData()]
         let epsi = model.epsi_blocks.first!
@@ -24,6 +24,7 @@ class EpsiMatParser
         ctd.T = transpose(mat: mat.getMatrixDouble2(name: "ctd.T"))
         ctd.S = transpose(mat: mat.getMatrixDouble2(name: "ctd.S"))
         ctd.z = transpose(mat: mat.getMatrixDouble2(name: "ctd.z"))
+        model.isUpdated = true
     }
 
     func transpose(mat: [[Double]]) -> [Double]

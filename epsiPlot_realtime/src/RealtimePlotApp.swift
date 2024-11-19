@@ -25,13 +25,12 @@ struct RealtimePlotApp: App {
     func modelFromFile(_ fileUrl: URL) {
         lastOpenFile = fileUrl
         lastOpenFolder = nil
-        vm.model.openFile(fileUrl)
-        vm.update()
+        vm.model = SingleFileModel(fileUrl: fileUrl)
     }
     func modelFromFolder(_ folderUrl: URL) {
         lastOpenFile = nil
         lastOpenFolder = folderUrl
-        vm.model.openFolder(folderUrl)
+        vm.model = ScanningFolderModel(folderUrl: folderUrl)
     }
     func modalFilePicker(chooseFiles: Bool) -> URL? {
         let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))

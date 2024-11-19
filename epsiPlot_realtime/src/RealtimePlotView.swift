@@ -3,10 +3,7 @@ import SwiftUI
 struct RealtimePlotView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var refreshView = false
-    @State private var windowTitle = ""
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
-    @State var chartWidth = 0
-
     var vm: ViewModel
     
     var body: some View {
@@ -15,21 +12,16 @@ struct RealtimePlotView: View {
                 .id(refreshView)
                 .padding()
                 .frame(alignment: .topLeading)
-                .navigationTitle($windowTitle)
+                .navigationTitle(vm.model.status)
                 .onReceive(refreshTimer) { _ in
                     Task {
                         let stopwatch = Stopwatch(label: "Update")
-                        vm.update()
-                        stopwatch.printElapsed()
-                        //refreshView.toggle()
+                        if (vm.update()) {
+                            stopwatch.printElapsed()
+                            refreshView.toggle()
+                        }
                     }
-                }/*
-            GeometryReader { proxy in
-                HStack {} // just an empty container to triggers the onAppear
-                    .onAppear {
-                        //chartWidth = Int(proxy.size.width)
-                    }
-            }*/
+                }
         }
     }
     
@@ -361,6 +353,7 @@ struct RealtimePlotView: View {
             self.time_f = rd.time_f
             self.dataGaps = rd.dataGaps
             self.xAxis = rd.xAxis
+            self.rect = rd.rect
         }
         func offsetRectY(vgap: Double) {
             rect = rect.offsetBy(dx: 0.0, dy: rect.height + vgap)
@@ -376,7 +369,7 @@ struct RealtimePlotView: View {
             xAxis.append(Double(i) / Double(timeTickCount - 1))
         }
 
-        let time_window = vm.getTimeWindow()
+        let time_window = vm.model.getTimeWindow()
         let epsi_rd = RenderData(
             context: context,
             time_window: time_window,
