@@ -182,16 +182,16 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
         let top_line = (((c4 * P + c3) * P + c2) * P + c1) * P
         return top_line / bot_line
     }
-    override func parse(packet: ModrawPacket, data: inout ProgressiveEpsiData) {
+    override func parse(packet: ModrawPacket, model: Model) {
         var i = getEpsiPayloadStart(packet: packet)
 
-        let prev_block = data.ctd_blocks.last
+        let prev_block = model.ctd_blocks.last
         var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
 
-        let this_block : CtdData
+        let this_block : CtdModelData
         if (prev_block == nil || prev_block!.isFull()) {
-            this_block = CtdData()
-            data.ctd_blocks.append(this_block)
+            this_block = CtdModelData()
+            model.ctd_blocks.append(this_block)
         } else {
             this_block = prev_block!
         }

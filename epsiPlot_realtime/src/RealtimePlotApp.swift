@@ -13,7 +13,7 @@ struct RealtimePlotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("lastOpenFile") var lastOpenFile : URL?
     @AppStorage("lastOpenFolder") var lastOpenFolder : URL?
-    @State private var model = Model()
+    @State private var vm = ViewModel()
 
     init() {
         if lastOpenFolder != nil {
@@ -25,24 +25,13 @@ struct RealtimePlotApp: App {
     func modelFromFile(_ fileUrl: URL) {
         lastOpenFile = fileUrl
         lastOpenFolder = nil
-        model.currentFileUrl = fileUrl
-        model.currentFolderUrl = nil
-        switch fileUrl.pathExtension {
-        case "mat":
-            let parser = EpsiMatParser()
-            parser.readFile(model: model)
-        case "modraw":
-            let parser = EpsiModrawParser()
-            parser.readFile(model: model)
-        default:
-            print("Unknown file extension for \(fileUrl.path)")
-        }
+        vm.model.openFile(fileUrl)
+        vm.update()
     }
     func modelFromFolder(_ folderUrl: URL) {
         lastOpenFile = nil
         lastOpenFolder = folderUrl
-        model.currentFileUrl = nil
-        model.currentFolderUrl = folderUrl
+        vm.model.openFolder(folderUrl)
     }
     func modalFilePicker(chooseFiles: Bool) -> URL? {
         let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))
@@ -72,7 +61,7 @@ struct RealtimePlotApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RealtimePlotView(model: model)
+            RealtimePlotView(vm: vm)
                 .onAppear {
                     let _ = NSApplication.shared.windows.map { $0.tabbingMode = .disallowed }
                 }

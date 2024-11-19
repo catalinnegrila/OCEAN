@@ -92,7 +92,7 @@ class EpsiModrawPacketParser {
         return true
     }
 
-    func parse(packet: ModrawPacket, data: inout ProgressiveEpsiData) {
+    func parse(packet: ModrawPacket, model: Model) {
         assert(false)
     }
 }

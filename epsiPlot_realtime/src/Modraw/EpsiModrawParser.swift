@@ -2,28 +2,19 @@ import Foundation
 
 class EpsiModrawParser {
     var modraw_parser: ModrawParser?
-    var packet_parsers : [EpsiModrawPacketParser] =
+    var packet_parsers: [EpsiModrawPacketParser] =
         [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49() ]
-
-    var data = ProgressiveEpsiData()
 
     func readFile(model: Model)
     {
-        startParsing(fileUrl: model.currentFileUrl!)
-        model.time_window = data.resetTimeWindow()
-        data.updateModel(model: model)
-        model.calculateDerivedData()
-    }
-    func startParsing(fileUrl: URL)
-    {
         do {
-            modraw_parser = try ModrawParser(fileUrl: fileUrl)
+            modraw_parser = try ModrawParser(fileUrl: model.currentFileUrl!)
             if let header = modraw_parser!.parseHeader() {
                 for packet_parser in packet_parsers {
                     packet_parser.parse(header: header)
                 }
             }
-            parsePackets()
+            parsePackets(model: model)
         } catch {
             //windowTitle = error.localizedDescription
             print(error)
@@ -37,12 +28,12 @@ class EpsiModrawParser {
         }
         return nil
     }
-    func parsePackets() {
+    func parsePackets(model: Model) {
         while true {
             if let packet = modraw_parser!.parsePacket() {
                 if let packet_parser = getParserFor(packet: packet) {
                     if (packet_parser.isValid(packet: packet)) {
-                        packet_parser.parse(packet: packet, data: &data)
+                        packet_parser.parse(packet: packet, model: model)
                     } else {
                         modraw_parser!.rewindPacket(packet: packet)
                         break

@@ -5,113 +5,168 @@ struct RealtimePlotView: View {
     @State private var refreshView = false
     @State private var windowTitle = ""
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
-    let PRINT_PERF = false
+    @State var chartWidth = 0
 
-    var model: Model
-
+    var vm: ViewModel
+    
     var body: some View {
-        chart
-            .id(refreshView)
-            .padding()
-            .frame(alignment: .topLeading)
-            .navigationTitle($windowTitle)
-/*
-            .onReceive(refreshTimer) { _ in
-                Task {
-                    let start_time = ProcessInfo.processInfo.systemUptime
-                    if epsiDataModel!.updateSourceData() {
-                        if PRINT_PERF {
-                            let end_time = ProcessInfo.processInfo.systemUptime
-                            let msec = Int((end_time - start_time) * 1000)
-                            print("Update: \(msec) ms")
-                        }
-                        refreshView.toggle()
+        VStack {
+            chart
+                .id(refreshView)
+                .padding()
+                .frame(alignment: .topLeading)
+                .navigationTitle($windowTitle)
+                .onReceive(refreshTimer) { _ in
+                    Task {
+                        let stopwatch = Stopwatch(label: "Update")
+                        vm.update()
+                        stopwatch.printElapsed()
+                        //refreshView.toggle()
                     }
-                }
+                }/*
+            GeometryReader { proxy in
+                HStack {} // just an empty container to triggers the onAppear
+                    .onAppear {
+                        //chartWidth = Int(proxy.size.width)
+                    }
+            }*/
         }
- */
+    }
+    
+    private var chart: some View {
+        return Canvas{ context, size in
+            /*
+             context.draw(Text("Pick a file or folder using the File menu..."),
+             at: CGPoint(x: size.width / 2, y: size.height / 2),
+             anchor: .center)
+             */
+            let stopwatch = Stopwatch(label: "Render")
+            render(context: context, size: size)
+            stopwatch.printElapsed()
+        }
     }
 
-    func renderGrid(context: GraphicsContext, rc: CGRect, xAxis: [Double], yAxis: [Double], leftLabels: Bool, formatter: (Double) -> String) {
+    func renderGrid(rd: RenderData, yAxis: [Double], leftLabels: Bool, format: String) {
+        let rc = rd.rect
+        let context = rd.context
+
         let nub = 7.0
         let thickLine = 1.5
         let textGap = 5.0
-
+        
         let yAxisMin = yAxis[0]
         let yAxisMax = yAxis[yAxis.count - 1]
-
+        
         var yOffset = [CGFloat](repeating: 0.0, count: yAxis.count)
         for i in 0..<yAxis.count {
             let s = (yAxis[i] - yAxisMin) / (yAxisMax - yAxisMin)
             yOffset[i] = s * rc.minY + (1 - s) * rc.maxY
         }
-
-        var xOffset = [CGFloat](repeating: 0.0, count: xAxis.count)
-        for i in 0..<xAxis.count {
-            let s = xAxis[i]
+        
+        var xOffset = [CGFloat](repeating: 0.0, count: rd.xAxis.count)
+        for i in 0..<rd.xAxis.count {
+            let s = rd.xAxis[i]
             xOffset[i] = (1 - s) * rc.minX + s * rc.maxX
         }
-
+        
         // Framing rectangle
         context.stroke(
             Path(rc),
             with: .color(.gray),
             lineWidth: thickLine)
-
+        
         // Dashed horizontal lines
         context.stroke(Path { path in
-                for i in 0..<yAxis.count {
-                    path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
-                }
-            },
-            with: .color(.gray),
-            style: StrokeStyle(lineWidth: 0.5, dash: [5]))
-
+            for i in 0..<yAxis.count {
+                path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
+                path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
+            }
+        },
+                       with: .color(.gray),
+                       style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+        
         // Horizontal nubs
         context.stroke(Path { path in
-                for i in 0..<yAxis.count {
-                    path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.minX + nub, y: yOffset[i]))
-                    path.move(to: CGPoint(x: rc.maxX - nub, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
-                }
-            },
-            with: .color(.gray),
-            lineWidth: thickLine)
-
+            for i in 0..<yAxis.count {
+                path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
+                path.addLine(to: CGPoint(x: rc.minX + nub, y: yOffset[i]))
+                path.move(to: CGPoint(x: rc.maxX - nub, y: yOffset[i]))
+                path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
+            }
+        },
+                       with: .color(.gray),
+                       lineWidth: thickLine)
+        
         // Dashed vertical lines
         context.stroke(Path { path in
-                for i in 0..<xAxis.count {
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
-                }
-            },
-            with: .color(.gray),
-            style: StrokeStyle(lineWidth: 0.5, dash: [5]))
-
+            for i in 0..<rd.xAxis.count {
+                path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
+                path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
+            }
+        },
+                       with: .color(.gray),
+                       style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+        
         // Vertical nubs
         context.stroke(Path { path in
-                for i in 0..<xAxis.count {
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.minY + nub))
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.maxY - nub))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
-                }
-            },
-            with: .color(.gray),
-            lineWidth: thickLine)
-
+            for i in 0..<rd.xAxis.count {
+                path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
+                path.addLine(to: CGPoint(x: xOffset[i], y: rc.minY + nub))
+                path.move(to: CGPoint(x: xOffset[i], y: rc.maxY - nub))
+                path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
+            }
+        },
+                       with: .color(.gray),
+                       lineWidth: thickLine)
+        
         // Y-Axis labels
         for i in 0..<yAxis.count {
             let atX = leftLabels ? rc.minX - textGap : rc.maxX + textGap
             let anchorX = leftLabels ? 1.0 : 0.0
-            context.draw(Text(formatter(yAxis[i])).font(.footnote),
-                             at: CGPoint(x: atX, y: yOffset[i]),
-                             anchor: UnitPoint(x: anchorX, y: 0.5))
+            context.draw(Text(String(format: format, yAxis[i])).font(font),
+                         at: CGPoint(x: atX, y: yOffset[i]),
+                         anchor: UnitPoint(x: anchorX, y: 0.5))
+        }
+
+        renderNoData(rd: rd)
+    }
+    func isDarkTheme() -> Bool {
+        return colorScheme == .dark
+    }
+    func renderNoData(rd: RenderData) {
+        let rc = rd.rect
+        let context = rd.context
+        let gray = isDarkTheme() ? 0.15 : 0.85
+        let color = Color(red: gray, green: gray, blue: gray, opacity: 0.5)
+
+        for dataGap in rd.dataGaps {
+            let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0, t0: rd.time_window.0, t1: rd.time_window.1))
+            let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1, t0: rd.time_window.0, t1: rd.time_window.1))
+            if (x1 - x0 >= 1) {
+                let rcGap = CGRect(x: x0, y: rc.minY + 1, width: x1 - x0, height: rc.height - 2)
+                context.fill(Path(rcGap), with: .color(color))
+            }
+        }
+        if (!rd.time_f.isEmpty) {
+            let minX = lerpToX(rc: rc, s: rd.time_f.first!)
+            assert(minX >= rc.minX)
+            if (minX - rc.minX > 2) {
+                let rcEmpty = CGRect(x: rc.minX + 1, y: rc.minY + 1, width: minX - rc.minX - 1, height: rc.height - 2)
+                context.fill(Path(rcEmpty), with: .color(color))
+            }
+            let maxX = lerpToX(rc: rc, s: rd.time_f.last!)
+            if (rc.maxX - maxX > 2) {
+                let rcEmpty = CGRect(x: maxX, y: rc.minY + 1, width: rc.maxX - maxX - 1, height: rc.height - 2)
+                context.fill(Path(rcEmpty), with: .color(color))
+            }
+        } else {
+            context.fill(Path(rc), with: .color(color))
+            context.draw(Text("no data").foregroundColor(.gray),
+                         at: CGPoint(x: (rc.minX + rc.maxX) / 2, y: (rc.minY + rc.maxY) / 2),
+                         anchor: .center)
         }
     }
-
+    
     func valueToY(rc: CGRect, yAxis: (Double, Double), v: Double) -> Double {
         return lerpToY(rc: rc, s: valueToLerp(yAxis: yAxis, v: v))
     }
@@ -121,11 +176,11 @@ struct RealtimePlotView: View {
     func valueToLerp(yAxis: (Double, Double), v: Double) -> Double {
         return (v - yAxis.0) / (yAxis.1 - yAxis.0)
     }
-    func timeToLerp(t: Double) -> Double {
-        return (t - model.time_window.0) / (model.time_window.1 - model.time_window.0)
+    func timeToLerp(t: Double, t0: Double, t1: Double) -> Double {
+        return (t - t0) / (t1 - t0)
     }
-    func timeToX(rc: CGRect, t: Double) -> Double {
-        return lerpToX(rc: rc, s: timeToLerp(t: t))
+    func timeToX(rc: CGRect, t: Double, t0: Double, t1: Double) -> Double {
+        return lerpToX(rc: rc, s: timeToLerp(t: t, t0: t0, t1: t1))
     }
     func lerpToX(rc: CGRect, s: Double) -> Double {
         return floor(rc.minX + rc.width * s)
@@ -134,35 +189,27 @@ struct RealtimePlotView: View {
     {
         return [range.0, (range.1 + range.0) / 2, range.1]
     }
-    func render1D(context: GraphicsContext, rc: CGRect, yAxis: (Double, Double), data: inout [Double], time_f: inout [Double], dataGaps: inout [(Double, Double)], color: Color) {
-        let noDataColor = getNoDataColor()
-        assert(data.count == time_f.count)
-        if (!data.isEmpty && !time_f.isEmpty) {
-            let minX = lerpToX(rc: rc, s: time_f.first!)
-            assert(minX >= rc.minX)
-            if (minX - rc.minX > 2) {
-                let rcEmpty = CGRect(x: rc.minX + 1, y: rc.minY + 1, width: minX - rc.minX - 1, height: rc.height - 2)
-                context.fill(Path(rcEmpty), with: .color(noDataColor))
-            }
-            let maxX = lerpToX(rc: rc, s: time_f.last!)
-            if (rc.maxX - maxX > 2) {
-                let rcEmpty = CGRect(x: maxX, y: rc.minY + 1, width: rc.maxX - maxX - 1, height: rc.height - 2)
-                context.fill(Path(rcEmpty), with: .color(noDataColor))
-            }
-
+    func render1D(rd: RenderData, yAxis: (Double, Double), data: inout [Double], color: Color) {
+        assert(data.count == rd.time_f.count)
+        if (!data.isEmpty && !rd.time_f.isEmpty) {
+            let rc = rd.rect
+            let context = rd.context
+            let minX = lerpToX(rc: rc, s: rd.time_f.first!)
+            let maxX = lerpToX(rc: rc, s: rd.time_f.last!)
+            
             var emptyX = 0.0
-            for dataGap in dataGaps {
-                let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0))
-                let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1))
+            for dataGap in rd.dataGaps {
+                let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0, t0: rd.time_window.0, t1: rd.time_window.1))
+                let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1, t0: rd.time_window.0, t1: rd.time_window.1))
                 if (x1 - x0 >= 1) {
                     emptyX += x1 - x0
                 }
             }
-
+            
             if (data.count <= Int(maxX - minX - emptyX)) {
                 context.stroke(Path { path in
                     for i in 0..<data.count {
-                        let x = lerpToX(rc: rc, s: time_f[i])
+                        let x = lerpToX(rc: rc, s: rd.time_f[i])
                         let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
                         if (i == 0) { //} || (time_f[i] - time_f[i - 1]) > 2*(time_f[1] - time_f[0])) {
                             path.move(to: CGPoint(x: x, y: y))
@@ -171,10 +218,10 @@ struct RealtimePlotView: View {
                         }
                     }
                 }, with: .color(color.opacity(0.2)),
-                   lineWidth: 1)
+                               lineWidth: 1)
                 context.stroke(Path { path in
                     for i in 0..<data.count {
-                        let x = lerpToX(rc: rc, s: time_f[i])
+                        let x = lerpToX(rc: rc, s: rd.time_f[i])
                         let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
                         path.move(to: CGPoint(x: x-1, y: y))
                         path.addLine(to: CGPoint(x: x+1, y: y))
@@ -182,7 +229,7 @@ struct RealtimePlotView: View {
                         path.addLine(to: CGPoint(x: x, y: y+1))
                     }
                 }, with: .color(color),
-                   lineWidth: 2)
+                               lineWidth: 2)
             } else {
                 context.stroke(Path { path in
                     var sample_index = 0
@@ -192,7 +239,7 @@ struct RealtimePlotView: View {
                         var minv = v
                         var maxv = v
                         var emptyPixel = true
-                        while (time_f[sample_index] < s) {
+                        while (rd.time_f[sample_index] < s) {
                             sample_index += 1
                             let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
                             minv = min(minv, v)
@@ -205,35 +252,11 @@ struct RealtimePlotView: View {
                         }
                     }
                 }, with: .color(color),
-                   lineWidth: 2)
-            }
-        } else {
-            context.fill(Path(rc), with: .color(noDataColor))
-            context.draw(Text("no data").foregroundColor(.gray),
-                         at: CGPoint(x: (rc.minX + rc.maxX) / 2, y: (rc.minY + rc.maxY) / 2),
-                         anchor: .center)
-        }
-    }
-    func renderDataGaps(context: GraphicsContext, rc: CGRect, dataGaps: inout [(Double, Double)]) {
-        let noDataColor = getNoDataColor()
-        for dataGap in dataGaps {
-            let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0))
-            let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1))
-            if (x1 - x0 >= 1) {
-                let rcGap = CGRect(x: x0, y: rc.minY + 1, width: x1 - x0, height: rc.height - 2)
-                context.fill(Path(rcGap), with: .color(noDataColor))
+                               lineWidth: 2)
             }
         }
     }
-
-    func isDarkTheme() -> Bool {
-        return (colorScheme == .dark)
-    }
-    func getNoDataColor() -> Color {
-        let noDataGray = isDarkTheme() ? 0.15 : 0.85
-        return Color(red: noDataGray, green: noDataGray, blue: noDataGray, opacity: 0.5)
-    }
-
+    
     let s1_color = Color(red: 88/255, green: 143/255, blue: 92/255)
     let s2_color = Color(red: 189/255, green: 219/255, blue: 154/255, opacity: 0.75)
     let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)
@@ -244,30 +267,30 @@ struct RealtimePlotView: View {
     let dzdt_up_color = Color(red: 233/255, green: 145/255, blue: 195/255)
     let dzdt_down_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
-    let leftLabelsWidth = CGFloat(30)
-    let vgap = CGFloat(25)
-    let hgap = CGFloat(30)
+    let leftLabelsWidth = 30.0
+    let vgap = 25.0
+    let hgap = 30.0
+    let font = Font.body
 
     func drawMainLabel(context: GraphicsContext, rc: CGRect, text: String) {
         context.drawLayer { ctx in
             ctx.translateBy(x: leftLabelsWidth/2, y: (rc.maxY + rc.minY) / 2)
             ctx.rotate(by: Angle(degrees: -90))
-            ctx.draw(Text(text).bold(), at: CGPoint(x: 0, y: -3), anchor: .center)
+            ctx.draw(Text(text).font(font).bold(), at: CGPoint(x: 0, y: -5), anchor: .center)
         }
     }
     func drawSubLabels(context: GraphicsContext, rc: CGRect, labels: [(Color, String)]) {
         var textHeight = 0.0
         var textWidth = 0.0
         let inset = (5.0, 3.0)
-        let gray = isDarkTheme() ? 0.4 : 0.9
-
-        let textFont = Font.footnote
+        let gray = (colorScheme == .dark) ? 0.4 : 0.9
+        
         for i in 0..<labels.count {
-            let textSize = context.resolve(Text(labels[i].1).font(textFont)).measure(in: CGSize(width: .max, height: .max))
+            let textSize = context.resolve(Text(labels[i].1).font(font)).measure(in: CGSize(width: .max, height: .max))
             textWidth = max(textWidth, textSize.width)
             textHeight = max(textHeight, textSize.height)
         }
-
+        
         let dotSize = 5.0
         let width = inset.0 + dotSize + inset.0 + textWidth + inset.0
         let height = inset.1 + textHeight * Double(labels.count) + inset.1
@@ -275,17 +298,17 @@ struct RealtimePlotView: View {
         let rcLabels = CGRect(x: rc.minX + 10, y: rc.minY + 10, width: width, height: height)
         context.fill(Path(rcLabels), with: .color(Color(red: gray, green: gray, blue: gray)))
         context.stroke(Path(rcLabels), with: .color(.black))
-
+        
         var rcDot = CGRect(x: rcLabels.minX + inset.0, y: rcLabels.minY + inset.1 + (textHeight - dotSize) / 2, width: dotSize, height: dotSize)
         var ptText = CGPoint(x: rcLabels.minX + inset.0 + dotSize + inset.0, y: rcLabels.minY + inset.1)
         for i in 0..<labels.count {
             context.fill(Circle().path(in: rcDot), with: .color(labels[i].0))
-            context.draw(Text(labels[i].1).foregroundColor(.black).font(textFont), at: ptText, anchor: .topLeading)
+            context.draw(Text(labels[i].1).foregroundColor(.black).font(font), at: ptText, anchor: .topLeading)
             ptText.y += textHeight
             rcDot = rcDot.offsetBy(dx: 0, dy: textHeight)
         }
     }
-
+    
     func drawArrow(context: GraphicsContext, from: CGPoint, to: CGPoint, thick: Double, head: Double, color: Color) {
         let dx = to.x - from.x
         let dy = to.y - from.y
@@ -298,7 +321,7 @@ struct RealtimePlotView: View {
                 path.move(to: CGPoint(x: 0, y: 0))
                 path.addLine(to: CGPoint(x: len - head, y: 0))
             }, with: .color(color),
-                           lineWidth: thick)
+                       lineWidth: thick)
             ctx.fill(Path { path in
                 path.move(to: CGPoint(x: len, y: 0))
                 path.addLine(to: CGPoint(x: len - head, y: head / 2))
@@ -310,8 +333,41 @@ struct RealtimePlotView: View {
     {
         return (min(v1.0, v2.0), max(v1.1, v2.1))
     }
+    class RenderData {
+        let context: GraphicsContext
+        let time_window: (Double, Double)
+        let time_s: ArraySlice<Double>
+        let time_f: ArraySlice<Double>
+        let dataGaps: ArraySlice<(Double, Double)>
+        let xAxis : [Double]
+        var rect = CGRect()
+        init(context: GraphicsContext,
+             time_window: (Double, Double),
+             time_s: ArraySlice<Double>,
+             time_f: ArraySlice<Double>,
+             dataGaps: ArraySlice<(Double, Double)>,
+             xAxis: [Double]) {
+            self.context = context
+            self.time_window = time_window
+            self.time_s = time_s
+            self.time_f = time_f
+            self.dataGaps = dataGaps
+            self.xAxis = xAxis
+        }
+        init(context: GraphicsContext, rd: RenderData) {
+            self.context = context
+            self.time_window = rd.time_window
+            self.time_s = rd.time_s
+            self.time_f = rd.time_f
+            self.dataGaps = rd.dataGaps
+            self.xAxis = rd.xAxis
+        }
+        func offsetRectY(vgap: Double) {
+            rect = rect.offsetBy(dx: 0.0, dy: rect.height + vgap)
+        }
+    }
+
     func render(context: GraphicsContext, size: CGSize) {
-        var rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
         //model.updateViewData(pixel_width: Int(rect.width))
 
         let timeTickCount = Int(size.width / 200)
@@ -320,198 +376,197 @@ struct RealtimePlotView: View {
             xAxis.append(Double(i) / Double(timeTickCount - 1))
         }
 
+        let time_window = vm.getTimeWindow()
+        let epsi_rd = RenderData(
+            context: context,
+            time_window: time_window,
+            time_s: vm.epsi.time_s[...],
+            time_f: vm.epsi.time_f[...],
+            dataGaps: vm.epsi.dataGaps[...],
+            xAxis: xAxis)
+
+        epsi_rd.rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
         switch EpsiModrawPacketParser_EFE4.DeploymentType.EPSI {
         case .EPSI:
             // EPSI t1, t2
             let t1_color = isDarkTheme() ? Color(red: 182/255, green: 114/255, blue: 182/255) : Color(red: 21/255, green: 53/255, blue: 136/255)
             let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255)
             
-            let epsi_t_volt_range = minmax(v1: model.epsi_t1_volt_range, v2: model.epsi_t2_volt_range)
+            let epsi_t_volt_range = minmax(v1: vm.epsi.t1_volt_range, v2: vm.epsi.t2_volt_range)
             
             let t_yAxis = rangeToYAxis(range: epsi_t_volt_range)
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: t_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+
+            renderGrid(rd: epsi_rd, yAxis: t_yAxis, leftLabels: true, format: "%.2f")
             
-            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, data: &model.epsi.t1_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: t1_color)
-            render1D(context: context, rc: rect, yAxis: epsi_t_volt_range, data: &model.epsi.t2_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: t2_color)
-            renderDataGaps(context: context, rc: rect, dataGaps: &model.epsi.dataGaps)
-
-            drawMainLabel(context: context, rc: rect, text: "FP07 [Volt]")
-            if (model.epsi.time_s.count > 0) {
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (t1_color, "t1 - \(String(format: "%.2g", model.epsi_t1_volt_mean))"),
-                    (t2_color, "t2 - \(String(format: "%.2g", model.epsi_t2_volt_mean))")])
+            render1D(rd: epsi_rd, yAxis: epsi_t_volt_range, data: &vm.epsi.t1_volt, color: t1_color)
+            render1D(rd: epsi_rd, yAxis: epsi_t_volt_range, data: &vm.epsi.t2_volt, color: t2_color)
+            
+            drawMainLabel(context: context, rc: epsi_rd.rect, text: "FP07 [Volt]")
+            if (vm.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: epsi_rd.rect, labels: [
+                    (t1_color, "t1 - \(String(format: "%.2g", vm.epsi.t1_volt_mean))"),
+                    (t2_color, "t2 - \(String(format: "%.2g", vm.epsi.t2_volt_mean))")])
             }
-            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
-
+            epsi_rd.offsetRectY(vgap: vgap)
+            
             // EPSI s1, s2
-            let epsi_s_volt_range = minmax(v1: model.epsi_s1_volt_range, v2: model.epsi_s2_volt_range)
+            let epsi_s_volt_range = minmax(v1: vm.epsi.s1_volt_range, v2: vm.epsi.s2_volt_range)
             
             let s_yAxis = rangeToYAxis(range: epsi_s_volt_range)
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+            renderGrid(rd: epsi_rd, yAxis: s_yAxis, leftLabels: true, format: "%.2f")
+            render1D(rd: epsi_rd, yAxis: epsi_s_volt_range, data: &vm.epsi.s1_volt, color: s1_color)
+            render1D(rd: epsi_rd, yAxis: epsi_s_volt_range, data: &vm.epsi.s2_volt, color: s2_color)
             
-            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, data: &model.epsi.s1_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: s1_color)
-            render1D(context: context, rc: rect, yAxis: epsi_s_volt_range, data: &model.epsi.s2_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: s2_color)
-            renderDataGaps(context: context, rc: rect, dataGaps: &model.epsi.dataGaps)
-
-            drawMainLabel(context: context, rc: rect, text: "Shear [Volt]")
-            if (model.epsi.time_s.count > 0) {
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (s1_color, "s1 - rms \(String(format: "%.2g", model.epsi_s1_volt_rms))"),
-                    (s2_color, "s2 - rms \(String(format: "%.2g", model.epsi_s2_volt_rms))")])
+            drawMainLabel(context: context, rc: epsi_rd.rect, text: "Shear [Volt]")
+            if (vm.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: epsi_rd.rect, labels: [
+                    (s1_color, "s1 - rms \(String(format: "%.2g", vm.epsi.s1_volt_rms))"),
+                    (s2_color, "s2 - rms \(String(format: "%.2g", vm.epsi.s2_volt_rms))")])
             }
-            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-
+            epsi_rd.offsetRectY(vgap: vgap)
+            
         case .FCTD:
             // EPSI s1
-            let s1_yAxis = rangeToYAxis(range: model.epsi_s1_volt_range)
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s1_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+            let s1_yAxis = rangeToYAxis(range: vm.epsi.s1_volt_range)
+            renderGrid(rd: epsi_rd, yAxis: s1_yAxis, leftLabels: true, format: "%.2f")
+            render1D(rd: epsi_rd, yAxis: vm.epsi.s1_volt_range, data: &vm.epsi.s1_volt, color: s1_color)
             
-            render1D(context: context, rc: rect, yAxis: model.epsi_s1_volt_range, data: &model.epsi.s1_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: s1_color)
-            renderDataGaps(context: context, rc: rect, dataGaps: &model.epsi.dataGaps)
-
-            drawMainLabel(context: context, rc: rect, text: "s1 [Volt]")
-            if (model.epsi.time_s.count > 0) {
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (s1_color, "s1 - rms \(String(format: "%.2g", model.epsi_s1_volt_rms))")])
+            drawMainLabel(context: context, rc: epsi_rd.rect, text: "s1 [Volt]")
+            if (vm.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: epsi_rd.rect, labels: [
+                    (s1_color, "s1 - rms \(String(format: "%.2g", vm.epsi.s1_volt_rms))")])
             }
-            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap)
-
+            epsi_rd.offsetRectY(vgap: vgap)
+            
             // EPSI s2
-            let s2_yAxis = rangeToYAxis(range: model.epsi_s2_volt_range)
-            renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: s2_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
+            let s2_yAxis = rangeToYAxis(range: vm.epsi.s2_volt_range)
+            renderGrid(rd: epsi_rd, yAxis: s2_yAxis, leftLabels: true, format: "%.2f")
+            render1D(rd: epsi_rd, yAxis: vm.epsi.s2_volt_range, data: &vm.epsi.s2_volt, color: s2_color)
             
-            render1D(context: context, rc: rect, yAxis: model.epsi_s2_volt_range, data: &model.epsi.s2_volt, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: s2_color)
-            renderDataGaps(context: context, rc: rect, dataGaps: &model.epsi.dataGaps)
-
-            drawMainLabel(context: context, rc: rect, text: "s2 [Volt]")
-            if (model.epsi.time_s.count > 0) {
-                drawSubLabels(context: context, rc: rect, labels: [
-                    (s2_color, "s2 - rms \(String(format: "%.2g", model.epsi_s2_volt_rms))")])
+            drawMainLabel(context: context, rc: epsi_rd.rect, text: "s2 [Volt]")
+            if (vm.epsi.time_s.count > 0) {
+                drawSubLabels(context: context, rc: epsi_rd.rect, labels: [
+                    (s2_color, "s2 - rms \(String(format: "%.2g", vm.epsi.s2_volt_rms))")])
             }
-            rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
+            epsi_rd.offsetRectY(vgap: vgap)
         }
-
+        
         // EPSI a1
-        var halfRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height / 2)
-
-        let a1_yAxis = rangeToYAxis(range: model.epsi_a1_g_range)
-        renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a1_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-        render1D(context: context, rc: halfRect, yAxis: model.epsi_a1_g_range, data: &model.epsi.a1_g, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: a1_color)
-        renderDataGaps(context: context, rc: halfRect, dataGaps: &model.epsi.dataGaps)
-        if (model.epsi.time_s.count > 0) {
-            drawSubLabels(context: context, rc: halfRect, labels: [(a1_color, "a1")])
+        let fullRect = epsi_rd.rect
+        epsi_rd.rect = CGRect(x: fullRect.minX, y: fullRect.minY, width: fullRect.width, height: fullRect.height / 2)
+        
+        let a1_yAxis = rangeToYAxis(range: vm.epsi.a1_g_range)
+        renderGrid(rd: epsi_rd, yAxis: a1_yAxis, leftLabels: true, format: "%.1f")
+        render1D(rd: epsi_rd, yAxis: vm.epsi.a1_g_range, data: &vm.epsi.a1_g, color: a1_color)
+        if (vm.epsi.time_s.count > 0) {
+            drawSubLabels(context: context, rc: epsi_rd.rect, labels: [(a1_color, "a1")])
         }
-
+        
         // EPSI a2, a3
-        halfRect = halfRect.offsetBy(dx: 0, dy: halfRect.height)
-        let epsi_a23_g_range = minmax(v1: model.epsi_a2_g_range, v2: model.epsi_a3_g_range)
-
+        epsi_rd.offsetRectY(vgap: 0)
+        let epsi_a23_g_range = minmax(v1: vm.epsi.a2_g_range, v2: vm.epsi.a3_g_range)
+        
         let a23_yAxis = rangeToYAxis(range: epsi_a23_g_range)
-        renderGrid(context: context, rc: halfRect, xAxis: xAxis, yAxis: a23_yAxis, leftLabels: false, formatter: { String(format: "%.1f", Double($0)) })
-        render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &model.epsi.a2_g, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: a2_color)
-        render1D(context: context, rc: halfRect, yAxis: epsi_a23_g_range, data: &model.epsi.a3_g, time_f: &model.epsi_time_f, dataGaps: &model.epsi.dataGaps, color: a3_color)
-        renderDataGaps(context: context, rc: halfRect, dataGaps: &model.epsi.dataGaps)
-        if (model.epsi.time_s.count > 0) {
-            drawSubLabels(context: context, rc: halfRect, labels: [(a2_color, "a2"), (a3_color, "a3")])
+        renderGrid(rd: epsi_rd, yAxis: a23_yAxis, leftLabels: false, format: "%.1f")
+        render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: &vm.epsi.a2_g, color: a2_color)
+        render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: &vm.epsi.a3_g, color: a3_color)
+        if (vm.epsi.time_s.count > 0) {
+            drawSubLabels(context: context, rc: epsi_rd.rect, labels: [(a2_color, "a2"), (a3_color, "a3")])
         }
-        drawMainLabel(context: context, rc: rect, text: "Accel [g]")
-        rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
+        epsi_rd.rect = fullRect
+        drawMainLabel(context: context, rc: epsi_rd.rect, text: "Accel [g]")
+        
+        let ctd_rd = RenderData(
+            context: context,
+            time_window: time_window,
+            time_s: vm.ctd.time_s[...],
+            time_f: vm.ctd.time_f[...],
+            dataGaps: vm.ctd.dataGaps[...],
+            xAxis: xAxis)
+        ctd_rd.rect = epsi_rd.rect
+        ctd_rd.offsetRectY(vgap: vgap)
 
         // CTD T
-        let T_yAxis = rangeToYAxis(range: model.ctd_T_range)
-        renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: T_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-        render1D(context: context, rc: rect, yAxis: model.ctd_T_range, data: &model.ctd.T, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: T_color)
-        renderDataGaps(context: context, rc: rect, dataGaps: &model.ctd.dataGaps)
-
-        drawMainLabel(context: context, rc: rect, text: "T [\u{00B0}C]")
-        rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-
+        let T_yAxis = rangeToYAxis(range: vm.ctd.T_range)
+        renderGrid(rd: ctd_rd, yAxis: T_yAxis, leftLabels: true, format: "%.1f")
+        render1D(rd: ctd_rd, yAxis: vm.ctd.T_range, data: &vm.ctd.T, color: T_color)
+        
+        drawMainLabel(context: context, rc: ctd_rd.rect, text: "T [\u{00B0}C]")
+        ctd_rd.offsetRectY(vgap: vgap)
+        
         // CTD S
-        let S_yAxis = rangeToYAxis(range: model.ctd_S_range)
-        renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: S_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-        render1D(context: context, rc: rect, yAxis: model.ctd_S_range, data: &model.ctd.S, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: S_color)
-        renderDataGaps(context: context, rc: rect, dataGaps: &model.ctd.dataGaps)
-
-        drawMainLabel(context: context, rc: rect, text: "S")
-        rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-
+        let S_yAxis = rangeToYAxis(range: vm.ctd.S_range)
+        renderGrid(rd: ctd_rd, yAxis: S_yAxis, leftLabels: true, format: "%.1f")
+        render1D(rd: ctd_rd, yAxis: vm.ctd.S_range, data: &vm.ctd.S, color: S_color)
+        
+        drawMainLabel(context: context, rc: ctd_rd.rect, text: "S")
+        ctd_rd.offsetRectY(vgap: vgap);
+        
         // CTD dzdt
         var dzdt_yAxis: [Double]
-        let dzdt_min = model.ctd_dzdt_range.0
-        let dzdt_max = model.ctd_dzdt_range.1
+        let dzdt_min = vm.ctd.dzdt_range.0
+        let dzdt_max = vm.ctd.dzdt_range.1
         let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
-        let zero_y = zero_s * rect.minY + (1.0 - zero_s) * rect.maxY
+        let zero_y = zero_s * ctd_rd.rect.minY + (1.0 - zero_s) * ctd_rd.rect.maxY
         if (dzdt_min * dzdt_max < 0) {
             // Plot contains zero level, highlight that instead of middle
             dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
         } else {
-            dzdt_yAxis = rangeToYAxis(range: model.ctd_dzdt_range)
+            dzdt_yAxis = rangeToYAxis(range: vm.ctd.dzdt_range)
         }
-        let arrow_x = rect.maxX + 10.0
+        let arrow_x = ctd_rd.rect.maxX + 10.0
         let arrow_headLen = 15.0
         let arrow_len = 40.0
         let arrow_thick = 5.0
-        renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: dzdt_yAxis, leftLabels: true, formatter: { String(format: "%.2f", Double($0)) })
-        if (zero_y > rect.minY + 2) {
+        renderGrid(rd: ctd_rd, yAxis: dzdt_yAxis, leftLabels: true, format: "%.2f")
+        if (zero_y > ctd_rd.rect.minY + 2) {
             context.drawLayer { ctx in
-                ctx.clip(to: Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: zero_y - rect.minY)))
-                render1D(context: ctx, rc: rect, yAxis: model.ctd_dzdt_range, data: &model.ctd_dzdt_movmean, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: dzdt_up_color)
+                ctx.clip(to: Path(CGRect(x: ctd_rd.rect.minX, y: ctd_rd.rect.minY, width: ctd_rd.rect.width, height: zero_y - ctd_rd.rect.minY)))
+                let rd = RenderData(context: ctx, rd: ctd_rd)
+                render1D(rd: rd, yAxis: vm.ctd.dzdt_range, data: &vm.ctd.dzdt_movmean, color: dzdt_up_color)
             }
-            let arrow_y = min(zero_y, rect.maxY)
+            let arrow_y = min(zero_y, ctd_rd.rect.maxY)
             drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y - 1), to: CGPoint(x: arrow_x, y: arrow_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_up_color)
         }
-        if (zero_y < rect.maxY - 2) {
+        if (zero_y < ctd_rd.rect.maxY - 2) {
             context.drawLayer { ctx in
-                ctx.clip(to: Path(CGRect(x: rect.minX, y: zero_y, width: rect.width, height: rect.maxY - zero_y)))
-                render1D(context: ctx, rc: rect, yAxis: model.ctd_dzdt_range, data: &model.ctd_dzdt_movmean, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: dzdt_down_color)
+                ctx.clip(to: Path(CGRect(x: ctd_rd.rect.minX, y: zero_y, width: ctd_rd.rect.width, height: ctd_rd.rect.maxY - zero_y)))
+                let rd = RenderData(context: ctx, rd: ctd_rd)
+                render1D(rd: rd, yAxis: vm.ctd.dzdt_range, data: &vm.ctd.dzdt_movmean, color: dzdt_down_color)
             }
-            let arrow_y = max(zero_y, rect.minY)
+            let arrow_y = max(zero_y, ctd_rd.rect.minY)
             drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y + 1), to: CGPoint(x: arrow_x, y: arrow_y + arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_down_color)
         }
         if (dzdt_max == dzdt_min)
         {
             // Still render the no data
-            render1D(context: context, rc: rect, yAxis: model.ctd_dzdt_range, data: &model.ctd_dzdt_movmean, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: .black)
+            render1D(rd: ctd_rd, yAxis: vm.ctd.dzdt_range, data: &vm.ctd.dzdt_movmean, color: .black)
         }
-        renderDataGaps(context: context, rc: rect, dataGaps: &model.ctd.dataGaps)
-
-        drawMainLabel(context: context, rc: rect, text: "dzdt [m/s]")
-        rect = rect.offsetBy(dx: 0, dy: rect.height + vgap);
-
+        
+        drawMainLabel(context: context, rc: ctd_rd.rect, text: "dzdt [m/s]")
+        ctd_rd.offsetRectY(vgap: vgap)
+        
         // CTD z
-        let z_yAxis = rangeToYAxis(range: model.ctd_z_range)
-        renderGrid(context: context, rc: rect, xAxis: xAxis, yAxis: z_yAxis, leftLabels: true, formatter: { String(format: "%.1f", Double($0)) })
-        render1D(context: context, rc: rect, yAxis: model.ctd_z_range, data: &model.ctd.z, time_f: &model.ctd_time_f, dataGaps: &model.ctd.dataGaps, color: P_color)
-        renderDataGaps(context: context, rc: rect, dataGaps: &model.ctd.dataGaps)
-        drawMainLabel(context: context, rc: rect, text: "z [m]")
-
+        let z_yAxis = rangeToYAxis(range: vm.ctd.z_range)
+        renderGrid(rd: ctd_rd, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
+        render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: &vm.ctd.z, color: P_color)
+        drawMainLabel(context: context, rc: ctd_rd.rect, text: "z [m]")
+        
         // Time labels
-        if (!model.epsi.time_s.isEmpty || !model.ctd.time_s.isEmpty) {
+        if (!vm.epsi.time_s.isEmpty || !vm.ctd.time_s.isEmpty) {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "mm:ss.S"
             for i in 0..<xAxis.count {
                 let s = xAxis[i]
-                let time_s = (1 - s) * model.time_window.0 + s * model.time_window.1
+                let time_s = s * time_window.0 + (1 - s) * time_window.1
                 let date = Date(timeIntervalSince1970: time_s)
                 let label = dateFormatter.string(from: date)
                 
-                let x = (1 - s) * rect.minX + s * rect.maxX
-                context.draw(Text(label).font(.footnote),
-                             at: CGPoint(x: x, y: rect.maxY + vgap/2),
+                let x = (1 - s) * ctd_rd.rect.minX + s * ctd_rd.rect.maxX
+                context.draw(Text(label).font(font),
+                             at: CGPoint(x: x, y: ctd_rd.rect.maxY + vgap/2),
                              anchor: .center)
             }
-        }
-    }
-
-    private var chart: some View {
-        return Canvas{ context, size in
-/*
-            context.draw(Text("Pick a file or folder using the File menu..."),
-                             at: CGPoint(x: size.width / 2, y: size.height / 2),
-                             anchor: .center)
-*/
-            //let _ = Stopwatch(label: "Render")
-            render(context: context, size: size)
         }
     }
 }

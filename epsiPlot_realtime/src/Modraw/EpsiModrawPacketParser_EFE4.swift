@@ -37,14 +37,14 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     let t_FR = 2.5
     let s_FR = 2.5
     let a_FR = 1.8
-    func Unipolar(FR: Double, data: Int) -> Double {
+    func unipolar(FR: Double, data: Int) -> Double {
         return FR / efe_gain * (Double(data) / Double(efe_bit_count_mask))
     }
-    func Bipolar(FR: Double, data: Int) -> Double {
+    func bipolar(FR: Double, data: Int) -> Double {
         return FR / efe_gain * (Double(data) / Double(efe_bit_count_mask_1) - 1)
     }
-    func volt_to_g(data: Double) -> Double {
-        return (data - efe_acc_offset) / efe_acc_factor
+    func calculateG(volt: Double) -> Double {
+        return (volt - efe_acc_offset) / efe_acc_factor
     }
     func parseEfeTimestamp(packet: ModrawPacket, i: inout Int) -> Double {
         let time_s = Double(packet.parent.parseBinBE(start: i, len: efe_timestamp_len)) / 1000.0
@@ -56,17 +56,17 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
         i += efe_channel_len
         return channel
     }
-    override func parse(packet: ModrawPacket, data: inout ProgressiveEpsiData)
+    override func parse(packet: ModrawPacket, model: Model)
     {
         var i = getEpsiPayloadStart(packet: packet)
 
-        let prev_block = data.epsi_blocks.last
+        let prev_block = model.epsi_blocks.last
         var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
 
-        let this_block : EpsiData
+        let this_block : EpsiModelData
         if (prev_block == nil || prev_block!.isFull()) {
-            this_block = EpsiData()
-            data.epsi_blocks.append(this_block)
+            this_block = EpsiModelData()
+            model.epsi_blocks.append(this_block)
         } else {
             this_block = prev_block!
         }
@@ -88,25 +88,25 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             prev_time_s = time_s
 
             this_block.time_s.append(time_s)
-            this_block.t1_volt.append(Unipolar(FR: t_FR, data: t1_count))
-            this_block.t2_volt.append(Unipolar(FR: t_FR, data: t2_count))
+            this_block.t1_volt.append(unipolar(FR: t_FR, data: t1_count))
+            this_block.t2_volt.append(unipolar(FR: t_FR, data: t2_count))
 
             switch deployment_type {
             case .EPSI:
-                this_block.s1_volt.append(Bipolar(FR: s_FR, data: s1_count))
-                this_block.s2_volt.append(Bipolar(FR: s_FR, data: s2_count))
+                this_block.s1_volt.append(bipolar(FR: s_FR, data: s1_count))
+                this_block.s2_volt.append(bipolar(FR: s_FR, data: s2_count))
             case .FCTD:
-                this_block.s1_volt.append(Unipolar(FR: s_FR, data: s1_count))
-                this_block.s2_volt.append(Unipolar(FR: s_FR, data: s2_count))
+                this_block.s1_volt.append(unipolar(FR: s_FR, data: s1_count))
+                this_block.s2_volt.append(unipolar(FR: s_FR, data: s2_count))
             }
 
-            let a1_volt = Unipolar(FR: a_FR, data: a1_count)
-            let a2_volt = Unipolar(FR: a_FR, data: a2_count)
-            let a3_volt = Unipolar(FR: a_FR, data: a3_count)
+            let a1_volt = unipolar(FR: a_FR, data: a1_count)
+            let a2_volt = unipolar(FR: a_FR, data: a2_count)
+            let a3_volt = unipolar(FR: a_FR, data: a3_count)
 
-            this_block.a1_g.append(volt_to_g(data: a1_volt))
-            this_block.a2_g.append(volt_to_g(data: a2_volt))
-            this_block.a3_g.append(volt_to_g(data: a3_volt))
+            this_block.a1_g.append(calculateG(volt: a1_volt))
+            this_block.a2_g.append(calculateG(volt: a2_volt))
+            this_block.a3_g.append(calculateG(volt: a3_volt))
         }
     }
 }
