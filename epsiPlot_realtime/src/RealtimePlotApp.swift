@@ -17,17 +17,17 @@ struct RealtimePlotApp: App {
 
     init() {
         if lastOpenFolder != nil {
-            modelFromFolder(lastOpenFolder!)
+            openFolder(lastOpenFolder!)
         } else if lastOpenFile != nil {
-            modelFromFile(lastOpenFile!)
+            openFile(lastOpenFile!)
         }
     }
-    func modelFromFile(_ fileUrl: URL) {
+    func openFile(_ fileUrl: URL) {
         lastOpenFile = fileUrl
         lastOpenFolder = nil
         vm.model = SingleFileModel(fileUrl: fileUrl)
     }
-    func modelFromFolder(_ folderUrl: URL) {
+    func openFolder(_ folderUrl: URL) {
         lastOpenFile = nil
         lastOpenFolder = folderUrl
         vm.model = ScanningFolderModel(folderUrl: folderUrl)
@@ -69,12 +69,12 @@ struct RealtimePlotApp: App {
             {
                 Button("Open Folder...") {
                     if let folderUrl = modalFilePicker(chooseFiles: false) {
-                        modelFromFolder(folderUrl)
+                        openFolder(folderUrl)
                     }
                 }.keyboardShortcut("o")
                 Button("Open File...") {
                     if let fileUrl = modalFilePicker(chooseFiles: true) {
-                        modelFromFile(fileUrl)
+                        openFile(fileUrl)
                     }
                 }.keyboardShortcut("f")
             }

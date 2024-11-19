@@ -105,7 +105,7 @@ class ModrawParser {
     }
     private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
     func parseHeader() -> ModrawHeader {
-        var header = ModrawHeader()
+        let header = ModrawHeader()
         var line = parseLine()
         assert(line != nil)
         assert(line!.starts(with: "header_file_size_inbytes ="))
