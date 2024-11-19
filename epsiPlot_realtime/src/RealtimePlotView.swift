@@ -73,9 +73,7 @@ struct RealtimePlotView: View {
                 path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
                 path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
             }
-        },
-                       with: .color(.gray),
-                       style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+        }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
         
         // Horizontal nubs
         context.stroke(Path { path in
@@ -85,9 +83,7 @@ struct RealtimePlotView: View {
                 path.move(to: CGPoint(x: rc.maxX - nub, y: yOffset[i]))
                 path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
             }
-        },
-                       with: .color(.gray),
-                       lineWidth: thickLine)
+        }, with: .color(.gray), lineWidth: thickLine)
         
         // Dashed vertical lines
         context.stroke(Path { path in
@@ -95,9 +91,7 @@ struct RealtimePlotView: View {
                 path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
                 path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
             }
-        },
-                       with: .color(.gray),
-                       style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+        }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
         
         // Vertical nubs
         context.stroke(Path { path in
@@ -107,9 +101,7 @@ struct RealtimePlotView: View {
                 path.move(to: CGPoint(x: xOffset[i], y: rc.maxY - nub))
                 path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
             }
-        },
-                       with: .color(.gray),
-                       lineWidth: thickLine)
+        }, with: .color(.gray), lineWidth: thickLine)
         
         // Y-Axis labels
         for i in 0..<yAxis.count {
@@ -220,8 +212,7 @@ struct RealtimePlotView: View {
                         path.move(to: CGPoint(x: x, y: y-1))
                         path.addLine(to: CGPoint(x: x, y: y+1))
                     }
-                }, with: .color(color),
-                               lineWidth: 2)
+                }, with: .color(color), lineWidth: 2)
             } else {
                 context.stroke(Path { path in
                     var sample_index = 0
@@ -243,8 +234,7 @@ struct RealtimePlotView: View {
                             path.addLine(to: CGPoint(x: x, y: maxv + 1))
                         }
                     }
-                }, with: .color(color),
-                               lineWidth: 2)
+                }, with: .color(color), lineWidth: 2)
             }
         }
     }
@@ -379,11 +369,11 @@ struct RealtimePlotView: View {
             xAxis: xAxis)
 
         epsi_rd.rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
-        switch EpsiModrawPacketParser_EFE4.DeploymentType.EPSI {
+        switch vm.model.deploymentType {
         case .EPSI:
             // EPSI t1, t2
             let t1_color = isDarkTheme() ? Color(red: 182/255, green: 114/255, blue: 182/255) : Color(red: 21/255, green: 53/255, blue: 136/255)
-            let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255)
+            let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255, opacity: 0.75)
             
             let epsi_t_volt_range = minmax(v1: vm.epsi.t1_volt_range, v2: vm.epsi.t2_volt_range)
             

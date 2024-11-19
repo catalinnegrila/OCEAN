@@ -7,37 +7,7 @@ class EpsiModrawPacketParser {
         assert(false)
         return 0
     }
-    func getKeyValueString(key: String, header: String) -> String {
-        let indexOfKey = header.index(of: key)
-        if (indexOfKey == nil) {
-            print("Key '\(key)' not found in header!")
-            assert(false)
-            return ""
-        }
-        let indexAfterKey = header.index(indexOfKey!, offsetBy: key.count)
-        let valueOnwards = header[indexAfterKey...]
-        var indexOfCrlf = valueOnwards.index(of: "\r\n")
-        if (indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32)) {
-            indexOfCrlf = valueOnwards.index(of: "\n")
-        }
-        if (indexOfCrlf == nil) {
-            print("Unterminated key '\(key)' value '\(valueOnwards)'")
-            assert(false)
-            return ""
-        }
-        return valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
-    }
-    func getKeyValueDouble(key: String, header: String) -> Double {
-        let str = getKeyValueString(key: key, header: header)
-        if let v = Double(str) {
-            return v
-        } else {
-            print("Invalid numeric value for \(key): \(str)")
-            assert(false)
-            return 0
-        }
-    }
-    func parse(header: String) {
+    func parse(header: ModrawHeader) {
     }
 
     let block_timestamp_len = 16

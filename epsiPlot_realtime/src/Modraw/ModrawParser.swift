@@ -17,6 +17,40 @@ class ModrawPacket {
     }
 }
 
+class ModrawHeader {
+    var content = ""
+
+    func getKeyValueString(key: String) -> String {
+        let indexOfKey = content.index(of: key)
+        if (indexOfKey == nil) {
+            print("Key '\(key)' not found in header!")
+            assert(false)
+            return ""
+        }
+        let indexAfterKey = content.index(indexOfKey!, offsetBy: key.count)
+        let valueOnwards = content[indexAfterKey...]
+        var indexOfCrlf = valueOnwards.index(of: "\r\n")
+        if (indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32)) {
+            indexOfCrlf = valueOnwards.index(of: "\n")
+        }
+        if (indexOfCrlf == nil) {
+            print("Unterminated key '\(key)' value '\(valueOnwards)'")
+            assert(false)
+            return ""
+        }
+        return valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
+    }
+    func getKeyValueDouble(key: String) -> Double {
+        let str = getKeyValueString(key: key)
+        if let v = Double(str) {
+            return v
+        }
+        print("Invalid numeric value for \(key): \(str)")
+        assert(false)
+        return 0
+    }
+}
+
 class ModrawParser {
     var data : [UInt8]
     var cursor = 0
@@ -70,30 +104,30 @@ class ModrawParser {
         return true
     }
     private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
-    func parseHeader() -> String? {
-        var header = ""
+    func parseHeader() -> ModrawHeader {
+        var header = ModrawHeader()
         var line = parseLine()
         assert(line != nil)
         assert(line!.starts(with: "header_file_size_inbytes ="))
-        header = header + line!
+        header.content += line!
 
         line = parseLine()
         assert(line != nil)
         assert(line!.starts(with: "TOTAL_HEADER_LINES ="))
-        header = header + line!
+        header.content += line!
 
         line = parseLine()
         assert(line != nil)
         assert(line!.contains("****START_FCTD_HEADER_START_RUN****"))
-        header = header + line!
+        header.content += line!
 
         repeat {
             line = parseLine()
-            guard line != nil else { return nil }
+            assert(line != nil)
             if line!.starts(with: "OFFSET_TIME =") {
                 currentYearOffsetInSeconds = Int(line!.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
             }
-            header = header + line!
+            header.content += line!
         } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
 
         return header

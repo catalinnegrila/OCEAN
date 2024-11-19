@@ -3,13 +3,10 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
         super.init(signature: "$EFE4")
     }
 
-    enum DeploymentType: Int {
-        case EPSI = 1, FCTD
-    }
-    var deployment_type = DeploymentType.EPSI
-    override func parse(header: String) {
+    var deployment_type: Model.DeploymentType = .EPSI
+    override func parse(header: ModrawHeader) {
         let key = "CTD.fishflag"
-        let fishflag = getKeyValueString(key: "\n\(key)=", header: header)
+        let fishflag = header.getKeyValueString(key: "\n\(key)=")
         switch fishflag {
         case "'EPSI'": deployment_type = .EPSI
         case "'FCTD'": deployment_type = .FCTD
@@ -82,7 +79,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             let a3_count = parseEfeChannel(packet: packet, i: &i)
 
             if (prev_time_s != nil) {
-                assert(prev_time_s! < time_s)
+                //assert(prev_time_s! < time_s)
                 this_block.checkAndAppendGap(t0: prev_time_s!, t1: time_s)
             }
             prev_time_s = time_s

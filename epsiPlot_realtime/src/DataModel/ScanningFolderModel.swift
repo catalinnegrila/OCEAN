@@ -28,6 +28,8 @@ class ScanningFolderModel: Model{
         let oldModrawSize = epsiModrawParser!.modrawParser.data.count
         if (oldModrawSize < newModrawSize)
         {
+            let blockSize = newModrawSize - oldModrawSize
+            print("Updating \(fileUrl!.path) with \(blockSize)")
             let inputFileData = try! Data(contentsOf: fileUrl!)
             var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
             inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
@@ -39,7 +41,8 @@ class ScanningFolderModel: Model{
         do {
             self.fileUrl = fileUrl
             epsiModrawParser = try EpsiModrawParser(model: self)
-            status = fileUrl.path
+            status = "Scanning \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
+            print(status)
         }
         catch {
             status = error.localizedDescription

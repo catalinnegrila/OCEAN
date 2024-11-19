@@ -1,6 +1,10 @@
 import Foundation
 
 class Model {
+    enum DeploymentType: Int {
+        case EPSI = 1, FCTD
+    }
+    var deploymentType: DeploymentType = .EPSI
     var epsi_blocks = [EpsiModelData]()
     var ctd_blocks = [CtdModelData]()
     var status = "No data source"
