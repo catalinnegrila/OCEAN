@@ -302,6 +302,7 @@ fileprivate class MatFile {
         default:
             print("Unsupported type: \(String(describing: dataType))")
             assert(false)
+            return { 0.0 }
         }
     }
     func readMatHeader() -> MatHeader {

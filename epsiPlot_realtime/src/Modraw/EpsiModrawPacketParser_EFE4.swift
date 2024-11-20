@@ -7,13 +7,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     override func parse(header: ModrawHeader) {
         let key = "CTD.fishflag"
         let fishflag = header.getKeyValueString(key: "\n\(key)=")
-        switch fishflag {
-        case "'EPSI'": deployment_type = .EPSI
-        case "'FCTD'": deployment_type = .FCTD
-        default:
-            print("Unknown \(key): \(fishflag)")
-            deployment_type = .EPSI
-        }
+        deployment_type = Model.DeploymentType.from(fishflag: fishflag)
     }
 
     let efe_gain = 1.0

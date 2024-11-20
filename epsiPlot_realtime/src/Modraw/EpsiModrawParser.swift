@@ -3,10 +3,8 @@ import Foundation
 class EpsiModrawParser {
     var modrawParser: ModrawParser
     var packetParsers: [EpsiModrawPacketParser] =
-        [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49() ]
+        [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49(), EpsiModrawPacketParser_INGG()  ]
 
-    var PCodeData_lat = ""
-    var PCodeData_lon = ""
     var CTD_fishflag = ""
 
     init(model: Model) throws {
@@ -17,13 +15,12 @@ class EpsiModrawParser {
         }
 
         CTD_fishflag = header.getKeyValueString(key: "\nCTD.fishflag=")
-        PCodeData_lat = header.getKeyValueString(key: "\nPCodeData.lat =")
-        PCodeData_lon = header.getKeyValueString(key: "\nPCodeData.lon =")
+        model.deploymentType = Model.DeploymentType.from(fishflag: CTD_fishflag)
+
         parsePackets(model: model)
     }
     func getHeaderInfo() -> String {
-        let info = [CTD_fishflag, "lat=\(PCodeData_lat)", "lon=\(PCodeData_lon)"]
-        return info.joined(separator: ", ")
+        return CTD_fishflag
     }
     func getParserFor(packet: ModrawPacket) -> EpsiModrawPacketParser? {
         for packetParser in packetParsers {

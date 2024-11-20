@@ -6,6 +6,9 @@ class CtdViewModelData: CtdModelData {
     var S_range = (0.0, 0.0)
     var z_range = (0.0, 0.0)
 
+    var z_pos = [Double]()
+    var z_neg = [Double]()
+
     var dzdt = [Double]()
     var dzdt_movmean = [Double]()
     var dzdt_range = (0.0, 0.0)
@@ -18,6 +21,8 @@ class CtdViewModelData: CtdModelData {
         T_range = (0, 0)
         S_range = (0, 0)
         z_range = (0, 0)
+        z_pos.removeAll()
+        z_neg.removeAll()
         dzdt.removeAll()
         dzdt_movmean.removeAll()
         dzdt_range = (0, 0)
@@ -48,7 +53,15 @@ class CtdViewModelData: CtdModelData {
             dzdt_range = minmax(mat: dzdt_movmean)
             // Invert dzdt same as z
             dzdt_range = (dzdt_range.1, dzdt_range.0)
+
+            z_pos.removeAll()
+            z_pos.reserveCapacity(z.count)
+            z_neg.removeAll()
+            z_neg.reserveCapacity(z.count)
+            for i in 0..<z.count {
+                z_pos.append(dzdt[i] > 0 ? z[i] : Double.nan)
+                z_neg.append(dzdt[i] > 0 ? Double.nan : z[i])
+            }
         }
     }
-
 }

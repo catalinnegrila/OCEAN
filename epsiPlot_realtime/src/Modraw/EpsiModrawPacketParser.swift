@@ -50,10 +50,10 @@ class EpsiModrawPacketParser {
         i += packet.parent.PACKET_CHECKSUM_LEN
 
         if (DEBUG_VALIDATION) {
-            print("chksum2: \(packet.parent.parseString(start: packet.packetEnd - packet.parent.PACKET_END_CHECKSUM_LEN, len: packet.parent.PACKET_CHECKSUM_LEN))")
+            print("chksum2: \(packet.parent.parseString(start: packet.payloadEnd, len: packet.parent.PACKET_CHECKSUM_LEN))")
         }
         
-        let actual_data_len = packet.packetEnd - i - packet.parent.PACKET_END_CHECKSUM_LEN
+        let actual_data_len = packet.payloadEnd - i
         if (DEBUG_VALIDATION) {
             print("actual_data_len: \(actual_data_len) expectedDataLen: \(getExpectedBlockSize())")
         }

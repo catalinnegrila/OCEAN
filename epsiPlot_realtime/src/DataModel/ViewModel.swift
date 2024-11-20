@@ -2,7 +2,7 @@ import Foundation
 import RegexBuilder
 import AppKit
 
-@Observable class ViewModel
+/*@Observable */class ViewModel: ObservableObject
 {
     var model = Model()
     var epsi = EpsiViewModelData()

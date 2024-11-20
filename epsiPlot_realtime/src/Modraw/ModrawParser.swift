@@ -4,6 +4,7 @@ class ModrawPacket {
     var timestamp = 0
     var signature = ""
     var payloadStart = 0
+    var payloadEnd = 0
     var packetStart = 0
     var packetEnd = 0
 
@@ -275,6 +276,7 @@ class ModrawParser {
             // Does this look like a checksum?
             if isPacketEndChecksum(cursor)
             {
+                p.payloadEnd = cursor
                 cursor += PACKET_END_CHECKSUM_LEN
                 p.packetEnd = cursor
                 break
