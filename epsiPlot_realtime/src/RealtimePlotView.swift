@@ -199,26 +199,34 @@ struct RealtimePlotView: View {
             }
             
             if (data.count <= Int(maxX - minX - emptyX)) {
+                var prevWasNaN = false
                 context.stroke(Path { path in
                     for i in 0..<data.count {
-                        let x = lerpToX(rc: rc, s: rd.time_f[i])
-                        let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
-                        if (i == 0) { //} || (time_f[i] - time_f[i - 1]) > 2*(time_f[1] - time_f[0])) {
-                            path.move(to: CGPoint(x: x, y: y))
+                        if data[i].isNaN {
+                            prevWasNaN = true
                         } else {
-                            path.addLine(to: CGPoint(x: x, y: y))
+                            let x = lerpToX(rc: rc, s: rd.time_f[i])
+                            let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
+                            if (i == 0 || prevWasNaN) { //} || (time_f[i] - time_f[i - 1]) > 2*(time_f[1] - time_f[0])) {
+                                path.move(to: CGPoint(x: x, y: y))
+                            } else {
+                                path.addLine(to: CGPoint(x: x, y: y))
+                            }
+                            prevWasNaN = false
                         }
                     }
                 }, with: .color(color.opacity(0.2)),
                                lineWidth: 1)
                 context.stroke(Path { path in
                     for i in 0..<data.count {
-                        let x = lerpToX(rc: rc, s: rd.time_f[i])
-                        let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
-                        path.move(to: CGPoint(x: x-1, y: y))
-                        path.addLine(to: CGPoint(x: x+1, y: y))
-                        path.move(to: CGPoint(x: x, y: y-1))
-                        path.addLine(to: CGPoint(x: x, y: y+1))
+                        if !data[i].isNaN {
+                            let x = lerpToX(rc: rc, s: rd.time_f[i])
+                            let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
+                            path.move(to: CGPoint(x: x-1, y: y))
+                            path.addLine(to: CGPoint(x: x+1, y: y))
+                            path.move(to: CGPoint(x: x, y: y-1))
+                            path.addLine(to: CGPoint(x: x, y: y+1))
+                        }
                     }
                 }, with: .color(color), lineWidth: 2)
             } else {
@@ -238,7 +246,7 @@ struct RealtimePlotView: View {
                             emptyPixel = false
                             sample_index += 1
                         }
-                        if (!emptyPixel) {
+                        if (!emptyPixel && !minv.isNaN && !maxv.isNaN) {
                             path.move(to: CGPoint(x: x, y: minv - 1))
                             path.addLine(to: CGPoint(x: x, y: maxv + 1))
                         }
@@ -535,8 +543,8 @@ struct RealtimePlotView: View {
         let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
         let z_yAxis = rangeToYAxis(range: vm.ctd.z_range)
         renderGrid(rd: ctd_rd, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
-        render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: &vm.ctd.z_pos, color: dzdt_up_color)
-        render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: &vm.ctd.z_neg, color: dzdt_down_color)
+        render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: &vm.ctd.z_pos, color: dzdt_down_color)
+        render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: &vm.ctd.z_neg, color: dzdt_up_color)
         drawMainLabel(context: rd.context, rc: rd.rect, text: "z [m]")
         renderCtd_dzdt_arrows(rd: rd)
         rd.offsetRectY(vgap: vgap)
@@ -568,7 +576,7 @@ struct RealtimePlotView: View {
             context: context,
             time_window: time_window,
             xAxis: xAxis)
-        rd.rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: size.width - 2 * hgap - leftLabelsWidth, height: 100)
+        rd.rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
 
         switch vm.model.deploymentType {
         case .EPSI:

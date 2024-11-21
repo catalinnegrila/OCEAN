@@ -50,7 +50,7 @@ class ScanningFolderModel: Model{
     }
     override func update() -> Bool
     {
-        if let enumerator = FileManager.default.enumerator(at: folderUrl, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+        if let enumerator = FileManager.default.enumerator(at: folderUrl, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsSubdirectoryDescendants, .skipsHiddenFiles, .skipsPackageDescendants]) {
             var allFiles = [String]()
             for case let fileUrl as URL in enumerator {
                 do {
