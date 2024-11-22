@@ -7,6 +7,9 @@ import Foundation
     var ctd = CtdViewModelData()
 
     func update() -> Bool {
+        model.semaphore.wait()
+        defer { model.semaphore.signal() }
+
         if (!model.update()) {
             return false
         }

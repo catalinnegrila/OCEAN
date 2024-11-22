@@ -74,6 +74,10 @@ class StreamingSocketModel: StreamingModel{
         if data != nil {
             let bytes = newByteArrayFrom(data: data!)
             let header = stringFrom(bytes: bytes[0..<7])
+
+            semaphore.wait()
+            defer { semaphore.signal() }
+
             var dataLen:Int
             if header == "!modraw" {
                 epsiModrawParser = EpsiModrawParser(bytes: bytes[header.count..<bytes.count])

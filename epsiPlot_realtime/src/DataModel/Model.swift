@@ -14,6 +14,9 @@ class Model {
             }
         }
     }
+
+    let semaphore = DispatchSemaphore(value: 1)
+    // BEGIN thread safe data protected by the sempahore
     var deploymentType: DeploymentType = .EPSI
     var epsi_blocks = [EpsiModelData]()
     var ctd_blocks = [CtdModelData]()
@@ -21,10 +24,11 @@ class Model {
     var mostRecentLongitudeScientific = 0.0
     var mostRecentLatitude = ""
     var mostRecentLongitude = ""
+    var isUpdated: Bool = false
+    // END thread safe data protected by the sempahore
 
     var status = "No data source"
     var fileUrl: URL?
-    var isUpdated: Bool = false
 
     func update() -> Bool {
         defer { isUpdated = false }
