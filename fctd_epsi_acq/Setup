@@ -1,0 +1,61 @@
+%TCPIP port for send and receive data
+%TCPIPSocket.portnum=2342
+%UDPSocket.portnum=50210
+%SENSOR SETUP
+% Survey Name
+CTD.survey='20240923_d00_PCtest'
+% experiement name
+CTD.experiment='TESTMOTIVE'
+% cruise name (use the same name as the ship_share folder)
+CTD.cruise='TEST'
+% vehicle name  (MAKO
+CTD.vehicle='VEHICLETEST'
+% vehicle pressure case  (epsimako
+CTD.fish_pc='PCtest'
+% CTD.fishflag EPSI or FCTD
+CTD.fishflag='FCTD'
+%%mako1
+%CTD.SerialNum='0537'
+%%mako2
+%CTD.SerialNum='0664'
+%%FCTD1
+%CTD.SerialNum='0674'
+%%FCTD2
+CTD.SerialNum='0133'
+CTD.shear_Probecal_path='/Users/Shared/Software_current_cruise/MOD_fish_lib/EPSILOMETER/CALIBRATION/SHEAR_PROBES'
+CTD.FPO7_Probecal_path='/Users/Shared/Software_current_cruise/MOD_fish_lib/EPSILOMETER/CALIBRATION/FPO7_PROBES'
+CTD.CTD_cal_path='/Users/Shared/Software_current_cruise/MOD_fish_lib/Acquisition/SBECAL'
+CTD.MicroCond='MOD-2'
+CTD.Compass=''
+%ch1 on epsi is t1 
+CTD.ch1_sn='000'
+%ch2 on epsi is t2 
+CTD.ch2_sn='000'
+%ch3 on epsi is s1 
+CTD.ch3_sn='000'
+%ch4 on epsi is s2 
+CTD.ch4_sn='000'
+%Display CTD data: 0=status, 1=engineer format, 2 = debug
+CTD.printData=2
+%with engineer display mode(1): rate is times per second -> even 16: 2 or 4 or 8
+CTD.engDispRate = 8
+%Serial port for Fish and PCode
+CTD.CTDPortName='/dev/tty.usbserial-FT5VSWQX'
+CTD.CommandPortName='/dev/tty.usbserial-FT5VSWQX'
+CTD.speed=230400
+%Length of CTD data: 24 or 72 (has micro-cond)84 with accels
+%CTD.CTDlength=84
+%Length of CTD data:107 : 4(tag)+16 ...
+CTD.CTDlength=114
+CTD.output_format=24
+%engineer format rate (1): times per second -> even with 16: 2 or 4 or 8
+%PCode.PCodePortName='/dev/tty.usbserial-FT3T18M2'
+PCode.speed=19200
+%Install Winch or not
+%TCPIP4Winch
+%dropnumBaseonWinch=1
+%FILES
+%RecHeader.totalDrops=4
+Ascii_dataFile.runname='EPSI'
+Ascii_dataFile.path='/Users/Shared/FCTD_EPSI_DATA/TESTMOTIVE2024/'
+Ascii_dataFile.dataFileSize=5000000

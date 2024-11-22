@@ -1,0 +1,377 @@
+May 4th, 2004: Put the code from "FASTCATCTD" written by ANSI-C
+11/01/04:
+Make the application has command line.
+11/18/04:
+Re-construct CTD structure:
+each sensor has serialport information.
+- Add PCode option
+11/19/04:
+- Clean main(): initialize, run, stop, free memory.
+11/20/04:
+Make fish CTD (CTD.h, CTD.c) and PCode (PCode.h, PCode.c) sources independent from main -> Done
+12/1/04:
+- get the input from user via command line.
+- make the app can quit when the user press key 's'.
+12/2/04:
+The app now can acquire CTD (save in file) and PCode (not parsing yet) data.
+12/24/04:
+Continue: working on PCode: acquire PCode data: read whatever in USB port. --> Done.
+12/27/04:
+Edit SerialPort structure: cirbuff has the flag old to indicate that data is already read from parsing routine.
+12/28/04:
+Make a thread for each sensor. -> Done
+V2: Parsing PCode -> not done
+12/31/04:
+- Use the method acquire PCode data: get data until reach \n character.
+- Parsing PCode -> done.
+1/3/05:
+Keep track of LastPortReadCnt and PortReadCnt to handle not have data coming.
+1/18/05:
+- Acquire PCode data byte by byte.
+- Keep track count for reading from and writing to buffer.
+1/19/05:
+- Change SerialPort:ReadIndx -> SerialPort:ParseIndx. (for parsing)
+- When write data into buffer: set ParseDone = false
+       finish parsing set this flag to true.
+- Add WinchController: Done.  Not for parsing though
+1/19/05:
+- Add timeval structure in SerialPort structure for record timestamp.
+- Add timestamp into at the beginning of the data string before save in the file -> Done
+1/20/05:
+- Modify the Checkblock routine in PThread.c to detect the data going to the serial port.
+1/24/05:
+- Make the SerialPort Utilities more universal.
+1/25/05: add more options: file's size, file's destination. => done
+1/25/05V2: - Send data through serial port. => Done
+1/27/05: send data through network -> Done
+1/28/05: - Data file name get from the user -> done
+- Open the set up file with the option "s setupfile" to get all setup parameter, but options from command line will overwrite options in file.
+: open the setup file -> done, 
+1/31/05: parse it -> done
+- The end of the run save all setup back to the file. -> done.
+2/1/05:
+- Modify setup file: with any sensor is not installed -> has '%' in front.
+- Save header info into data file -> Done
+- Data file will save by number of records (#drops) (i.e: 100drops/file). -> Done.
+- If Winch is not install -> save file by size -> done.
+2/1/05:
+- Find the way to make data are written by time order -> in process.
+2/1/05V2:
+- Add TCP/IP files in. => done
+2/7/05:
+- Use TCP/IP files. => in process\
+2/9/05: get Winch data via TCP/IP -> Done.
+2/10/05V2: this app is server to get winch data -> in process.
+2/11/05: keep working on making FCTD is a server to get winch data -> Done. (need to clean its codes though)
+- Keep track the drop number for saving in the file.
+- If Winch client terminate, this application still able to quit properly, it will stop a job waiting for winch data.
+2/16/05:
+- Set the data file for read and write, the owner can read+write, the other only able to read. When close data file, every one read only => done.
+- Data file will save the same location with executable file. => done.
+2/21/05:
+Test software before sending for testing.
+- Change in CheckBlockThread for checking Fish CTD's data comming:
+	if (deltaCnt + 1 < (deltaTime*FCTD_FREQ)) instead of <=
+2/24/05:
+parsing CTD data -> done.
+2/26/05:
+moving average pressure to define the fish goes up or down. -> done.
+2/28/05:
+Save data in Fish circular buffer when acquire. Use this buffer to write to the file.
+- Use this cir buffer to define status of the fish, if the fish changes course, save a string "up/down" into the data file:
+  * Change structure:
+     In FishCTD struct add cir buffer, data will write into this buffer instead of Serialport buffer.
+     In parsing routine: use this cir buffer to parse data.
+     After parsing data, it will write data into file because we need to know the fish is going down/up.
+  * But in serial port we still keep track of number packet for detecting lose communication with Fish.
+=> Done.
+2/29/05:
+Have a count of drop number, to terminate the data file (define by number of drops).
+-> done.
+2/29/05V2:
+get offset time in secs from 1970 to 2005, the timestamp will count from 2005 in hundred of secs.
+-> done.
+3/2/05:
+find the way to be able to send pressure to network, using the same remotehost for winch.
+
+* Have a TCP/IP socket in FastCTDStruct. -> done
+* In InitApp(): waiting for request from client. -> done
+* Pass this socket des into Winch: for receive data. -> done
+* Also pass this one to CTD: for sending data out.
+-> in process.
+3/2/05v2:
+Change design:
+- Have a thread takes care transfer data:
+    Read data from client (winch), save them in winch cir buffer -> done.
+    Write data to client (pressure). -> next step.
+3/3/05:
+    Write data to client (pressure). -> done.
+3/4/05:
+Still have a problem:
+- not able to communicate with internet at work. -> test with Server/Client software -> not work neither
+- Somehow the application not waiting for client.
+and not able to quit  -> because I test both of them in the same machine with the same port => labview winch program quit: stop this port -> effect to the FCTD app.
+===> network problem at work (?)
+** Since we not user microcond -> the CTD's string will change -> 24chars
+==> test in process.
+- TCPIP thread only create if the winch flag on.
+
+3/ 7/05:
+- Average pressure to 1/sec to send to winch -> done.
+3/ 7/05V2: clean codes. 
+- Test with the client (labview prog) Send pressure to plot program via TCP/IP.
+-> done.
+3/8/05:
+- average and send cond and temperature to winch too.
+-> done.
+3/10/05:
+- Send timestamp to winch (timestamp, temp, cond in seperate) -> done.
+3/14/05:
+- Send timestamp to winch (timestamp, temp, cond in one string) -> done.
+3/19/05:
+- Calculate temperature, pressure, conductivity before sending data to winch.
+- Send the length of data string before sending a string.
+- Modify: data file base on the size if user input/setup file set the size of data file.
+-> done.
+3/21/05:
+- App open the CTD's cal file at the same location of executed file.
+-> done.
+3/22/05:
+Move AverageFishData from FastCat_CTDdaq.* to CTD.* -> done.
+Clean codes, move acquire and send winch data to Winch.* -> done.
+3/25/05:
+- change to "deployment" style. => done.
+- Parse the winch data -> in proccess.
+3/28/05:
+- Define when the fish is going down base on the Winch data -> in proccess.
+3/29/05:
+- Modify flowchart, comment codes. -> in process.
+3/31/05:
+- Check all open file routines -> in process.
+
+4/5/05:
+- CTD's data has micro-cond now, acquire it. 
+- Add option for CTD's string length. -> done.
+
+****************************  2006 ***************************
+July 24th, 2006:
+Compare the version 4_6_05 with the last version run on the ASIA cruise (May 8th, 2005) to make a comment what it's changed.
+-> in process.
+
+Aug 1, 2006:
+Correct the open serial port.
+Display PCode, CTD data while app is running.
+Test in the lab before sending rack to Flip -> done! ready to deploy.
+
+
+FEEL FREE TO MODIFY THE CODES TO MEET REQUIREMENT OF DEPLOYMENT BUT PLEASE!!!! PLEASE!!! PUT THE NOTE WHEN YOU MODIFY IT.
+
+
+
+
+***** "CTD.h" file:  
+1. - Include header file: #include "globals.h"
+2. - Adding some parameter into the FishCTDStruct:
+	unsigned long CTDWarnTime;
+	char SerialNum[32];
+3. - Pass CalFileName into  the GetFishCTDCal() routine:
+	int GetFishCTDCal(CTDCoeffStructPtr,char *CalFileName);
+
+***** "CTD.c" file:
+1. - Include header file: #include "globals.h" !!!! again??? already include in its ".h" file !!!!  ===> not need to, need to remove it and run again.
+2. In AverageFishData():
+    - int count -> unsigned int count;
+    - Adding: to get current average rather than random average:
+	fishCTDPtr->GetPressIndx = fishCTDPtr->ParseIndx-PRESS_AVG-1;  
+3. FishCTD_AcquireData():
+    - no need to have parameter: time_t offsetTime
+    - not initialize time_str.
+    - offsetTime is calculate from globals.h file.  Why??? -> offsetTime  is global var now!
+
+Purpose: Make a calibration file of the fish: "serialNumber.CAL"
+4. In GetFishCTDCal(): adding a file name for calibration:
+    - GetFishCTDCal(CTDCoeffStructPtr coeffFishCTDPtr)
+    ==> GetFishCTDCal(CTDCoeffStructPtr coeffFishCTDPtr, char* calFileName)
+    - Therefore, does not need the local calFileName in this routine anymore.
+5. Display the calibration file name.
+
+6. In InitFishCTD(): adding file name to cal
+    - get SerialNum from the FishCTDStruct to make the name of the calibration file.
+    - Concated with the ".CAL" to make the complete file name: "serialNumber.CAL":
+	sprintf(filename,"%s.CAL",fishCTDPtr->SerialNum);
+    - Pass this name into the GetFishCTDCal() routine.
+	GetFishCTDCal(&fishCTDPtr->FastCTDSetup.CTDCoeff,filename)
+
+**** "FastCat_CTDdaq.h":
+   Move prototype of SaveHeaderFile() in this file.
+	ssize_t SaveHeaderFile(FastCTDStructPtr fctd,int head_tail);
+
+**** "FastCat_CTDdaq.c":
+1. SaveHeaderFile():
+   - add "hundreths of seconds" in the string noteTimeStr[] 
+   - Use the offsetTime in "globals.h" file.
+   - Change time_str to pointer tm: struct tim *time_str;
+   - Changed string entries: having single quotes around them.  Adding a carriage returns around value of the parameters.  Jody adds these parts for Matlab parsability.
+
+Next:
+- Create a FastCTDdata structure, save this struct data into a file.
+(Header: lat, lon, time, drop number  - Data: CTD, PCode)
+
+**** "FastCTD.c":
+1. Include header file: #include <time.h>
+
+**** "FileUtils.h":
+1. Include header file: #include <errno.h>
+**** "FileUtils.c":
+1. CreateNewFile(): Print out the stdout after OpenFile()
+2. OpenFile(): Fix permissions of the file:
+   - Set the permission:
+	write mode: O_RDWR | O_CREAT | O_EXCL
+	user mode: S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	read mode: O_RDONLY;
+
+   - In case 0: for writing: call fchmod();
+
+***** "globals.h":
+1. Include header file <time.h>
+2. extern time_t offsetTime;
+
+**** "main.c":
+1. Include header file: #include <time.h>
+2. Make a global var: time_t offsetTime;
+3. ReadSetupFile(): 
+   - Record the serial number:
+	In the setup file add the Serial number of the fish, so save this serial number into the Fish structure as a string:
+	if (!strcmp("CTD.SerialNum",strPtr))	// length of CTD's string
+	{
+		strPtr = strtok(NULL,sep);	// get string's length
+		strcpy(FastCTDPtr->CTD.SerialNum,strPtr);
+	}
+   - Print out the port number of Fish, Pcode.
+4. GetInfo4SetupFile():
+   - Make string 4, 5, 6, 7, 8, 9 have more room: 32 -> 256
+   - Since Matlab does not like square brackets, so change the data file name -> Adding single quotes around run name, path. Example:
+	sprintf(str6,"fpData0.runname='%s'\n",FastCTDPtr->fpData[0].runname);
+   - Print out the CTD's serial number and adding Fish's serial number into the str12, and then add into the string.
+
+Purpose: Save the setup file with the time: "Setupyymmddhhmm"
+5. SaveSetupFile(): get time to save the setup file.
+   - Adding structure time tm:
+	struct tm *timeptr;
+	time_t thetime;
+   - Get the tinme.
+	time(&thetime);
+	timeptr=gmtime(&thetime);
+   - Make the name for the setup file:
+	sprintf(filename,"%s/%s%04d%02d%02d%02d%02d",cwd,fname,timeptr->tm_year+1900,
+	   timeptr->tm_mon+1,timeptr->tm_mday,timeptr->tm_hour,timeptr->tm_min);
+	fprintf(stdout,"Output filename: %s\n",filename);
+
+5. FreeMemory() before SaveSetupFile()??? -> it would cause a big problem at the end.
+
+***** "PCode.h":
+   - Add PCodeWarnTime in PCodeStruct:
+	unsigned long PCodeWarnTime;
+***** "PCode.c":
+1. Include header file "globals.h"
+2. SetOptionSerialPort4PCode(): set PCode's speed at 4800
+	cfsetspeed(&PCodePtr->SerialPort4PCode.spOptions, B4800);
+3. PCode_AcquireData (): 
+   - Use the global offsetTime -> not cal offsetTime here anymore
+     ==> comment out: offsetTime = mktime(&time_str);
+   - Terminate PCode string with CR & LF:
+	Old: PCodePtr->CommingStr[PCodePtr->charsIn-1] = '\0';
+	===> changed:
+	PCodePtr->CommingStr[PCodePtr->charsIn-1] = '\n';
+	PCodePtr->CommingStr[PCodePtr->charsIn] = '\0';	
+
+***** "PThreadsUtils.c":
+1. StopFastCTD():
+   Add the option for quit application: 'q' or 's', print out statement quit.
+        Old: 	if ((gc = getchar())=='s') 
+		{ ...
+	===> changed:
+		gc = getchar();
+		fprintf(stdout, "char: %c\n",gc);
+		if (gc=='q' || gc=='s') 
+		{
+		   fprintf(stdout, "Quitting FastCTD DAQ.\n");
+		   ...
+2. WriteCTDdataIntoFile(): Put precision for the time of string put in the file:
+   - Fish's status:
+	sprintf(FCTDdataStr,"%c%ld$OPGFDN\r\n",...) ==> sprintf(FCTDdataStr,"%c%010ld$OPGFDN\r\n",...)
+   - CTD's data:
+	sprintf(FCTDdataStr,"%c%010ld%s",timeChar, fCTDPtr->CTD.FishCTDCirBuff[indx].timeInHundredsecs
+==>	sprintf(FCTDdataStr,"%c%010ld%s",timeChar, fCTDPtr->CTD.FishCTDCirBuff[indx].timeInHundredsecs
+    - PCode's data.
+    - Winch's data.
+
+***** "Winch.h":
+   - Add WinchWarnTime in WinchStruct:
+	unsigned long WinchWarnTime;
+***** "Winch.c":
+1. Include header file "globals.h"
+2. In AcquireWinchDataTCPIP():
+   - Remove offsetTime
+   - Remove offsetTime = mktime(&time_str);
+3. In SendData2Winch():
+   - Print data out to screen so we know Winch's data are running:
+	fprintf(stdout, "%ld,%f,%f,%f\n",avgTime,avgDepth,avgTemp,avgCond);
+
+***** Readme file:
+Re write README file
+
+July 26th, 2006:
+- Write routines to get time: Get_Time_In_Hundred_Secs(), Get_Time_Secs() saved in "Utilities.c"
+- Use this routine (Get_Time_In_Hundred_Secs) in:
+	"Winch.c", "Pcode.c", "CTD.c", "FastCat_CTDdaq.c" : get the current time to store into its own circular buffer.
+- Make the saved setup file are identical with the original setup file.
+==> test in the our lab on mini mac => done.
+
+July 27th, 2006:
+- Want to save setup file at the same location of the application. -> Done.
+July 27th, 2006V2:
+Change array fname[] to specific type of the file (Ascii_dataFile) in FastCTD structure.
+-> Done.
+
+Jan 19th, 2007:
+Use the last version after AESOP cruise, to test in the lab, check with the serial port. -> run OK: done.
+
+But we need to update keyspan driver and labview.  Before doing that, copy the whole system in case it doesn't work.
+
+Jan 22, 2007:
+Get baudrate from the setup file instead of hard code in. -> done, need to test.
+
+Mar 6, 07:
+Only print out useful PCode string.
+Print out CTD engineer data.
+Add input from the user: print CTD's data: raw or engineer format
+Print CTD data 4 times/sec.
+Test in the lab -> done.
+
+==> use this version for test trip on Sproul Mar 13rd, 20007
+
+Mar 15, 07:
+- From the setup file, get the name of the serial port instead of port number.
+-> modify OpenSerialPort4AllSensors()
+   add the routine FindIndex_asName()
+- Save setup file: read directly from setup file and write into the new setup file with data attachment.
+- Save the setup info into data file: read setup file directly and put into the data file
+-> add the new routine: ReadSetup_Write2File()
+Mar 16, 07:
+- Add the header_size_bytes and total_header_line at the beginning of the data file
+- Get the current version of the software, save in the header file
+Mar 19, 07:
+- Change the name of data file has yy_mm_dd.
+- Add the single quote to the some vars in Cal coeff.
+Mar 20, 07:
+- do not have a line between 2 displayed CTD's data.
+- add option display or not PCode data.
+
+-> use this version for the Tawain cruise April, 2007
+
+NOTES:
+- Setup file use GM time.
+
+
+2021 06 18 - moved to FCTD - EPSI project for integration with lower case variable names
