@@ -122,8 +122,7 @@ fileprivate class MatFile {
     }
     init(_ fileUrl : URL) {
         let fileData = try! Data(contentsOf: fileUrl)
-        self.data = [UInt8](repeating: 0, count: fileData.count)
-        fileData.copyBytes(to: &self.data, count: self.data.count)
+        self.data = newByteArrayFrom(data: fileData)
         
         cursor = 0
         cursor0 = 0

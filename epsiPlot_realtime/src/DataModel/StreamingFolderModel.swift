@@ -1,25 +1,11 @@
 import Foundation
 
-class ScanningFolderModel: Model{
+class StreamingFolderModel: StreamingModel{
     let folderUrl: URL
-    var epsiModrawParser: EpsiModrawParser?
-    let time_window_length = 20.0 // seconds
 
     init(folderUrl: URL) {
         self.folderUrl = folderUrl
         super.init()
-    }
-    override func getTimeWindow() -> (Double, Double)
-    {
-        let epsi_time_end = epsi_blocks.isEmpty ? 0.0 : epsi_blocks.last!.time_s.last!
-        let ctd_time_end = ctd_blocks.isEmpty ? 0.0 : ctd_blocks.last!.time_s.last!
-        let time_window_start = max(epsi_time_end, ctd_time_end) - time_window_length
-        // Round time to pixel increments for consistent sampling
-        //if (pixel_width > 0) {
-        //    let time_per_pixel = time_window_length / Double(pixel_width)
-        //    time_window.0 = floor(model.time_window.0 / time_per_pixel) * time_per_pixel
-        //}
-        return (time_window_start, time_window_start + time_window_length)
     }
     func tryReadMoreData()
     {
@@ -31,17 +17,20 @@ class ScanningFolderModel: Model{
             let blockSize = newModrawSize - oldModrawSize
             print("Updating \(fileUrl!.path) with \(blockSize)")
             let inputFileData = try! Data(contentsOf: fileUrl!)
+            // TODO: does this read the entire file each time?
             var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
             inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
-            epsiModrawParser!.modrawParser.appendData(data: newData)
+            epsiModrawParser!.modrawParser.appendData(bytes: newData)
             epsiModrawParser!.parsePackets(model: self)
         }
     }
     func startParsing(fileUrl: URL) {
         do {
             self.fileUrl = fileUrl
-            epsiModrawParser = try EpsiModrawParser(model: self)
-            status = "Scanning \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
+            epsiModrawParser = try EpsiModrawParser(fileUrl: fileUrl)
+            epsiModrawParser!.parseHeader(model: self)
+            epsiModrawParser!.parsePackets(model: self)
+            status = "Streaming \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
             print(status)
         }
         catch {
@@ -66,9 +55,9 @@ class ScanningFolderModel: Model{
                     print(error, fileUrl)
                 }
             }
-            
+
             allFiles.sort()
-            
+
             let secondMostRecentFile : String? = allFiles.count > 1 ? allFiles[allFiles.count - 2] : nil
             let mostRecentFile : String? = allFiles.count > 0 ? allFiles[allFiles.count - 1] : nil
             if (secondMostRecentFile != nil) {
@@ -102,5 +91,3 @@ class ScanningFolderModel: Model{
         return super.update()
     }
 }
-
-

@@ -15,9 +15,9 @@ struct RealtimePlotView: View {
                 .navigationTitle(vm.model.status)
                 .onReceive(refreshTimer) { _ in
                     Task {
-                        let stopwatch = Stopwatch(label: "Update")
+                        //let stopwatch = Stopwatch(label: "Update")
                         if (vm.update()) {
-                            stopwatch.printElapsed()
+                            //stopwatch.printElapsed()
                             refreshView.toggle()
                         }
                     }
@@ -27,14 +27,9 @@ struct RealtimePlotView: View {
     
     private var chart: some View {
         return Canvas{ context, size in
-            /*
-             context.draw(Text("Pick a file or folder using the File menu..."),
-             at: CGPoint(x: size.width / 2, y: size.height / 2),
-             anchor: .center)
-             */
-            let stopwatch = Stopwatch(label: "Render")
+            //let stopwatch = Stopwatch(label: "Render")
             render(context: context, size: size)
-            stopwatch.printElapsed()
+            //stopwatch.printElapsed()
         }
     }
     

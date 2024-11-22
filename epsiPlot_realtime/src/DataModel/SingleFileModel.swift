@@ -11,7 +11,9 @@ class SingleFileModel: Model{
             status = fileUrl.path
         case "modraw":
             do {
-                let parser = try EpsiModrawParser(model: self)
+                let parser = try EpsiModrawParser(fileUrl: fileUrl)
+                parser.parseHeader(model: self)
+                parser.parsePackets(model: self)
                 status = "\(fileUrl.path) -- \(parser.getHeaderInfo())"
             }
             catch {

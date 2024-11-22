@@ -53,17 +53,29 @@ class ModrawHeader {
 }
 
 class ModrawParser {
-    var data : [UInt8]
+    var data = [UInt8]()
     var cursor = 0
     var currentYearOffsetInSeconds = 0
 
-    init(fileUrl: URL) throws {
+    convenience init(fileUrl: URL) throws {
         let fileData = try Data(contentsOf: fileUrl)
-        data = [UInt8](repeating: 0, count: fileData.count)
-        fileData.copyBytes(to: &data, count: data.count)
+        self.init(data: fileData)
     }
-    func appendData(data: [UInt8]) {
-        self.data.append(contentsOf: data[0..<data.count])
+    init(bytes: ArraySlice<UInt8>) {
+        self.data.append(contentsOf: bytes)
+    }
+    init(data: Data) {
+        self.data = newByteArrayFrom(data: data)
+    }/*
+    func append(data: Data) {
+        let bytes = newByteArrayFrom(data: data)
+        appendData(bytes: bytes)
+    }*/
+    func appendData(bytes: [UInt8]) {
+        self.data.append(contentsOf: bytes) //[0..<bytes.count])
+    }
+    func appendData(bytes: ArraySlice<UInt8>) {
+        self.data.append(contentsOf: bytes)
     }
     func peekByte() -> UInt8? {
         guard cursor < data.count else { return nil }

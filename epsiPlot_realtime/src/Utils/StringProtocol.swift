@@ -1,3 +1,5 @@
+import Foundation
+
 extension StringProtocol {
     func index<S: StringProtocol>(of string: S, options: String.CompareOptions = []) -> Index? {
         range(of: string, options: options)?.lowerBound
@@ -21,6 +23,13 @@ extension StringProtocol {
         return result
     }
 }
+
+func newByteArrayFrom(data: Data) -> [UInt8] {
+    var array = [UInt8](repeating: 0, count: data.count)
+    data.copyBytes(to: &array, count: array.count)
+    return array
+}
+
 /*
 enum MyError: Error {
     case runtimeError(String)
