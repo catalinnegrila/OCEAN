@@ -1,0 +1,676 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6BAE28EF251EACA5005AB66C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAE28EE251EACA5005AB66C /* AppDelegate.swift */; };
+		6BAE28F1251EACA5005AB66C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAE28F0251EACA5005AB66C /* SceneDelegate.swift */; };
+		6BAE28F3251EACA5005AB66C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAE28F2251EACA5005AB66C /* ContentView.swift */; };
+		6BAE28F5251EACA8005AB66C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6BAE28F4251EACA8005AB66C /* Assets.xcassets */; };
+		6BAE28F8251EACA8005AB66C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6BAE28F7251EACA8005AB66C /* Preview Assets.xcassets */; };
+		6BAE28FB251EACA8005AB66C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6BAE28F9251EACA8005AB66C /* LaunchScreen.storyboard */; };
+		6BAE2906251EACA8005AB66C /* FCTD_Data_DisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAE2905251EACA8005AB66C /* FCTD_Data_DisplayTests.swift */; };
+		6BAE2911251EACA8005AB66C /* FCTD_Data_DisplayUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAE2910251EACA8005AB66C /* FCTD_Data_DisplayUITests.swift */; };
+		6BCE1AA9268BE20E00DDDAE4 /* Beep.caf in Resources */ = {isa = PBXBuildFile; fileRef = 6BCE1AA8268BE20E00DDDAE4 /* Beep.caf */; };
+		6BCE1AAE268BE96100DDDAE4 /* CensorBeep.wav in Resources */ = {isa = PBXBuildFile; fileRef = 6BCE1AAD268BE96100DDDAE4 /* CensorBeep.wav */; };
+		6BE1D10626A394740044B943 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BCE1AAA268BE87C00DDDAE4 /* AVFoundation.framework */; };
+		6BE1D10A26A394AA0044B943 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BE1D10926A394AA0044B943 /* Network.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6BAE2902251EACA8005AB66C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6BAE28E3251EACA5005AB66C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BAE28EA251EACA5005AB66C;
+			remoteInfo = "FCTD Data Display";
+		};
+		6BAE290D251EACA8005AB66C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6BAE28E3251EACA5005AB66C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BAE28EA251EACA5005AB66C;
+			remoteInfo = "FCTD Data Display";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		6B73AA3F255BEAE500BB369B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		6B73AA46255BEB1100BB369B /* libswiftDarwin.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftDarwin.tbd; path = usr/lib/swift/libswiftDarwin.tbd; sourceTree = SDKROOT; };
+		6B73AA47255BEB1100BB369B /* libsystem_darwin.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsystem_darwin.tbd; path = usr/lib/system/libsystem_darwin.tbd; sourceTree = SDKROOT; };
+		6B73AA53255BEB6400BB369B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		6B73AA55255BEB6E00BB369B /* libswiftDispatch.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftDispatch.tbd; path = usr/lib/swift/libswiftDispatch.tbd; sourceTree = SDKROOT; };
+		6B73AA56255BEB7D00BB369B /* libdispatch.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libdispatch.tbd; path = usr/lib/system/libdispatch.tbd; sourceTree = SDKROOT; };
+		6B73AA5A255BEC4F00BB369B /* FCTD Data Display.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "FCTD Data Display.entitlements"; sourceTree = "<group>"; };
+		6B73AA5B255BEC4F00BB369B /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
+		6BAE28EB251EACA5005AB66C /* FCTD Data Display.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FCTD Data Display.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BAE28EE251EACA5005AB66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		6BAE28F0251EACA5005AB66C /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		6BAE28F2251EACA5005AB66C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6BAE28F4251EACA8005AB66C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6BAE28F7251EACA8005AB66C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		6BAE28FA251EACA8005AB66C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		6BAE28FC251EACA8005AB66C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6BAE2901251EACA8005AB66C /* FCTD Data DisplayTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FCTD Data DisplayTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BAE2905251EACA8005AB66C /* FCTD_Data_DisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FCTD_Data_DisplayTests.swift; sourceTree = "<group>"; };
+		6BAE2907251EACA8005AB66C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6BAE290C251EACA8005AB66C /* FCTD Data DisplayUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FCTD Data DisplayUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BAE2910251EACA8005AB66C /* FCTD_Data_DisplayUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FCTD_Data_DisplayUITests.swift; sourceTree = "<group>"; };
+		6BAE2912251EACA8005AB66C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6BCE1AA8268BE20E00DDDAE4 /* Beep.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Beep.caf; sourceTree = "<group>"; };
+		6BCE1AAA268BE87C00DDDAE4 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		6BCE1AAD268BE96100DDDAE4 /* CensorBeep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = CensorBeep.wav; sourceTree = "<group>"; };
+		6BE1D10926A394AA0044B943 /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6BAE28E8251EACA5005AB66C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BE1D10626A394740044B943 /* AVFoundation.framework in Frameworks */,
+				6BE1D10A26A394AA0044B943 /* Network.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE28FE251EACA8005AB66C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE2909251EACA8005AB66C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		6B73AA3E255BEAE500BB369B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6BE1D10926A394AA0044B943 /* Network.framework */,
+				6BCE1AAA268BE87C00DDDAE4 /* AVFoundation.framework */,
+				6B73AA5B255BEC4F00BB369B /* NetworkExtension.framework */,
+				6B73AA56255BEB7D00BB369B /* libdispatch.tbd */,
+				6B73AA55255BEB6E00BB369B /* libswiftDispatch.tbd */,
+				6B73AA53255BEB6400BB369B /* UIKit.framework */,
+				6B73AA46255BEB1100BB369B /* libswiftDarwin.tbd */,
+				6B73AA47255BEB1100BB369B /* libsystem_darwin.tbd */,
+				6B73AA3F255BEAE500BB369B /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6BAE28E2251EACA5005AB66C = {
+			isa = PBXGroup;
+			children = (
+				6BAE28ED251EACA5005AB66C /* FCTD Data Display */,
+				6BAE2904251EACA8005AB66C /* FCTD Data DisplayTests */,
+				6BAE290F251EACA8005AB66C /* FCTD Data DisplayUITests */,
+				6BAE28EC251EACA5005AB66C /* Products */,
+				6B73AA3E255BEAE500BB369B /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		6BAE28EC251EACA5005AB66C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6BAE28EB251EACA5005AB66C /* FCTD Data Display.app */,
+				6BAE2901251EACA8005AB66C /* FCTD Data DisplayTests.xctest */,
+				6BAE290C251EACA8005AB66C /* FCTD Data DisplayUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6BAE28ED251EACA5005AB66C /* FCTD Data Display */ = {
+			isa = PBXGroup;
+			children = (
+				6BCE1AAC268BE89E00DDDAE4 /* sounds */,
+				6B73AA5A255BEC4F00BB369B /* FCTD Data Display.entitlements */,
+				6BAE28EE251EACA5005AB66C /* AppDelegate.swift */,
+				6BAE28F0251EACA5005AB66C /* SceneDelegate.swift */,
+				6BAE28F2251EACA5005AB66C /* ContentView.swift */,
+				6BAE28F4251EACA8005AB66C /* Assets.xcassets */,
+				6BAE28F9251EACA8005AB66C /* LaunchScreen.storyboard */,
+				6BAE28FC251EACA8005AB66C /* Info.plist */,
+				6BAE28F6251EACA8005AB66C /* Preview Content */,
+			);
+			path = "FCTD Data Display";
+			sourceTree = "<group>";
+		};
+		6BAE28F6251EACA8005AB66C /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				6BAE28F7251EACA8005AB66C /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		6BAE2904251EACA8005AB66C /* FCTD Data DisplayTests */ = {
+			isa = PBXGroup;
+			children = (
+				6BAE2905251EACA8005AB66C /* FCTD_Data_DisplayTests.swift */,
+				6BAE2907251EACA8005AB66C /* Info.plist */,
+			);
+			path = "FCTD Data DisplayTests";
+			sourceTree = "<group>";
+		};
+		6BAE290F251EACA8005AB66C /* FCTD Data DisplayUITests */ = {
+			isa = PBXGroup;
+			children = (
+				6BAE2910251EACA8005AB66C /* FCTD_Data_DisplayUITests.swift */,
+				6BAE2912251EACA8005AB66C /* Info.plist */,
+			);
+			path = "FCTD Data DisplayUITests";
+			sourceTree = "<group>";
+		};
+		6BCE1AAC268BE89E00DDDAE4 /* sounds */ = {
+			isa = PBXGroup;
+			children = (
+				6BCE1AAD268BE96100DDDAE4 /* CensorBeep.wav */,
+				6BCE1AA8268BE20E00DDDAE4 /* Beep.caf */,
+			);
+			path = sounds;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6BAE28EA251EACA5005AB66C /* FCTD Data Display */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BAE2915251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data Display" */;
+			buildPhases = (
+				6BAE28E7251EACA5005AB66C /* Sources */,
+				6BAE28E8251EACA5005AB66C /* Frameworks */,
+				6BAE28E9251EACA5005AB66C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "FCTD Data Display";
+			productName = "FCTD Data Display";
+			productReference = 6BAE28EB251EACA5005AB66C /* FCTD Data Display.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6BAE2900251EACA8005AB66C /* FCTD Data DisplayTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BAE2918251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data DisplayTests" */;
+			buildPhases = (
+				6BAE28FD251EACA8005AB66C /* Sources */,
+				6BAE28FE251EACA8005AB66C /* Frameworks */,
+				6BAE28FF251EACA8005AB66C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6BAE2903251EACA8005AB66C /* PBXTargetDependency */,
+			);
+			name = "FCTD Data DisplayTests";
+			productName = "FCTD Data DisplayTests";
+			productReference = 6BAE2901251EACA8005AB66C /* FCTD Data DisplayTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6BAE290B251EACA8005AB66C /* FCTD Data DisplayUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BAE291B251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data DisplayUITests" */;
+			buildPhases = (
+				6BAE2908251EACA8005AB66C /* Sources */,
+				6BAE2909251EACA8005AB66C /* Frameworks */,
+				6BAE290A251EACA8005AB66C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6BAE290E251EACA8005AB66C /* PBXTargetDependency */,
+			);
+			name = "FCTD Data DisplayUITests";
+			productName = "FCTD Data DisplayUITests";
+			productReference = 6BAE290C251EACA8005AB66C /* FCTD Data DisplayUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6BAE28E3251EACA5005AB66C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				KnownAssetTags = (
+					New,
+				);
+				LastSwiftUpdateCheck = 1150;
+				LastUpgradeCheck = 1210;
+				ORGANIZATIONNAME = MOD;
+				TargetAttributes = {
+					6BAE28EA251EACA5005AB66C = {
+						CreatedOnToolsVersion = 11.5;
+					};
+					6BAE2900251EACA8005AB66C = {
+						CreatedOnToolsVersion = 11.5;
+						TestTargetID = 6BAE28EA251EACA5005AB66C;
+					};
+					6BAE290B251EACA8005AB66C = {
+						CreatedOnToolsVersion = 11.5;
+						TestTargetID = 6BAE28EA251EACA5005AB66C;
+					};
+				};
+			};
+			buildConfigurationList = 6BAE28E6251EACA5005AB66C /* Build configuration list for PBXProject "FCTD Data Display" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 6BAE28E2251EACA5005AB66C;
+			productRefGroup = 6BAE28EC251EACA5005AB66C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6BAE28EA251EACA5005AB66C /* FCTD Data Display */,
+				6BAE2900251EACA8005AB66C /* FCTD Data DisplayTests */,
+				6BAE290B251EACA8005AB66C /* FCTD Data DisplayUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6BAE28E9251EACA5005AB66C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BCE1AA9268BE20E00DDDAE4 /* Beep.caf in Resources */,
+				6BAE28FB251EACA8005AB66C /* LaunchScreen.storyboard in Resources */,
+				6BAE28F8251EACA8005AB66C /* Preview Assets.xcassets in Resources */,
+				6BCE1AAE268BE96100DDDAE4 /* CensorBeep.wav in Resources */,
+				6BAE28F5251EACA8005AB66C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE28FF251EACA8005AB66C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE290A251EACA8005AB66C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6BAE28E7251EACA5005AB66C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BAE28EF251EACA5005AB66C /* AppDelegate.swift in Sources */,
+				6BAE28F1251EACA5005AB66C /* SceneDelegate.swift in Sources */,
+				6BAE28F3251EACA5005AB66C /* ContentView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE28FD251EACA8005AB66C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BAE2906251EACA8005AB66C /* FCTD_Data_DisplayTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BAE2908251EACA8005AB66C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BAE2911251EACA8005AB66C /* FCTD_Data_DisplayUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6BAE2903251EACA8005AB66C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BAE28EA251EACA5005AB66C /* FCTD Data Display */;
+			targetProxy = 6BAE2902251EACA8005AB66C /* PBXContainerItemProxy */;
+		};
+		6BAE290E251EACA8005AB66C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BAE28EA251EACA5005AB66C /* FCTD Data Display */;
+			targetProxy = 6BAE290D251EACA8005AB66C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		6BAE28F9251EACA8005AB66C /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6BAE28FA251EACA8005AB66C /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		6BAE2913251EACA8005AB66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		6BAE2914251EACA8005AB66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6BAE2916251EACA8005AB66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "FCTD Data Display/FCTD Data Display.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"FCTD Data Display/Preview Content\"";
+				DEVELOPMENT_TEAM = ZJ29KCD5KX;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = "FCTD Data Display/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(SDKROOT)/usr/lib/system",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-Display";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		6BAE2917251EACA8005AB66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "FCTD Data Display/FCTD Data Display.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"FCTD Data Display/Preview Content\"";
+				DEVELOPMENT_TEAM = ZJ29KCD5KX;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = "FCTD Data Display/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(SDKROOT)/usr/lib/system",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-Display";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+		6BAE2919251EACA8005AB66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BWTNU5WF9N;
+				INFOPLIST_FILE = "FCTD Data DisplayTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-DisplayTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FCTD Data Display.app/FCTD Data Display";
+			};
+			name = Debug;
+		};
+		6BAE291A251EACA8005AB66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BWTNU5WF9N;
+				INFOPLIST_FILE = "FCTD Data DisplayTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-DisplayTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FCTD Data Display.app/FCTD Data Display";
+			};
+			name = Release;
+		};
+		6BAE291C251EACA8005AB66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BWTNU5WF9N;
+				INFOPLIST_FILE = "FCTD Data DisplayUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-DisplayUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "FCTD Data Display";
+			};
+			name = Debug;
+		};
+		6BAE291D251EACA8005AB66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BWTNU5WF9N;
+				INFOPLIST_FILE = "FCTD Data DisplayUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-DisplayUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "FCTD Data Display";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6BAE28E6251EACA5005AB66C /* Build configuration list for PBXProject "FCTD Data Display" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BAE2913251EACA8005AB66C /* Debug */,
+				6BAE2914251EACA8005AB66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6BAE2915251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data Display" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BAE2916251EACA8005AB66C /* Debug */,
+				6BAE2917251EACA8005AB66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6BAE2918251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data DisplayTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BAE2919251EACA8005AB66C /* Debug */,
+				6BAE291A251EACA8005AB66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6BAE291B251EACA8005AB66C /* Build configuration list for PBXNativeTarget "FCTD Data DisplayUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BAE291C251EACA8005AB66C /* Debug */,
+				6BAE291D251EACA8005AB66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6BAE28E3251EACA5005AB66C /* Project object */;
+}
