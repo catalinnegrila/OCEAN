@@ -31,11 +31,11 @@ def sync_file(src_file, connection, dst_file_size):
         block = src_f.read(src_file.size - dst_file_size)
         if dst_file_size == 0:
             connection.send(str.encode("!modraw") + block)
-            print(f"{src_file_name}: new file, size {format_bytesize(len(block))}                          ")
+            print(f"{src_file_name}: new file, initial size {format_bytesize(len(block))}                          ")
         else:
             connection.send(block)
-            print(f"{src_file_name}: size {format_bytesize(dst_file_size)} appending {len(block)}", end="\r")
-    
+            print(f"{src_file_name}: current size {format_bytesize(dst_file_size)} appending {len(block)}", end="\r")
+
 def stream_dir(src_dir, connection, dir_scan_freq):
     print(f"Watching {src_dir} for changes... Press Ctrl+C to stop.")
     most_recent_file = get_most_recent_file_from(src_dir)
