@@ -2,26 +2,60 @@ import Foundation
 import Network
 
 class StreamingSocketModel: StreamingModel{
-    let socketUrl: URL
-    let connection: ClientConnection
+    var connection: ClientConnection! = nil
+    var browser: NWBrowser!
 
+    override init() {
+        browser = NWBrowser(for: .bonjour(type: "_http._tcp", domain: ""), using: .tcp)
+        super.init()
+        
+        print("Using Bonjour to discover services on the network...")
+        browser.stateUpdateHandler = { newState in
+            print("NWBrowser: state '\(newState)'")
+            switch newState {
+            case .failed(let error):
+                print(error)
+                self.browser.cancel()
+            default:
+                break
+            }}
+        browser.browseResultsChangedHandler = { ( results, changes ) in
+            for result in results {
+                switch result.endpoint {
+                case let .service(name: name, type: type, domain: domain, interface: _):
+                    print("NWBrowser: service '\(name)' Type: \(type) Domain: \(domain)")
+                    if name.contains("MODraw"){
+                        let proto: NWParameters = .tcp
+                        if let opt = proto.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
+                            opt.version = .v4
+                        }
+                        if (self.connection == nil) {
+                            self.openConnection(NWConnection(to: result.endpoint, using: proto))
+                        }
+                    }
+                default:
+                    break
+                }
+            }
+        }
+        browser.start(queue: .main)
+    }
     init(socketUrl: URL) {
-        self.socketUrl = socketUrl
-        print("Opening \(socketUrl)")
+        super.init()
         let host = NWEndpoint.Host(socketUrl.host!)
         let port = NWEndpoint.Port(rawValue: UInt16(socketUrl.port!))!
-        let nwConnection = NWConnection(host: host, port: port, using: .tcp)
-        self.connection = ClientConnection(nwConnection: nwConnection)
-        super.init()
+        self.openConnection(NWConnection(host: host, port:  port, using: .tcp))
+    }
+
+    func openConnection(_ nwConnection: NWConnection) {
+        connection = ClientConnection(nwConnection: nwConnection)
         print("Connection created.")
         connection.onStopCallback = onStopCallback(error:)
         connection.onReceiveCallback = onReceiveCallback(data:)
         connection.start()
         print("Connection started.")
         connection.send(data: "!modraw".data(using: .utf8)!)
-        status = "Streaming \(socketUrl)" // TODO: -- \(epsiModrawParser!.getHeaderInfo())"
     }
-
     func onStopCallback(error: Error?) {
         if error == nil {
             print("Connection stopped.")
@@ -59,6 +93,3 @@ class StreamingSocketModel: StreamingModel{
         return super.update()
     }
 }
-
-
-

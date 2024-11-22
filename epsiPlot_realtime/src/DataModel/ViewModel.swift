@@ -2,7 +2,7 @@ import Foundation
 
 /*@Observable */class ViewModel: ObservableObject
 {
-    var model = Model()
+    @Published var model = Model()
     var epsi = EpsiViewModelData()
     var ctd = CtdViewModelData()
 

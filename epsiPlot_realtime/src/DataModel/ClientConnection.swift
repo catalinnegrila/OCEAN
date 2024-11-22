@@ -42,7 +42,17 @@ class ClientConnection {
         case .waiting(let error):
             onConnectionFailed(error: error)
         case .ready:
-            print("Client connection ready")
+            var endpointDescr = "<unknown endpoint>"
+            if let path = nwConnection.currentPath, let endpoint = path.remoteEndpoint {
+                switch(endpoint) {
+                case let .hostPort(host: host, port: port):
+                    let IPAddr = host.debugDescription.components(separatedBy: "%")[0]
+                    endpointDescr = "\(IPAddr):\(port)"
+                default:
+                    break
+                }
+            }
+            print("Client connection ready to tcp://\(endpointDescr)")
         case .failed(let error):
             onConnectionFailed(error: error)
         default:

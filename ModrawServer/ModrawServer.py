@@ -1,5 +1,7 @@
-import os, sys, socket, time
+import os, sys, socket, time, zeroconf
 from dataclasses import dataclass
+
+#Provisioning profile "iOS Team Provisioning Profile: MOTIVE.epsiPlot-realtime" doesn't include the currently selected device "iPad" (identifier 00008027-0011252426B8802E).
 
 source_dir = "/Users/catalin/Documents/OCEAN_data/out/"
 dir_scan_freq = 0.025
@@ -74,15 +76,14 @@ def accept_connection(sock):
         connection.close()
     connection.close()
 
-def wait_on_socket():
+def wait_on_socket(IPAddr, port):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        port = 31415
-        sock.bind(('127.0.0.1', port))
+        sock.bind((IPAddr, port))
         sock.listen(5)  
         while True:  
-            print(f"Waiting for client to connect on port {port}...")
+            print(f"Waiting for client to connect to tcp://{IPAddr}:{port}...")
             accept_connection(sock)
 
     except BrokenPipeError:
@@ -92,9 +93,42 @@ def wait_on_socket():
         sock.close()
         print("Socket closed.")
 
+def get_my_ip(hostname):
+    localhost = "127.0.0.1"
+    all = socket.gethostbyname_ex(hostname)
+    all = [token for token in all if token != [] and token != hostname.lower()]
+    if len(all) > 1 or type(all[0]) != list:
+        return localhost
+    all = [token for token in all[0] if token != '127.0.0.1']
+    if len(all) > 1:
+        return localhost
+    return all[0]
+
+port = 31415
+hostname = socket.gethostname()
+IPAddr = get_my_ip(hostname)
+
 try:
+    info = zeroconf.ServiceInfo(
+            "_http._tcp.local.",
+            "MODraw Server._http._tcp.local.",
+            addresses=[socket.inet_aton(IPAddr)],
+            port=port,
+            properties={'description': 'MODraw streaming for realtime EPSI/FCTD visualization.'},
+            server=hostname
+        )
+
+    zeroconf = zeroconf.Zeroconf()
+    zeroconf.register_service(info)
+    print('Server registered with mDNS.')
+
     while True:
-        wait_on_socket()
+        wait_on_socket(IPAddr, port)
 
 except KeyboardInterrupt:
     print('Sync stopped.')
+
+finally:
+    zeroconf.unregister_service(info)
+    zeroconf.close()
+    print('Server unregistered from mDNS.')

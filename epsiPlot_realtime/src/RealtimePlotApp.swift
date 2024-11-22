@@ -25,12 +25,18 @@ struct RealtimePlotApp: App {
             openFile(lastOpenFile!)
         } else if lastOpenFolder != nil {
             openFolder(lastOpenFolder!)
-        } else if lastOpenSocket != nil {
-            openSocket(URL(string:"tcp://127.0.0.1:31415")!)
-            //openSocket(lastOpenSocket!)
-        }
+        }/* else if lastOpenSocket != nil {
+            openSocket(lastOpenSocket!)
+        }*/
+#if DEBUG
+        //openSocket(URL(string:"tcp://127.0.0.1:31415")!)
+        //getWiFiAddress
+#endif
 #endif
 #if os(iOS)
+        vm.model = StreamingSocketModel()
+        //openSocket(URL(string:"tcp://127.0.0.1:31415")!)
+        //openSocket()
         //openSocket(lastOpenSocket!)
 #endif
     }
@@ -52,7 +58,7 @@ struct RealtimePlotApp: App {
     func openSocket(_ socketUrl: URL) {
         clearLastOpen()
         lastOpenSocket = socketUrl
-        vm.model = StreamingSocketModel(socketUrl: socketUrl)
+        //vm.model = StreamingSocketModel(socketUrl: URL(string: ))
     }
 #if os(macOS)
     func modalFilePicker(chooseFiles: Bool) -> URL? {
@@ -66,11 +72,11 @@ struct RealtimePlotApp: App {
         picker.canResolveUbiquitousConflicts = true
 
         if (chooseFiles) {
-            //picker.allowedFileTypes = ["mat", "modraw"] // Deprecated
-            picker.allowedContentTypes = [UTType]()
-            for ext in ["mat", "modraw"] {
-                picker.allowedContentTypes.append(UTType(tag: ext, tagClass: .filenameExtension, conformingTo: nil)!)
-            }
+            picker.allowedFileTypes = ["mat", "modraw"] // Deprecated
+            //picker.allowedContentTypes = [UTType]()
+            //for ext in ["mat", "modraw"] {
+            //    picker.allowedContentTypes.append(UTType(tag: ext, tagClass: .filenameExtension, conformingTo: nil)!)
+            //}
         }
 
         if (picker.runModal() == .OK) {

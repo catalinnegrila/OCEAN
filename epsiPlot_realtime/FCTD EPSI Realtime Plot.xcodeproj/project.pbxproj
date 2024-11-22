@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		AD0F632A2CF094590012120C /* FCTD-EPSI-Realtime-Plot-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "FCTD-EPSI-Realtime-Plot-Info.plist"; sourceTree = "<group>"; };
 		AD96DE3E2CDD432E001FA567 /* FCTD EPSI Realtime Plot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FCTD EPSI Realtime Plot.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -32,6 +33,7 @@
 		AD96DE352CDD432E001FA567 = {
 			isa = PBXGroup;
 			children = (
+				AD0F632A2CF094590012120C /* FCTD-EPSI-Realtime-Plot-Info.plist */,
 				AD96DE402CDD432E001FA567 /* src */,
 				AD96DE3F2CDD432E001FA567 /* Products */,
 			);
@@ -257,7 +259,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "FCTD-EPSI-Realtime-Plot-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -289,7 +293,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "FCTD-EPSI-Realtime-Plot-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

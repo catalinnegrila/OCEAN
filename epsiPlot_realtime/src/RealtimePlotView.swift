@@ -4,13 +4,12 @@ struct RealtimePlotView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var refreshView = false
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
-    var vm: ViewModel
+    @State var vm: ViewModel
     
     var body: some View {
         VStack {
             chart
                 .id(refreshView)
-                .padding()
                 .frame(alignment: .topLeading)
                 .navigationTitle(vm.model.status)
                 .onReceive(refreshTimer) { _ in
@@ -234,7 +233,7 @@ struct RealtimePlotView: View {
                         var maxv = v
                         var emptyPixel = true
                         sample_index += 1
-                        while (rd.time_f[sample_index] < s) {
+                        while (sample_index < rd.time_f.count && rd.time_f[sample_index] < s) {
                             let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
                             minv = min(minv, v)
                             maxv = max(maxv, v)
@@ -244,6 +243,9 @@ struct RealtimePlotView: View {
                         if (!emptyPixel && !minv.isNaN && !maxv.isNaN) {
                             path.move(to: CGPoint(x: x, y: minv - 1))
                             path.addLine(to: CGPoint(x: x, y: maxv + 1))
+                        }
+                        if sample_index >= rd.time_f.count {
+                            break
                         }
                     }
                 }, with: .color(color), lineWidth: 2)
@@ -261,7 +263,7 @@ struct RealtimePlotView: View {
     let dzdt_up_color = Color(red: 233/255, green: 145/255, blue: 195/255)
     let dzdt_down_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
-    let leftLabelsWidth = 30.0
+    let leftLabelsWidth = 50.0
     let vgap = 25.0
     let hgap = 30.0
     let font = Font.body
@@ -571,7 +573,7 @@ struct RealtimePlotView: View {
             context: context,
             time_window: time_window,
             xAxis: xAxis)
-        rd.rect = CGRect(x: hgap + leftLabelsWidth, y: 10, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
+        rd.rect = CGRect(x: hgap + leftLabelsWidth, y: vgap, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
 
         switch vm.model.deploymentType {
         case .EPSI:
@@ -591,6 +593,7 @@ struct RealtimePlotView: View {
             renderCtd_z_dzdt(rd: rd)
         }
 
+        
         let textHeight = context.resolve(Text("00:00:00").font(font)).measure(in: CGSize(width: .max, height: .max)).height
         var y = rd.rect.minY - vgap/2
         // Time labels
@@ -612,6 +615,11 @@ struct RealtimePlotView: View {
                 y += textHeight
             }
         }
+/*
+        context.draw(Text("Status: \(vm.model.status)").font(font).bold(),
+                     at: CGPoint(x: 0, y: 0),
+                     anchor: .topLeading)
+*/
         if vm.model.mostRecentLatitude != "" {
             context.draw(Text("\(vm.model.mostRecentLatitude), \(vm.model.mostRecentLongitude)").font(font).bold(),
                          at: CGPoint(x: rd.rect.maxX, y: y),
