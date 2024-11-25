@@ -24,13 +24,15 @@ class CtdModelData : TimestampedData
         S.removeAll()
         z.removeAll()
     }
-    func append(from: CtdModelData, first: Int, count: Int)
+    override func append(from: TimestampedData, first: Int, count: Int)
     {
         super.append(from: from, first: first, count: count)
-        P.append(contentsOf: from.P[first..<first+count])
-        T.append(contentsOf: from.T[first..<first+count])
-        S.append(contentsOf: from.S[first..<first+count])
-        z.append(contentsOf: from.z[first..<first+count])
+        if let from = from as? CtdModelData {
+            P.append(contentsOf: from.P[first..<first+count])
+            T.append(contentsOf: from.T[first..<first+count])
+            S.append(contentsOf: from.S[first..<first+count])
+            z.append(contentsOf: from.z[first..<first+count])
+        }
     }
 }
 

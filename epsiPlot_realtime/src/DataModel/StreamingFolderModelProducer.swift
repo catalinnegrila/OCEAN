@@ -1,17 +1,17 @@
 import Foundation
 
-class StreamingFolderModel: StreamingModel{
+class StreamingFolderModelProducer: StreamingModelProducer {
+    var fileUrl: URL?
     let folderUrl: URL
 
     init(folderUrl: URL) {
         self.folderUrl = folderUrl
-        super.init()
     }
-    func tryReadMoreData()
-    {
+    func tryReadMoreData(model: Model) {
+        guard let epsiModrawParser = epsiModrawParser else { return }
         let fileAttributes = try! FileManager.default.attributesOfItem(atPath: fileUrl!.path)
         let newModrawSize = fileAttributes[.size] as! Int
-        let oldModrawSize = epsiModrawParser!.modrawParser.data.count
+        let oldModrawSize = epsiModrawParser.modrawParser.data.count
         if (oldModrawSize < newModrawSize)
         {
             let blockSize = newModrawSize - oldModrawSize
@@ -20,25 +20,25 @@ class StreamingFolderModel: StreamingModel{
             // TODO: does this read the entire file each time?
             var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
             inputFileData.copyBytes(to: &newData, from: oldModrawSize..<newModrawSize)
-            epsiModrawParser!.modrawParser.appendData(bytes: newData)
-            epsiModrawParser!.parsePackets(model: self)
+            epsiModrawParser.modrawParser.appendData(bytes: newData)
+            epsiModrawParser.parse(model: model)
         }
     }
-    func startParsing(fileUrl: URL) {
+    func startParsing(model: Model, fileUrl: URL) {
         do {
+            model.appendNewFileBoundary()
             self.fileUrl = fileUrl
             epsiModrawParser = try EpsiModrawParser(fileUrl: fileUrl)
-            epsiModrawParser!.parseHeader(model: self)
-            epsiModrawParser!.parsePackets(model: self)
-            status = "Streaming \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
-            print(status)
+            epsiModrawParser!.parse(model: model)
+            model.status = "Streaming \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
         }
         catch {
-            status = error.localizedDescription
+            model.status = error.localizedDescription
         }
     }
-    override func update() -> Bool
+    override func update(model: Model) -> Bool
     {
+        // TODO: optimize this like in ModrawServer
         if let enumerator = FileManager.default.enumerator(at: folderUrl, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsSubdirectoryDescendants, .skipsHiddenFiles, .skipsPackageDescendants]) {
             var allFiles = [String]()
             for case let fileUrl as URL in enumerator {
@@ -51,7 +51,7 @@ class StreamingFolderModel: StreamingModel{
                         }
                     }
                 } catch {
-                    status = error.localizedDescription
+                    model.status = error.localizedDescription
                     print(error, fileUrl)
                 }
             }
@@ -64,30 +64,30 @@ class StreamingFolderModel: StreamingModel{
                 if (fileUrl != nil) {
                     if (mostRecentFile! == fileUrl!.path) {
                         // We are parsing the most recent file
-                        tryReadMoreData()
+                        tryReadMoreData(model: model)
                     } else if (secondMostRecentFile! == fileUrl!.path) {
                         // We are parsing the second most recent file
-                        tryReadMoreData()
+                        tryReadMoreData(model: model)
                         // Start parsing the most recent one
-                        startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                        startParsing(model: model, fileUrl: URL(fileURLWithPath: mostRecentFile!))
                     }
                 } else {
                     // Parse the second most recent file first, in case the most recent is partial
-                    startParsing(fileUrl: URL(fileURLWithPath: secondMostRecentFile!))
+                    startParsing(model: model, fileUrl: URL(fileURLWithPath: secondMostRecentFile!))
                     // Start parsing the most recent file
-                    startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                    startParsing(model: model, fileUrl: URL(fileURLWithPath: mostRecentFile!))
                 }
             } else if (mostRecentFile != nil) {
                 if (fileUrl != nil && mostRecentFile! == fileUrl!.path) {
                     // We only have one file and are already parsing it
-                    tryReadMoreData()
+                    tryReadMoreData(model: model)
                 } else {
                     // We only have one file, start parsing it
-                    startParsing(fileUrl: URL(fileURLWithPath: mostRecentFile!))
+                    startParsing(model: model, fileUrl: URL(fileURLWithPath: mostRecentFile!))
                 }
             } // else no files to parse yet in the folder
         }
 
-        return super.update()
+        return super.update(model: model)
     }
 }

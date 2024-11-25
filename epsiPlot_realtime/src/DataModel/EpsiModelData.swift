@@ -34,16 +34,18 @@ class EpsiModelData : TimestampedData
         a2_g.removeAll()
         a3_g.removeAll()
     }
-    func append(from: EpsiModelData, first: Int, count: Int)
+    override func append(from: TimestampedData, first: Int, count: Int)
     {
         super.append(from: from, first: first, count: count)
-        t1_volt.append(contentsOf: from.t1_volt[first..<first+count])
-        t2_volt.append(contentsOf: from.t2_volt[first..<first+count])
-        s1_volt.append(contentsOf: from.s1_volt[first..<first+count])
-        s2_volt.append(contentsOf: from.s2_volt[first..<first+count])
-        a1_g.append(contentsOf: from.a1_g[first..<first+count])
-        a2_g.append(contentsOf: from.a2_g[first..<first+count])
-        a3_g.append(contentsOf: from.a3_g[first..<first+count])
+        if let from = from as? EpsiModelData {
+            t1_volt.append(contentsOf: from.t1_volt[first..<first+count])
+            t2_volt.append(contentsOf: from.t2_volt[first..<first+count])
+            s1_volt.append(contentsOf: from.s1_volt[first..<first+count])
+            s2_volt.append(contentsOf: from.s2_volt[first..<first+count])
+            a1_g.append(contentsOf: from.a1_g[first..<first+count])
+            a2_g.append(contentsOf: from.a2_g[first..<first+count])
+            a3_g.append(contentsOf: from.a3_g[first..<first+count])
+        }
     }
 }
 

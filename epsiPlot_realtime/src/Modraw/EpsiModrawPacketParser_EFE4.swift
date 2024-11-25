@@ -74,7 +74,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
 
             if (prev_time_s != nil) {
                 //assert(prev_time_s! < time_s)
-                this_block.checkAndAppendGap(t0: prev_time_s!, t1: time_s)
+                this_block.checkAndAppendMissingData(t0: prev_time_s!, t1: time_s)
             }
             prev_time_s = time_s
 

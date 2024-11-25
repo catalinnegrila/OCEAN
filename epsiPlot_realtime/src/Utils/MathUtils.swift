@@ -13,8 +13,7 @@ func mean(mat : [Double]) -> Double
 func rms(mat : [Double]) -> Double
 {
     var sum = 0.0
-    for i in 0..<mat.count
-    {
+    for i in 0..<mat.count {
         sum += mat[i] * mat[i]
     }
     return sqrt(sum / (Double(mat.count) * Double(mat.count)))

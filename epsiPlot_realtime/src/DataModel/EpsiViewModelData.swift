@@ -30,7 +30,7 @@ class EpsiViewModelData: EpsiModelData {
         a2_g_range = (0, 0)
         a3_g_range = (0, 0)
     }
-    func calculateDerivedData(time_window: (Double, Double))
+    override func calculateDerivedData(time_window: (Double, Double))
     {
         if (time_s.count > 0)
         {

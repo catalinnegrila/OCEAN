@@ -19,6 +19,8 @@ class ModrawPacket {
 }
 
 class ModrawHeader {
+    var headerStart = 0
+    var headerEnd = 0
     var content = ""
 
     func getKeyValueString(key: String) -> String {
@@ -116,35 +118,51 @@ class ModrawParser {
         }
         return true
     }
+
     private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
-    func parseHeader() -> ModrawHeader {
-        let header = ModrawHeader()
+    fileprivate func _parseIntFromKeyValue(line: String) -> Int {
+        return Int(line.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+    }
+    fileprivate func _parseHeader(header: ModrawHeader) -> Bool {
         var line = parseLine()
-        assert(line != nil)
-        assert(line!.starts(with: "header_file_size_inbytes ="))
+        guard line != nil else { return false }
+        guard line!.starts(with: "header_file_size_inbytes =") else { return false }
         header.content += line!
-
+        
         line = parseLine()
-        assert(line != nil)
-        assert(line!.starts(with: "TOTAL_HEADER_LINES ="))
+        guard line != nil else { return false }
+        guard line!.starts(with: "TOTAL_HEADER_LINES =") else { return false }
         header.content += line!
-
+        
         line = parseLine()
-        assert(line != nil)
-        assert(line!.contains("****START_FCTD_HEADER_START_RUN****"))
+        guard line != nil else { return false }
+        guard line!.contains("****START_FCTD_HEADER_START_RUN****") else { return false }
         header.content += line!
-
+        
         repeat {
             line = parseLine()
-            assert(line != nil)
+            guard line != nil else { return false }
             if line!.starts(with: "OFFSET_TIME =") {
-                currentYearOffsetInSeconds = Int(line!.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+                currentYearOffsetInSeconds = _parseIntFromKeyValue(line: line!)
             }
             header.content += line!
         } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
 
-        return header
+        header.headerEnd = cursor
+        return true
     }
+    func parseHeader() -> ModrawHeader? {
+        let header = ModrawHeader()
+        header.headerStart = cursor
+        if _parseHeader(header: header) {
+            cursor = header.headerEnd
+            return header
+        } else {
+            cursor = header.headerStart
+            return nil
+        }
+    }
+
     func isPacketStart(_ i: Int) -> Bool {
         if (i + 4 <= data.count &&
             data[i] == ModrawParser.ASCII_DOLLAR &&
@@ -248,13 +266,20 @@ class ModrawParser {
         return val
     }
     func parsePacket() -> ModrawPacket? {
+        let originalCursor = cursor
+        let p = ModrawPacket(parent: self)
+        if _parsePacket(p: p) {
+            return p
+        } else {
+            cursor = originalCursor
+            return nil
+        }
+    }
+    fileprivate func _parsePacket(p: ModrawPacket) -> Bool {
         while cursor + PACKET_HEADER_LEN < data.count && !isPacketStart(cursor) {
             cursor += 1
         }
-        if (cursor >= data.count) {
-            return nil
-        }
-        let p = ModrawPacket(parent: self)
+        guard cursor < data.count else { return false }
         p.packetStart = cursor
         if (data[cursor] == ModrawParser.ASCII_T)
         {
@@ -265,19 +290,11 @@ class ModrawParser {
                 p.timestamp = p.timestamp * 10 + Int(data[cursor] - ModrawParser.ASCII_0)
                 cursor += 1
             }
-            if (cursor == data.count)
-            {
-                cursor = p.packetStart
-                return nil
-            }
+            guard cursor < data.count else { return false }
         }
 
-        if (data[cursor] != ModrawParser.ASCII_DOLLAR ||
-            cursor + PACKET_SIGNATURE_LEN > data.count)
-        {
-            cursor = p.packetStart
-            return nil
-        }
+        guard (data[cursor] == ModrawParser.ASCII_DOLLAR &&
+               cursor + PACKET_SIGNATURE_LEN <= data.count) else { return false }
 
         p.signature = parseString(start: cursor, len: PACKET_SIGNATURE_LEN)
         cursor += PACKET_SIGNATURE_LEN
@@ -298,12 +315,8 @@ class ModrawParser {
                 cursor += 1
             }
         }
-        if (p.packetEnd == 0)
-        {
-            cursor = p.packetStart
-            return nil
-        }
-        return p
+        guard p.packetEnd != 0 else { return false }
+        return true
     }
     func rewindPacket(packet: ModrawPacket) {
         cursor = packet.packetStart

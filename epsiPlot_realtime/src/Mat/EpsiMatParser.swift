@@ -2,10 +2,10 @@ import Foundation
 
 class EpsiMatParser
 {
-    init(model: Model)
+    init(model: Model, fileUrl: URL) throws
     {
-        let mat = MatParser(fileUrl: model.fileUrl!)
-
+        let mat = try MatParser(fileUrl: fileUrl)
+            
         model.epsi_blocks = [EpsiModelData()]
         let epsi = model.epsi_blocks.first!
         epsi.time_s = mat.getMatrixNumeric1(name: "epsi.time_s")
@@ -16,7 +16,7 @@ class EpsiMatParser
         epsi.a1_g = mat.getMatrixNumeric1(name: "epsi.a1_g")
         epsi.a2_g = mat.getMatrixNumeric1(name: "epsi.a2_g")
         epsi.a3_g = mat.getMatrixNumeric1(name: "epsi.a3_g")
-
+        
         model.ctd_blocks = [CtdModelData()]
         let ctd = model.ctd_blocks.first!
         ctd.time_s = mat.getMatrixNumeric1(name: "ctd.time_s")

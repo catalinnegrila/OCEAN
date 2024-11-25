@@ -1,9 +1,24 @@
+class DataGapInfo
+{
+    enum DataGapType : Int {
+        case MISSING_DATA = 1, NEW_FILE_BOUNDARY
+    }
+    var type: DataGapType
+    var t0: Double
+    var t1: Double
+    init(type: DataGapType, t0: Double, t1: Double) {
+        self.type = type
+        self.t0 = t0
+        self.t1 = t1
+    }
+}
+
 class TimestampedData
 {
     let capacity: Int
     let expected_sample_duration: Double
     var time_s = [Double]()
-    var dataGaps = [(Double, Double)]()
+    var dataGaps = [DataGapInfo]()
 
     init(capacity: Int, samples_per_sec: Int) {
         self.capacity = capacity
@@ -25,21 +40,30 @@ class TimestampedData
     {
         time_s.append(contentsOf: from.time_s[first..<first+count])
         for dataGap in from.dataGaps {
-            if (dataGap.1 >= from.time_s[first] && dataGap.0 <= from.time_s[first+count - 1]) {
+            if (dataGap.t1 >= from.time_s[first] && dataGap.t0 <= from.time_s[first + count - 1]) {
                 dataGaps.append(dataGap)
             }
         }
     }
-    func checkAndAppendGap(t0: Double, t1: Double)
+    func appendNewFileBoundary()
+    {
+        let boundary_size = 0.025
+        dataGaps.append(DataGapInfo(type: .NEW_FILE_BOUNDARY,
+                                    t0: time_s.last! - boundary_size,
+                                    t1: time_s.last! + boundary_size))
+    }
+    func checkAndAppendMissingData(t0: Double, t1: Double)
     {
         if ((t1 - t0) > 2 * expected_sample_duration) {
-            dataGaps.append((t0 + expected_sample_duration, t1 - expected_sample_duration))
+            dataGaps.append(DataGapInfo(type: .MISSING_DATA,
+                                        t0: t0 + expected_sample_duration,
+                                        t1: t1 - expected_sample_duration))
         }
     }
-    func checkAndAppendGap(prevBlock: TimestampedData)
+    func transferOverlappingGapsFrom(prevBlock: TimestampedData)
     {
         if let dataGap = prevBlock.dataGaps.last {
-            if (dataGap.1 > time_s.first!) {
+            if (dataGap.t1 > time_s.first!) {
                 dataGaps.insert(dataGap, at: 0)
             }
         }
@@ -64,5 +88,13 @@ class TimestampedData
         for i in 0..<time_s.count {
             time_f.append((time_s[i] - time_window.0) / (time_window.1 - time_window.0))
         }
+    }
+    func calculateDerivedData(time_window: (Double, Double)) {
+    }
+    func mergeBlocks<T: TimestampedData>(time_window: (Double, Double), blocks: inout [T]) {
+        removeAll()
+        blocks.removeBlocksOlderThan(t0: time_window.0)
+        blocks.appendSamplesBetween(t0: time_window.0, t1: time_window.1, data: self)
+        calculateDerivedData(time_window: time_window)
     }
 }

@@ -38,6 +38,7 @@ class ClientConnection {
     }
 
     private func onStateChange(to state: NWConnection.State) {
+        print("Connection: \(state)")
         switch state {
         case .waiting(let error):
             onConnectionFailed(error: error)
@@ -52,7 +53,7 @@ class ClientConnection {
                     break
                 }
             }
-            print("Client connection ready to tcp://\(endpointDescr)")
+            print("Connected to tcp://\(endpointDescr)")
         case .failed(let error):
             onConnectionFailed(error: error)
         default:
@@ -85,7 +86,7 @@ class ClientConnection {
         self.nwConnection.stateUpdateHandler = nil
         self.nwConnection.cancel()
         if let onStopCallback = self.onStopCallback {
-            self.onStopCallback = nil
+            //self.onStopCallback = nil
             onStopCallback(error)
         }
     }

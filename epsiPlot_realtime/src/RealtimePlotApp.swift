@@ -25,19 +25,20 @@ struct RealtimePlotApp: App {
             openFile(lastOpenFile!)
         } else if lastOpenFolder != nil {
             openFolder(lastOpenFolder!)
-        }/* else if lastOpenSocket != nil {
+        } else if lastOpenSocket != nil {
             openSocket(lastOpenSocket!)
-        }*/
+        } else {
 #if DEBUG
-        //openSocket(URL(string:"tcp://127.0.0.1:31415")!)
-        //getWiFiAddress
+            //openSocket(URL(string:"tcp://127.0.0.1:31415")!)
+            openSocket(URL(string:"tcp://10.5.0.151:31415")!)
+#else
+            openSocketWithBonjour()
 #endif
+        }
 #endif
 #if os(iOS)
-        vm.model = StreamingSocketModel()
+        openSocketWithBonjour()
         //openSocket(URL(string:"tcp://127.0.0.1:31415")!)
-        //openSocket()
-        //openSocket(lastOpenSocket!)
 #endif
     }
     func clearLastOpen() {
@@ -48,17 +49,21 @@ struct RealtimePlotApp: App {
     func openFile(_ fileUrl: URL) {
         clearLastOpen()
         lastOpenFile = fileUrl
-        vm.model = SingleFileModel(fileUrl: fileUrl)
+        vm.modelProducer = SingleFileModelProducer(fileUrl: fileUrl)
     }
     func openFolder(_ folderUrl: URL) {
         clearLastOpen()
         lastOpenFolder = folderUrl
-        vm.model = StreamingFolderModel(folderUrl: folderUrl)
+        vm.modelProducer = StreamingFolderModelProducer(folderUrl: folderUrl)
     }
     func openSocket(_ socketUrl: URL) {
         clearLastOpen()
         lastOpenSocket = socketUrl
-        //vm.model = StreamingSocketModel(socketUrl: URL(string: ))
+        vm.modelProducer = StreamingSocketWithURLModelProducer(socketUrl: socketUrl)
+    }
+    func openSocketWithBonjour() {
+        clearLastOpen()
+        vm.modelProducer = StreamingSocketWithBonjourModelProducer()
     }
 #if os(macOS)
     func modalFilePicker(chooseFiles: Bool) -> URL? {
@@ -114,10 +119,20 @@ struct RealtimePlotApp: App {
                     Button("Connect to DEV1") {
                         openSocket(URL(string: "tcp://192.168.1.168:31415")!)
                     }.keyboardShortcut("d")
+                }
+#if DEBUG
+                Section {
+                    Button("Connect with Bonjour") {
+                        openSocketWithBonjour()
+                    }.keyboardShortcut("b")
                     Button("Connect to localhost") {
                         openSocket(URL(string: "tcp://localhost:31415")!)
                     }.keyboardShortcut("l")
+                    Button("Connect to Local IP") {
+                        openSocket(URL(string: "tcp://\(getWiFiAddress()!):31415")!)
+                    }.keyboardShortcut("i")
                 }
+#endif
             }
 #endif
 /*

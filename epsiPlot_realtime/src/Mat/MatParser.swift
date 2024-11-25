@@ -120,8 +120,8 @@ fileprivate class MatFile {
         })
         return Array<UInt8>(UnsafeBufferPointer(start: decompBuffer, count: decompSize))
     }
-    init(_ fileUrl : URL) {
-        let fileData = try! Data(contentsOf: fileUrl)
+    init(_ fileUrl : URL) throws {
+        let fileData = try Data(contentsOf: fileUrl)
         self.data = newByteArrayFrom(data: fileData)
         
         cursor = 0
@@ -212,8 +212,7 @@ fileprivate class MatFile {
         }
         return str
     }
-
-    func readLEFloatX<Result>(_: Result.Type) -> Result
+    func readLEAligned<Result>(_: Result.Type) -> Result
     {
         let expected = MemoryLayout<Result>.size
         assert(cursor + expected <= data.count)
@@ -222,27 +221,8 @@ fileprivate class MatFile {
             return $0.load(fromByteOffset: cursor, as: Result.self)
         }
     }
-    func readLESingle() -> Float {
-        return readLEFloatX(Float.self)
-    }
-    func readLEDouble() -> Double {
-        return readLEFloatX(Double.self)
-    }
-    func readLEUIntX<Result>(_: Result.Type) -> Result
-            where Result: UnsignedInteger
-    {
-        let expected = MemoryLayout<Result>.size
-        assert(cursor + expected <= data.count)
-        defer { cursor += expected }
-        let sub = data[cursor..<cursor + expected]
-        return sub
-            .reversed()
-            .reduce(0, { soFar, new in
-                    (soFar << 8) | Result(new)
-            })
-    }
-    func readLEIntX<Result>(_: Result.Type) -> Result
-        where Result: SignedInteger
+    func readLEBinaryIntegerX<Result>(_: Result.Type) -> Result
+            where Result: BinaryInteger
     {
         let expected = MemoryLayout<Result>.size
         assert(cursor + expected <= data.count)
@@ -255,22 +235,34 @@ fileprivate class MatFile {
             })
     }
     func readLEUInt8() -> Int {
-        Int(readLEUIntX(UInt8.self))
+        Int(readLEAligned(UInt8.self))
+    }
+    func readLEInt8() -> Int {
+        Int(readLEAligned(Int8.self))
     }
     func readLEUInt16() -> Int {
-        Int(readLEUIntX(UInt16.self))
+        Int(readLEAligned(UInt16.self))
+    }
+    func readLEInt16() -> Int {
+        Int(readLEAligned(Int16.self))
     }
     func readLEUInt32() -> Int {
-        Int(readLEUIntX(UInt32.self))
-    }
-    func readLEUInt64() -> Int {
-        Int(readLEUIntX(UInt64.self))
-    }
-    func readLEInt64() -> Int {
-        Int(readLEIntX(Int64.self))
+        Int(readLEBinaryIntegerX(UInt32.self))
     }
     func readLEInt32() -> Int {
-        Int(readLEIntX(Int32.self))
+        Int(readLEBinaryIntegerX(Int32.self))
+    }
+    func readLEUInt64() -> Int {
+        Int(readLEBinaryIntegerX(UInt64.self))
+    }
+    func readLEInt64() -> Int {
+        Int(readLEBinaryIntegerX(Int64.self))
+    }
+    func readLESingle() -> Float {
+        return readLEAligned(Float.self)
+    }
+    func readLEDouble() -> Double {
+        return readLEAligned(Double.self)
     }
     func getNumericReader(dataType: MatDataType) -> (() -> Double) {
         switch (dataType) {
@@ -282,9 +274,15 @@ fileprivate class MatFile {
             
         case .miUINT8:
             return { Double(self.readLEUInt8()) }
+
+        case .miINT8:
+            return { Double(self.readLEUInt8()) }
             
         case .miUINT16:
             return { Double(self.readLEUInt16()) }
+            
+        case .miINT16:
+            return { Double(self.readLEInt16()) }
             
         case .miUINT32:
             return { Double(self.readLEUInt32()) }
@@ -514,8 +512,8 @@ class MatParser {
     fileprivate var mat: MatFile
     fileprivate var ns: MatNamespace
 
-    init(fileUrl : URL) {
-        mat = MatFile(fileUrl)
+    init(fileUrl : URL) throws {
+        mat = try MatFile(fileUrl)
         let namespaceParser = MatNamespaceParser(mat: mat)
         ns = namespaceParser.readNamespace()
     }

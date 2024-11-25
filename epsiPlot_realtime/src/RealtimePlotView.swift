@@ -122,11 +122,21 @@ struct RealtimePlotView: View {
         let color = Color(red: gray, green: gray, blue: gray, opacity: 0.5)
         
         for dataGap in rd.dataGaps {
-            let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0, t0: rd.time_window.0, t1: rd.time_window.1))
-            let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1, t0: rd.time_window.0, t1: rd.time_window.1))
+#if !DEBUG
+            if dataGap.type == .NEW_FILE_BOUNDARY { continue }
+#endif
+            let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.t0, t0: rd.time_window.0, t1: rd.time_window.1))
+            let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.t1, t0: rd.time_window.0, t1: rd.time_window.1))
             if (x1 - x0 >= 1) {
                 let rcGap = CGRect(x: x0, y: rc.minY + 1, width: x1 - x0, height: rc.height - 2)
-                context.fill(Path(rcGap), with: .color(color))
+                var gapColor: Color
+                switch dataGap.type {
+                case .MISSING_DATA:
+                    gapColor = color
+                case .NEW_FILE_BOUNDARY:
+                    gapColor = .blue
+                }
+                context.fill(Path(rcGap), with: .color(gapColor))
             }
         }
         if (!rd.time_f.isEmpty) {
@@ -185,14 +195,15 @@ struct RealtimePlotView: View {
             
             var emptyX = 0.0
             for dataGap in rd.dataGaps {
-                let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.0, t0: rd.time_window.0, t1: rd.time_window.1))
-                let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.1, t0: rd.time_window.0, t1: rd.time_window.1))
+                let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.t0, t0: rd.time_window.0, t1: rd.time_window.1))
+                let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.t1, t0: rd.time_window.0, t1: rd.time_window.1))
                 if (x1 - x0 >= 1) {
                     emptyX += x1 - x0
                 }
             }
             
-            if (data.count <= Int(maxX - minX - emptyX)) {
+            let pixelCount = Int(maxX - minX - emptyX)
+            if (data.count <= 20 * pixelCount) {
                 var prevWasNaN = false
                 context.stroke(Path { path in
                     for i in 0..<data.count {
@@ -225,26 +236,25 @@ struct RealtimePlotView: View {
                 }, with: .color(color), lineWidth: 2)
             } else {
                 context.stroke(Path { path in
-                    var sample_index = 0
+                    var i = 0
                     for x in stride(from: minX, to: maxX, by: 1.0) {
-                        let s = (x - rc.minX) / Double(rc.width - 1)
-                        let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
-                        var minv = v
-                        var maxv = v
-                        var emptyPixel = true
-                        sample_index += 1
-                        while (sample_index < rd.time_f.count && rd.time_f[sample_index] < s) {
-                            let v = valueToY(rc: rc, yAxis: yAxis, v: data[sample_index])
-                            minv = min(minv, v)
-                            maxv = max(maxv, v)
-                            emptyPixel = false
-                            sample_index += 1
+                        var minY: Double?
+                        var maxY: Double?
+                        while i < rd.time_f.count {
+                            let sampleX = lerpToX(rc: rc, s: rd.time_f[i])
+                            if (sampleX > x) {
+                                break
+                            }
+                            let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
+                            minY = (minY == nil ? y : min(minY!, y))
+                            maxY = (maxY == nil ? y : max(maxY!, y))
+                            i += 1
                         }
-                        if (!emptyPixel && !minv.isNaN && !maxv.isNaN) {
-                            path.move(to: CGPoint(x: x, y: minv - 1))
-                            path.addLine(to: CGPoint(x: x, y: maxv + 1))
+                        if (minY != nil && maxY != nil) {
+                            path.move(to: CGPoint(x: x, y: minY! - 1))
+                            path.addLine(to: CGPoint(x: x, y: maxY! + 1))
                         }
-                        if sample_index >= rd.time_f.count {
+                        if i >= rd.time_f.count {
                             break
                         }
                     }
@@ -354,7 +364,7 @@ struct RealtimePlotView: View {
     class RenderData: RenderDataEnv {
         let time_s: ArraySlice<Double>
         let time_f: ArraySlice<Double>
-        let dataGaps: ArraySlice<(Double, Double)>
+        let dataGaps: ArraySlice<DataGapInfo>
         init(context: GraphicsContext, rd: RenderData) {
             self.time_s = rd.time_s
             self.time_f = rd.time_f
@@ -568,7 +578,7 @@ struct RealtimePlotView: View {
             xAxis.append(Double(i) / Double(timeTickCount - 1))
         }
 
-        let time_window = vm.model.getTimeWindow()
+        let time_window = vm.modelProducer!.getTimeWindow(model: vm.model)
         let rd = RenderDataEnv(
             context: context,
             time_window: time_window,

@@ -2,10 +2,10 @@ import Foundation
 
 class EpsiModrawParser {
     var modrawParser: ModrawParser
-    var packetParsers: [EpsiModrawPacketParser] =
+    fileprivate var packetParsers: [EpsiModrawPacketParser] =
         [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49(), EpsiModrawPacketParser_INGG()  ]
 
-    var CTD_fishflag = ""
+    fileprivate var CTD_fishflag = ""
 
     init(fileUrl: URL) throws {
         modrawParser = try ModrawParser(fileUrl: fileUrl)
@@ -13,19 +13,18 @@ class EpsiModrawParser {
     init(bytes: ArraySlice<UInt8>) {
         modrawParser = ModrawParser(bytes: bytes)
     }
-    func parseHeader(model: Model) {
-        let header = modrawParser.parseHeader()
+    fileprivate func parseHeader(model: Model) {
+        guard let header = modrawParser.parseHeader() else { return }
         for packetParser in packetParsers {
             packetParser.parse(header: header)
         }
-        
         CTD_fishflag = header.getKeyValueString(key: "\nCTD.fishflag=")
         model.deploymentType = Model.DeploymentType.from(fishflag: CTD_fishflag)
     }
     func getHeaderInfo() -> String {
         return CTD_fishflag
     }
-    func getParserFor(packet: ModrawPacket) -> EpsiModrawPacketParser? {
+    fileprivate func getParserFor(packet: ModrawPacket) -> EpsiModrawPacketParser? {
         for packetParser in packetParsers {
             if packet.signature == packetParser.signature {
                 return packetParser
@@ -33,7 +32,11 @@ class EpsiModrawParser {
         }
         return nil
     }
-    func parsePackets(model: Model) {
+    func parse(model: Model) {
+        if modrawParser.cursor == 0 {
+            parseHeader(model: model)
+        }
+
         while true {
             if let packet = modrawParser.parsePacket() {
                 if let packetParser = getParserFor(packet: packet) {

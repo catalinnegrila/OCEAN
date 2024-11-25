@@ -28,7 +28,7 @@ class CtdViewModelData: CtdModelData {
         dzdt_range = (0, 0)
         dzdt_range = (0, 0)
     }
-    func calculateDerivedData(time_window: (Double, Double))
+    override func calculateDerivedData(time_window: (Double, Double))
     {
         if (time_s.count > 0)
         {
