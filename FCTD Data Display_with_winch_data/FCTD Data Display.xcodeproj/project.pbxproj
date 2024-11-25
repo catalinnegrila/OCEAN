@@ -504,7 +504,7 @@
 					"$(SDKROOT)/usr/lib/swift",
 					"$(SDKROOT)/usr/lib/system",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-Display";
+				PRODUCT_BUNDLE_IDENTIFIER = MOTIVE.WinchApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -536,7 +536,7 @@
 					"$(SDKROOT)/usr/lib/swift",
 					"$(SDKROOT)/usr/lib/system",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "mod.sio.ucsd.FCTD-Data-Display";
+				PRODUCT_BUNDLE_IDENTIFIER = MOTIVE.WinchApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

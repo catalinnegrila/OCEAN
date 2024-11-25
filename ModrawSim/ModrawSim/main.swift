@@ -15,6 +15,18 @@ let dateFormatter = DateFormatter()
 dateFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss.SS"
 dateFormatter.timeZone = TimeZone(abbreviation: "UTC")
 
+if options.batchMode {
+    let fm = FileManager.default
+    let outputFileUrl = URL(fileURLWithPath: options.outputFilePath)
+    if outputFileUrl.isDirectory == nil {
+        try fm.createDirectory(atPath: options.outputFilePath, withIntermediateDirectories: true)
+    }
+    let filePaths = try fm.contentsOfDirectory(atPath: options.outputFilePath)
+    for filePath in filePaths {
+        try fm.removeItem(atPath: "\(options.outputFilePath)/\(filePath)")
+    }
+}
+
 let inputFileUrlList = try options.inputFileUrlList
 for inputFileUrl in inputFileUrlList {
     let outputFileUrl = options.outputFileUrl(inputFileUrl)

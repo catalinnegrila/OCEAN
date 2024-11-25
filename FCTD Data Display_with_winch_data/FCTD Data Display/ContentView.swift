@@ -554,15 +554,19 @@ struct ContentView: View {
     @State var alti_val: String = "disconnected"
     @State var dzdt_val: String = "disconnected"
     @State var is_udp_connected:Bool = false
+    @State var epsi_udp_server: udp_server_t = udp_server_t(timeout:5.0)
     @State var ctd_udp_server: udp_server_t = udp_server_t(timeout:5.0)
     @State var winch_udp_server: udp_server_t = udp_server_t(timeout:5.0)
     @State var serverSources:[DispatchSourceRead] = []
     @State var depth_old:Double = Double.nan
     @State var time_old:Double = Double.nan
+    @State var epsi_server_src:DispatchSourceRead!
     @State var ctd_server_src:DispatchSourceRead!
     @State var winch_server_src:DispatchSourceRead!
     @State var sound_effect: AVAudioPlayer?
     @State var sound_effect_2: AVAudioPlayer?
+    @State var epsi_a1_val = "disconnected"
+    @State var epsi_a1_g = [UInt8]()
     @State var dz_dt: Double = Double.nan
     @State var dz_dt_filtered: Double = Double.nan
     @State var dz_dt_alpha: Double = 0.15;
@@ -610,10 +614,10 @@ struct ContentView: View {
                                 }
                             }
                     }
-//                    .draw_border()
+                    //                    .draw_border()
                     .padding(.horizontal,20.0)
                     .padding(.vertical,10.0)
-//                    Spacer()
+                    //                    Spacer()
                 }
                 HStack{
                     VStack(spacing:1){
@@ -647,6 +651,22 @@ struct ContentView: View {
                             TextField("dzdt",text:$dzdt_val)
                                 .custom_text_field_2_title()
                                 .disabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+                        }
+                        .draw_border()
+                        .padding(.horizontal,20.0)
+                        .padding(.vertical,10.0)
+                        //Acceleration
+                        VStack(spacing:0){
+                            Text("Z Accel")
+                                .custom_title_2()
+                            ZStack {
+                                Canvas{ context, size in
+                                    renderA1(context: context, size: size)
+                                }
+                                TextField("a1_g",text:$epsi_a1_val)
+                                    .custom_text_field_2_title()
+                                    .disabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+                            }
                         }
                         .draw_border()
                         .padding(.horizontal,20.0)
@@ -712,7 +732,7 @@ struct ContentView: View {
                             }
                         }
                         .padding(.vertical,10.0)
-//                        .padding(.bottom,50.0)
+                        //                        .padding(.bottom,50.0)
                         VStack(spacing:0){
                             Text("sheave VX")
                                 .custom_title_2()
@@ -784,6 +804,7 @@ struct ContentView: View {
             .onAppear(perform: {
                 connect_and_get_winch_data()
                 connect_and_get_CTD_data()
+                connect_and_get_EPSI_data()
             })
         }
     }
@@ -817,7 +838,7 @@ struct ContentView: View {
             if(winch_payout != nil){
                 self.winch_payout_val = String(format: "%+ .2f",winch_payout!) + ""
             }
-            if(winch_vel != nil){   
+            if(winch_vel != nil){
                 self.winch_vel_val = String(format: "%+ .1f",winch_vel!) + ""
             }
             if(winch_curr != nil){
@@ -1094,6 +1115,109 @@ struct ContentView: View {
             //https://developer.apple.com/documentation/uikit/uiapplication/1623070-isidletimerdisabled
             UIApplication.shared.isIdleTimerDisabled = false
             //                udp_server = nil
+            print(error)
+        }
+    }
+    func readValue<Result>(_: Result.Type, from: inout [UInt8], at: inout Int) -> Result
+    {
+        let size = MemoryLayout<Result>.size
+        assert(at + size <= from.count)
+        let value: Result = from.withUnsafeBytes {
+            return $0.load(fromByteOffset: at, as: Result.self)
+        }
+        at += size
+        return value
+    }
+    func renderA1(context: GraphicsContext, size: CGSize) {
+        if (epsi_a1_g.isEmpty) {
+            return
+        }
+        let rect = CGRect(x: 0.0, y: 0.0, width: size.width, height: size.height)
+        func dataToX(_ i: Int) -> Double {
+            return floor(rect.minX + rect.width * Double(i) / Double(epsi_a1_g.count - 2))
+        }
+        func dataToY(_ i: Int) -> Double {
+            return floor(rect.maxY - rect.height * Double(epsi_a1_g[i]) / 255.0)
+        }
+        let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)
+        var x0 = dataToX(0)
+        var y0_0 = dataToY(0)
+        var y0_1 = dataToY(1)
+        context.stroke(Path { path in
+            path.move(to: CGPoint(x: x0, y: y0_0))
+            path.addLine(to: CGPoint(x: x0, y: y0_1))
+        }, with: .color(a1_color))
+        let filler = (epsi_a1_g.count/2 < Int(rect.width))
+        for i in stride(from: 2, to: epsi_a1_g.count, by: 2) {
+            let x1 = dataToX(i)
+            let y1_0 = dataToY(i)
+            let y1_1 = dataToY(i + 1)
+            if filler {
+                context.fill(Path { path in
+                    path.move(to: CGPoint(x: x0, y: y0_0))
+                    path.addLine(to: CGPoint(x: x0, y: y0_1))
+                    path.addLine(to: CGPoint(x: x1, y: y1_1))
+                    path.addLine(to: CGPoint(x: x1, y: y1_0))
+                }, with: .color(a1_color.opacity(0.5)))
+            }
+            context.stroke(Path { path in
+                path.move(to: CGPoint(x: x1, y: y1_0))
+                path.addLine(to: CGPoint(x: x1, y: y1_1))
+            }, with: .color(a1_color), lineWidth: 2)
+            x0 = x1
+            y0_0 = y1_0
+            y0_1 = y1_1
+        }
+    }
+    func connect_and_get_EPSI_data(){
+        do{
+            epsi_udp_server.port = 37020
+            try(epsi_udp_server.start())
+            
+            //prevent app from sleeping,
+            //https://developer.apple.com/documentation/uikit/uiapplication/1623070-isidletimerdisabled
+            UIApplication.shared.isIdleTimerDisabled = true
+
+            //set up event trigger
+            self.epsi_server_src = DispatchSource.makeReadSource(fileDescriptor: epsi_udp_server.server_socket)
+            self.epsi_server_src.setEventHandler {
+                
+                var info = sockaddr_storage()
+                var len = socklen_t(MemoryLayout<sockaddr_storage>.size)
+
+                let s = Int32(self.epsi_server_src.handle)
+                var buffer = [UInt8](repeating:0, count: 5 * 1024)
+                
+                withUnsafeMutablePointer(to: &info, { (pinfo) -> () in
+                    let paddr = UnsafeMutableRawPointer(pinfo).assumingMemoryBound(to: sockaddr.self)
+                    let received = recvfrom(s, &buffer, buffer.count, 0, paddr, &len)
+                    DispatchQueue.main.async {
+                        if received > 0 {
+                            self.epsi_a1_g.removeAll()
+                            self.epsi_a1_val = "NaN"
+                            var i = 0
+                            if received > 4 + 4 + 2 {
+                                let epsi_a1_min = Double(readValue(Float.self, from: &buffer, at: &i))
+                                let epsi_a1_max = Double(readValue(Float.self, from: &buffer, at: &i))
+                                self.epsi_a1_val = String(format: "%.2fg", epsi_a1_max - epsi_a1_min)
+                                let samples = Int(readValue(UInt16.self, from: &buffer, at: &i))
+                                if samples > 0 {
+                                    self.epsi_a1_g = Array(buffer[i..<i+2*samples])
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            serverSources.append(self.epsi_server_src)
+            
+            self.epsi_server_src.resume()
+        }
+        catch{
+            epsi_udp_server.stop()
+            //enable app to sleep after timeout
+            //https://developer.apple.com/documentation/uikit/uiapplication/1623070-isidletimerdisabled
+            UIApplication.shared.isIdleTimerDisabled = false
             print(error)
         }
     }

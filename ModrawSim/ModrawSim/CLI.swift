@@ -45,10 +45,7 @@ struct SimOptions: ParsableArguments {
         let outputUrl = URL(fileURLWithPath: outputFilePath)
         let outputIsDir = outputUrl.isDirectory
         if batchMode {
-            guard outputIsDir != nil else {
-                throw ValidationError("Output folder for batch mode doesn't exist: `\(outputUrl.path)`.")
-            }
-            guard outputIsDir! else {
+            guard !(outputIsDir != nil && !outputIsDir!) else {
                 throw ValidationError("Output in batch mode needs to be a folder not a file: `\(outputUrl.path)`")
             }
         } else {
