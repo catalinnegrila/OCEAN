@@ -346,7 +346,12 @@ class udp_server_t {
             close(self.server_socket)
             throw udp_server_error(err_num: errno)!
         }
-        
+        status = setsockopt(self.server_socket, SOL_SOCKET, SO_REUSEPORT, &optval, socklen_t(MemoryLayout<Int32>.size))
+        if(status < 0){
+            close(self.server_socket)
+            throw udp_server_error(err_num: errno)!
+        }
+
         print("setsockopt")
         status = setsockopt(self.server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         if(status < 0){
@@ -393,7 +398,7 @@ class udp_server_t {
             close(self.server_socket)
             throw udp_server_error(err_num: errno)!
         }
-        
+
     }
     
     func stop() {
@@ -567,6 +572,7 @@ struct ContentView: View {
     @State var sound_effect_2: AVAudioPlayer?
     @State var epsi_a1_val = "disconnected"
     @State var epsi_a1_g = [UInt8]()
+    @State var epsi_a1_g_zero_mark = UInt8(0)
     @State var dz_dt: Double = Double.nan
     @State var dz_dt_filtered: Double = Double.nan
     @State var dz_dt_alpha: Double = 0.15;
@@ -1136,9 +1142,19 @@ struct ContentView: View {
         func dataToX(_ i: Int) -> Double {
             return floor(rect.minX + rect.width * Double(i) / Double(epsi_a1_g.count - 2))
         }
-        func dataToY(_ i: Int) -> Double {
-            return floor(rect.maxY - rect.height * Double(epsi_a1_g[i]) / 255.0)
+        func dataToY(v: UInt8) -> Double {
+            return floor(rect.maxY - rect.height * Double(v) / 255.0)
         }
+        func dataToY(_ i: Int) -> Double {
+            return dataToY(v: epsi_a1_g[i])
+        }
+    
+        context.stroke(Path { path in
+            let y = dataToY(v: self.epsi_a1_g_zero_mark)
+            path.move(to: CGPoint(x: rect.minX, y: y))
+            path.addLine(to: CGPoint(x: rect.maxX, y: y))
+        }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+
         let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)
         var x0 = dataToX(0)
         var y0_0 = dataToY(0)
@@ -1171,7 +1187,7 @@ struct ContentView: View {
     }
     func connect_and_get_EPSI_data(){
         do{
-            epsi_udp_server.port = 37020
+            epsi_udp_server.port = 50211
             try(epsi_udp_server.start())
             
             //prevent app from sleeping,
@@ -1197,12 +1213,14 @@ struct ContentView: View {
                             self.epsi_a1_val = "NaN"
                             var i = 0
                             if received > 4 + 4 + 2 {
-                                let epsi_a1_min = Double(readValue(Float.self, from: &buffer, at: &i))
-                                let epsi_a1_max = Double(readValue(Float.self, from: &buffer, at: &i))
-                                self.epsi_a1_val = String(format: "%.2fg", epsi_a1_max - epsi_a1_min)
+                                self.epsi_a1_val = ""
+                                let minv = Double(readValue(Float.self, from: &buffer, at: &i))
+                                let maxv = Double(readValue(Float.self, from: &buffer, at: &i))
                                 let samples = Int(readValue(UInt16.self, from: &buffer, at: &i))
                                 if samples > 0 {
                                     self.epsi_a1_g = Array(buffer[i..<i+2*samples])
+                                    i += 2*samples
+                                    self.epsi_a1_g_zero_mark = buffer[i]
                                 }
                             }
                         }

@@ -1,8 +1,10 @@
 import os, sys, socket, subprocess, time
 from dataclasses import dataclass
 
-source_dir = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
+source_dir = "/Users/catalin/Documents/OCEAN_data/today/"
 dir_scan_freq = 0.025
+sim_mode = True
+sim_block_size = 512
 
 try:
     import zeroconf
@@ -20,13 +22,13 @@ try:
     def register_MODraw_service(info):
         zc = zeroconf.Zeroconf()
         zc.register_service(info)
-        print('Server registered with mDNS.')
+        print("Server registered with mDNS.")
         return zc
 
     def unregister_MODraw_service(zc, info):
         zc.unregister_service(info)
         zc.close()
-        print('Server unregistered from mDNS.')
+        print("Server unregistered from mDNS.")
 
 except ImportError:
     def get_MODraw_service_info(hostname, IPAddr, port):
@@ -44,16 +46,63 @@ except ImportError:
 class FileInfo:
     path: str
     size: int
+    sim_size: int
     def __init__(self, path):
         self.path = path
-        self.size = os.path.getsize(path)
+        if sim_mode:
+            self.size = 0
+            self.sim_size = os.path.getsize(path)
+        else:
+            self.size = os.path.getsize(path)
+            self.sim_size = 0
+
+sim_all_files = []
+sim_current_file = None
+
+def get_all_files():
+    file_names = [os.path.join(source_dir, f) for f in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, f)) and os.path.splitext(f)[1] == ".modraw"]
+    file_names.sort()
+    return file_names
+
+def restart_simulation():
+    if sim_mode:
+        print("!!!Running in simulator mode!!!")
+        global sim_all_files, sim_current_file_idx, sim_current_file
+        sim_all_files = get_all_files()
+        if len(sim_all_files) == 0:
+            print(f"{source_dir} is empty. Nothing to do.")
+            exit(1)
+        sim_current_file_idx = 0
+        sim_current_file = FileInfo(sim_all_files[sim_current_file_idx])
+        #sim_current_file.size = current_file.sim_size - 250 * 1024
+
+def refresh_most_recent_file(file_path):
+    if sim_mode:
+        global sim_current_file
+        assert(sim_current_file.path == file_path)
+        if sim_current_file.size < sim_current_file.sim_size:
+            new_size = min(sim_current_file.sim_size, sim_current_file.size + sim_block_size)
+            sim_current_file = FileInfo(file_path)
+            sim_current_file.size = new_size
+        return sim_current_file
+    else:
+        return FileInfo(file_path)
 
 def get_most_recent_file_from(dir_path):
-    file_names = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f)) and os.path.splitext(f)[1] == ".modraw"]
-    if len(file_names) > 0:
-        file_names.sort()
-        return FileInfo(file_names[-1])
-    return None
+    if sim_mode:
+        global sim_all_files, sim_current_file_idx, sim_current_file
+        if sim_current_file != None and sim_current_file.size == sim_current_file.sim_size:
+            if sim_current_file_idx < len(sim_all_files) - 1:
+                sim_current_file_idx += 1
+                sim_current_file = FileInfo(sim_all_files[sim_current_file_idx])
+            else:
+                sim_current_file = None
+        return sim_current_file
+    else:
+        all_files = get_all_files()
+        if len(all_files) > 0:
+            return FileInfo(all_files[-1])
+        return None
 
 def format_bytesize(num, suffix="B"):
     if abs(num) < 1024.0:
@@ -64,17 +113,25 @@ def format_bytesize(num, suffix="B"):
         num /= 1024.0
     return f"{num:.1f} Y{suffix}"
 
+def erase_line():
+    columns, _ = os.get_terminal_size()
+    print(" "*columns, end="\r")
+
 def sync_file(src_file, connection, dst_file_size):
-    src_file_name = os.path.basename(src_file.path)
-    with open(src_file.path, 'rb') as src_f:
-        src_f.seek(dst_file_size)
-        block = src_f.read(src_file.size - dst_file_size)
-        if dst_file_size == 0:
-            connection.send(str.encode("!modraw") + block)
-            print(f"  {src_file_name}: new file, initial size {format_bytesize(len(block))}                          ")
-        else:
-            connection.send(block)
-            print(f"  {src_file_name}: current size {format_bytesize(dst_file_size)} appending {len(block)}", end="\r")
+    if src_file.size > dst_file_size:
+        with open(src_file.path, 'rb') as src_f:
+            src_f.seek(dst_file_size)
+            block = src_f.read(src_file.size - dst_file_size)
+            if dst_file_size == 0:
+                print()
+                connection.send(str.encode("!modraw") + block)
+            else:
+                erase_line()
+                connection.send(block)
+            src_file_name = os.path.basename(src_file.path)
+            print(f"  {src_file_name}: size {format_bytesize(dst_file_size)}, last append {len(block)}", end="\r")
+            return True
+    return False
 
 def is_connection_closed(connection) -> bool:
     try:
@@ -93,28 +150,24 @@ def is_connection_closed(connection) -> bool:
 
 def stream_dir(src_dir, connection, dir_scan_freq):
     print(f"Watching {src_dir} for changes... Press Ctrl+C to stop.")
-    most_recent_file = get_most_recent_file_from(src_dir)
-    if most_recent_file != None:
-        sync_file(most_recent_file, connection, 0)
+    most_recent_file = None
     while not is_connection_closed(connection):
         time.sleep(dir_scan_freq)
         most_recent_file_changed = False
         # If we have a file syncing, check if its size has changed
         if most_recent_file != None:
-            new_most_recent_file = FileInfo(most_recent_file.path)
-            if new_most_recent_file.size > most_recent_file.size:
-                sync_file(new_most_recent_file, connection, most_recent_file.size)
+            new_most_recent_file = refresh_most_recent_file(most_recent_file.path)
+            if sync_file(new_most_recent_file, connection, most_recent_file.size):
                 most_recent_file = new_most_recent_file
                 most_recent_file_changed = True
-        # If we don't have any files syncing,
+        # If we don't have a file already syncing,
         # or the currently syncing file hasn't changed
         if not most_recent_file_changed:
             # Has a newer file been created?
             new_most_recent_file = get_most_recent_file_from(src_dir)
-            if new_most_recent_file != None and \
-                (most_recent_file == None or new_most_recent_file.path != most_recent_file.path):
+            if new_most_recent_file != None and new_most_recent_file != most_recent_file:
                 sync_file(new_most_recent_file, connection, 0)
-                most_recent_file = new_most_recent_file
+            most_recent_file = new_most_recent_file
 
 def accept_connection(sock):
     connection,address = sock.accept()  
@@ -124,8 +177,12 @@ def accept_connection(sock):
         print(f"Received invalid request: {buf}")
         print("Connection rejected by the server.")
     else:
-        stream_dir(source_dir, connection, dir_scan_freq)
-        print("Connection completed by the client.                       ")
+        connection.send(str.encode("!reset"))
+        try:
+            stream_dir(source_dir, connection, dir_scan_freq)
+        finally:
+            print("\n")
+        print("Connection completed by the client.")
     connection.close()
 
 def wait_on_socket(IPAddr, port):
@@ -135,21 +192,18 @@ def wait_on_socket(IPAddr, port):
         sock.bind((IPAddr, port))
         sock.listen(5)
         while True:
+            restart_simulation()
             print(f"Waiting for client to connect to tcp://{IPAddr}:{port}...")
             accept_connection(sock)
-    except KeyboardInterrupt:
-        raise # Pipe down the Ctrl+C
-    except Exception as e:
-        print(f"Exception: {e}")
+    except BrokenPipeError:
+        print("Connection closed by the server.")
+    except ConnectionResetError:
+        print("Connection reset by the server.")
     finally:
         sock.close()
         print("Socket closed.")
 
 def get_my_ip(hostname):
-    #ip_addresses = socket.gethostbyname_ex(hostname)[2]
-    #filtered_ips = [ip for ip in ip_addresses if not ip.startswith("127.")]
-    #if len(filtered_ips) > 0:
-    #    return filtered_ips[0]
     result = subprocess.run(["ifconfig"], capture_output=True, text=True)
     for line in result.stdout.splitlines():
         x = line.strip()
@@ -170,8 +224,7 @@ try:
         wait_on_socket(IPAddr, port)
 
 except KeyboardInterrupt:
-    print('Sync stopped.')
+    print("Sync stopped.")
 
 finally:
-    #unregister_MODraw_service(zc, info)
-    pass
+    unregister_MODraw_service(zc, info)

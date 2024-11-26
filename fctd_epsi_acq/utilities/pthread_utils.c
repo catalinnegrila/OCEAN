@@ -312,9 +312,11 @@ void *write_ctd_data_to_file_f(void *arg)
                         CTDpress = fctd_ptr->fish.LatestCTDPress;
                         CTDtemp = fctd_ptr->fish.LatestCTDTemp;
                         CTDcond = fctd_ptr->fish.LatestCTDCond;
+                        EpsiTime = fctd_ptr->fish.LatestEpsiTime;
+                        EpsiA1g = fctd_ptr->fish.LatestA1g;
 //                        CurrentFishData(&(fctd_ptr->fish), &CTDtime, &CTDpress, &CTDtemp, &CTDcond,&AltTime); // old version has altimeter embeded in CTD's string
                         
-                        sprintf(tmp_str, "%lu,%f,%f,%f,%f",CTDtime,CTDpress,CTDtemp,CTDcond,AltTime);
+                        sprintf(tmp_str, "%lu,%f,%f,%f,%f,%f,%f",CTDtime,CTDpress,CTDtemp,CTDcond,AltTime,EpsiTime,EpsiA1g);
                         if((numbytes = u_sendto(fctd_ptr->udp_socket.udpfd,tmp_str,strlen(tmp_str),&fctd_ptr->udp_socket.sockaddInfo))==-1)
                             printf("Can not send CTD out via UDP network\n");
                     }

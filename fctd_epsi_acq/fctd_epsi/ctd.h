@@ -195,6 +195,8 @@ typedef struct
     float LatestCTDTemp;
     float LatestCTDCond;
     unsigned long LatestCTDTime;
+    float LatestEpsiA1;
+    unsigned long LatestEpsiTime;
     int Efelength;    // ADDED mnbui 12Mar21 - length of the EFE's string
     som_rec_t som_cir_buff[MAX_CIRBUFF]; // ADDED ALB
     unsigned int SOM_Write2BufferIndx;

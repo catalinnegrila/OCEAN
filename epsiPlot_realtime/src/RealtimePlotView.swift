@@ -578,10 +578,9 @@ struct RealtimePlotView: View {
             xAxis.append(Double(i) / Double(timeTickCount - 1))
         }
 
-        let time_window = vm.modelProducer!.getTimeWindow(model: vm.model)
         let rd = RenderDataEnv(
             context: context,
-            time_window: time_window,
+            time_window: vm.time_window,
             xAxis: xAxis)
         rd.rect = CGRect(x: hgap + leftLabelsWidth, y: vgap, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
 
@@ -603,7 +602,6 @@ struct RealtimePlotView: View {
             renderCtd_z_dzdt(rd: rd)
         }
 
-        
         let textHeight = context.resolve(Text("00:00:00").font(font)).measure(in: CGSize(width: .max, height: .max)).height
         var y = rd.rect.minY - vgap/2
         // Time labels
@@ -612,7 +610,7 @@ struct RealtimePlotView: View {
             dateFormatter.dateFormat = "HH:mm:ss" // .S for sub-second
             for i in 0..<xAxis.count {
                 let s = xAxis[i]
-                let time_s = (1 - s) * time_window.0 + s * time_window.1
+                let time_s = (1 - s) * vm.time_window.0 + s * vm.time_window.1
                 let date = Date(timeIntervalSince1970: time_s)
                 let label = dateFormatter.string(from: date)
                 

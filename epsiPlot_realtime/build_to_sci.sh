@@ -5,4 +5,5 @@ rm -rf "$TARGET_DIR/$APP_NAME"
 rm -rf bin
 xcodebuild archive
 # brew install coreutils
-gcp -rfLv "bin/Release/$APP_NAME" $TARGET_DIR  
+gcp -rfL "bin/Release/$APP_NAME" $TARGET_DIR
+gcp -rfL "bin/Release/$APP_NAME.dSYM" $TARGET_DIR  

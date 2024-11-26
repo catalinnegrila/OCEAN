@@ -34,28 +34,40 @@ class StreamingSocketModelProducer: StreamingModelProducer {
         print("\(connectionName!): started")
         connection.send(data: "!modraw".data(using: .utf8)!)
     }
+    func stringFrom(bytes: ArraySlice<UInt8>) -> String {
+        var str = ""
+        for byte in bytes {
+            str += String(Character(UnicodeScalar(byte)))
+        }
+        return str
+    }
     fileprivate func onReceiveCallback(model: Model, data: Data?) {
-        if let data = data {
-            let bytes = newByteArrayFrom(data: data)
-            let header = stringFrom(bytes: bytes[0..<7])
+        guard connectionStarted else { return }
+        guard let data = data else { return }
 
-            DispatchQueue.main.async {
-                if header == "!modraw" {
-                    if self.epsiModrawParser != nil {
-                        self.epsiModrawParser!.parse(model: model)
-                    }
-                    model.appendNewFileBoundary()
-                    self.epsiModrawParser = EpsiModrawParser(bytes: bytes[header.count..<bytes.count])
-                } else {
-                    self.epsiModrawParser!.modrawParser.appendData(bytes: bytes[...])
+        let bytes = newByteArrayFrom(data: data)
+        let header = stringFrom(bytes: bytes[0..<min(7, bytes.count)])
+        DispatchQueue.main.async {
+            if header == "!reset" {
+                model.reset()
+            } else if header == "!modraw" {
+                if let epsiModrawParser = self.epsiModrawParser {
+                    epsiModrawParser.parse(model: model)
                 }
-                if bytes.count < 65536 {
-                    self.epsiModrawParser!.parse(model: model)
-                }
+                model.appendNewFileBoundary()
+                self.epsiModrawParser = EpsiModrawParser(bytes: bytes[header.count..<bytes.count])
+            } else if let epsiModrawParser = self.epsiModrawParser {
+                epsiModrawParser.modrawParser.appendData(bytes: bytes[...])
+            }
+            if let epsiModrawParser = self.epsiModrawParser {
+                epsiModrawParser.parse(model: model)
             }
         }
     }
     fileprivate func onStopCallback(model: Model, error: Error?) {
+        DispatchQueue.main.async {
+            self.epsiModrawParser = nil
+        }
         if error == nil {
             if connectionStarted {
                 retryCount += 1
@@ -68,12 +80,5 @@ class StreamingSocketModelProducer: StreamingModelProducer {
         } else {
             print("\(connectionName!): stopped with error: \(error!)")
         }
-    }
-    func stringFrom(bytes: ArraySlice<UInt8>) -> String {
-        var str = ""
-        for byte in bytes {
-            str += String(Character(UnicodeScalar(byte)))
-        }
-        return str
     }
 }

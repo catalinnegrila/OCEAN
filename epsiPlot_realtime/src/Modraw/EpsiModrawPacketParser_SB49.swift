@@ -168,8 +168,6 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
         return sw_sals(Rt: Rt, T: T)
     }
     func sw_dpth(P: Double, LAT: Double) -> Double {
-        assert(LAT >= -90 && LAT <= 90)
-        
         let c1 = +9.72659
         let c2 = -2.2512E-5
         let c3 = +2.279E-10

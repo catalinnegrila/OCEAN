@@ -9,7 +9,7 @@ counter = 0
 while True:
     counter += 1
     message = str.encode(f"your very important message ({counter})")
-    server.sendto(message, ('<broadcast>', 37020))
-    #server.sendto(message, ('255.255.255.255', 37020))
+    server.sendto(message, ('<broadcast>', 50211))
+    #server.sendto(message, ('255.255.255.255', 50211))
     print(f"sending: '{message}'")
     time.sleep(1)

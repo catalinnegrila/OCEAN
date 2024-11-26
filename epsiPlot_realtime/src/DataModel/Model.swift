@@ -45,7 +45,6 @@ class Model {
         mostRecentLatitude = ""
         mostRecentLongitude = ""
         isUpdated = true
-        status = "No data source"
     }
 
     func appendNewFileBoundary() {

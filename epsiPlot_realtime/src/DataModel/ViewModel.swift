@@ -32,8 +32,11 @@ extension Array where Element: TimestampedData {
 /*@Observable */class ViewModel: ObservableObject
 {
     @Published var model = Model()
+    var time_window = (0.0, 0.0)
     var epsi = EpsiViewModelData()
     var ctd = CtdViewModelData()
+    var broadcaster = ViewModelBroadcaster()
+
     var _modelProducer: ModelProducer?
     var modelProducer: ModelProducer? {
         get {
@@ -51,75 +54,13 @@ extension Array where Element: TimestampedData {
             }
         }
     }
-    var server = UdpBroadcastServer()
-    func append<T>(value: T, data: inout [UInt8]) {
-        var v = value
-        withUnsafeBytes(of: &v) {
-            data.append(contentsOf: Array($0))
-        }
-    }
-    var lastBroadcast: TimeInterval = 0
-    func broadcastEpsiData() {
-        if !epsi.time_s.isEmpty {
-            let currentBroadcast = ProcessInfo.processInfo.systemUptime
-            if currentBroadcast - lastBroadcast < 0.1 /*1.0 */{
-                return
-            }
-            lastBroadcast = currentBroadcast
-
-            let duration = 5.0 // seconds
-            let samples = 256
-            let first_time_s = epsi.time_s.last! - duration
-            var i = epsi.time_s.count - 1
-            while i > 0 && epsi.time_s[i] > first_time_s {
-                i -= 1
-            }
-
-            var minv = epsi.a1_g[i]
-            var maxv = epsi.a1_g[i]
-            var samples_f = [(Double, Double)]()
-            samples_f.reserveCapacity(samples)
-            for j in 0..<samples {
-                var sample_minv = epsi.a1_g[i]
-                var sample_maxv = epsi.a1_g[i]
-                let last_time_s = first_time_s + duration * Double(j) / Double(samples - 1)
-                while i < epsi.time_s.count && epsi.time_s[i] < last_time_s {
-                    sample_minv = min(sample_minv, epsi.a1_g[i])
-                    sample_maxv = max(sample_maxv, epsi.a1_g[i])
-                    i += 1
-                }
-                samples_f.append((sample_minv, sample_maxv))
-                minv = min(minv, sample_minv)
-                maxv = max(maxv, sample_maxv)
-            }
-
-            func toByte(_ v: Double) -> UInt8 {
-                return UInt8(255.0 * (v - minv) / (maxv - minv))
-            }
-
-            let header_size = 4 + 4 + 2
-            var buf = Array<UInt8>()
-            buf.reserveCapacity(header_size + 2 * samples)
-            append(value: Float(minv), data: &buf)
-            append(value: Float(maxv), data: &buf)
-            append(value: UInt16(samples), data: &buf)
-            for j in 0..<samples {
-                buf.append(toByte(samples_f[j].0))
-                buf.append(toByte(samples_f[j].1))
-            }
-            
-            server.broadcast(&buf)
-        }
-    }
     func update() -> Bool {
         if let modelProducer = modelProducer {
             if (modelProducer.update(model: model)) {
-                let time_window = modelProducer.getTimeWindow(model: model)
+                time_window = modelProducer.getTimeWindow(model: model)
                 epsi.mergeBlocks(time_window: time_window, blocks: &model.epsi_blocks)
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.ctd_blocks)
-#if DEBUG
-                broadcastEpsiData()
-#endif
+                broadcaster.broadcast(vm: self)
                 return true
             }
         }
