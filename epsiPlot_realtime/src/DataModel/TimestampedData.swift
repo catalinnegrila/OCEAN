@@ -95,3 +95,40 @@ class TimestampedData
         calculateDerivedData(time_window: time_window)
     }
 }
+
+extension Array where Element: TimestampedData {
+    mutating func removeBlocksOlderThan(t0: Double) {
+        while !isEmpty && first!.time_s.last! < t0 {
+            if (count > 1) {
+                self[1].transferOverlappingGapsFrom(prevBlock: self[0])
+            }
+            remove(at: 0)
+        }
+    }
+    func appendSamplesBetween<T: TimestampedData>(t0: Double, t1: Double, data: T) {
+        if (!isEmpty) {
+            data.reserveCapacity(reduce(0) { $0 + $1.time_s.count })
+            for block in self {
+                let slice = block.getTimeSlice(t0: t0, t1: t1)
+                assert(slice != nil)
+                if (slice != nil) {
+                    data.append(from: block, first: slice!.0, count: slice!.1 - slice!.0 + 1)
+                }
+            }
+        }
+    }
+    func getBeginTime() -> Double {
+        return isEmpty ? Double.greatestFiniteMagnitude : first!.time_s.first!
+    }
+    func getEndTime() -> Double {
+        return isEmpty ? 0.0 : last!.time_s.last!
+    }
+    mutating func removeLastBlockIfEmpty() {
+        if !isEmpty {
+            if last!.time_s.isEmpty {
+                removeLast()
+            }
+        }
+    }
+}
+

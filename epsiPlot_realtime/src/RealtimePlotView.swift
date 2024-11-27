@@ -1,10 +1,21 @@
 import SwiftUI
 
+extension Path {
+    mutating func addHLine(y: Double, x0: Double, x1: Double) {
+        move(to: CGPoint(x: x0, y: y))
+        addLine(to: CGPoint(x: x1, y: y))
+    }
+    mutating func addVLine(x: Double, y0: Double, y1: Double) {
+        move(to: CGPoint(x: x, y: y0))
+        addLine(to: CGPoint(x: x, y: y1))
+    }
+}
+
 struct RealtimePlotView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var refreshView = false
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
-    @State var vm: ViewModel
+    @State/*Object*/ var vm: ViewModel
     
     var body: some View {
         VStack {
@@ -56,18 +67,15 @@ struct RealtimePlotView: View {
             // Dashed vertical lines
             context.stroke(Path { path in
                 for i in 0..<rd.xAxis.count {
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
+                    path.addVLine(x: xOffset[i], y0: rc.minY, y1: rc.maxY)
                 }
             }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
             
             // Vertical nubs
             context.stroke(Path { path in
                 for i in 0..<rd.xAxis.count {
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.minY))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.minY + nub))
-                    path.move(to: CGPoint(x: xOffset[i], y: rc.maxY - nub))
-                    path.addLine(to: CGPoint(x: xOffset[i], y: rc.maxY))
+                    path.addVLine(x: xOffset[i], y0: rc.minY, y1: rc.minY + nub)
+                    path.addVLine(x: xOffset[i], y0: rc.maxY - nub, y1: rc.maxY)
                 }
             }, with: .color(.gray), lineWidth: thickLine)
         }
@@ -85,28 +93,24 @@ struct RealtimePlotView: View {
             // Dashed horizontal lines
             context.stroke(Path { path in
                 for i in 0..<yAxis.count {
-                    path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
+                    path.addHLine(y: yOffset[i], x0: rc.minX, x1: rc.maxX)
                 }
             }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
             
             // Horizontal nubs
             context.stroke(Path { path in
                 for i in 0..<yAxis.count {
-                    path.move(to: CGPoint(x: rc.minX, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.minX + nub, y: yOffset[i]))
-                    path.move(to: CGPoint(x: rc.maxX - nub, y: yOffset[i]))
-                    path.addLine(to: CGPoint(x: rc.maxX, y: yOffset[i]))
+                    path.addHLine(y: yOffset[i], x0: rc.minX, x1: rc.minX + nub)
+                    path.addHLine(y: yOffset[i], x0: rc.maxX - nub, x1: rc.maxX)
                 }
             }, with: .color(.gray), lineWidth: thickLine)
             
             // Y-Axis labels
             for i in 0..<yAxis.count {
                 let atX = leftLabels ? rc.minX - textGap : rc.maxX + textGap
-                let anchorX = leftLabels ? 1.0 : 0.0
                 context.draw(Text(String(format: format, yAxis[i])).font(font),
                              at: CGPoint(x: atX, y: yOffset[i]),
-                             anchor: UnitPoint(x: anchorX, y: 0.5))
+                             anchor: leftLabels ? .trailing : .leading)
             }
         }
         
@@ -227,10 +231,8 @@ struct RealtimePlotView: View {
                         if !data[i].isNaN {
                             let x = lerpToX(rc: rc, s: rd.time_f[i])
                             let y = valueToY(rc: rc, yAxis: yAxis, v: data[i])
-                            path.move(to: CGPoint(x: x-1, y: y))
-                            path.addLine(to: CGPoint(x: x+1, y: y))
-                            path.move(to: CGPoint(x: x, y: y-1))
-                            path.addLine(to: CGPoint(x: x, y: y+1))
+                            path.addHLine(y: y, x0: x-1, x1: x+1)
+                            path.addVLine(x: x, y0: y-1, y1: y+1)
                         }
                     }
                 }, with: .color(color), lineWidth: 2)
@@ -251,8 +253,7 @@ struct RealtimePlotView: View {
                             i += 1
                         }
                         if (minY != nil && maxY != nil) {
-                            path.move(to: CGPoint(x: x, y: minY! - 1))
-                            path.addLine(to: CGPoint(x: x, y: maxY! + 1))
+                            path.addVLine(x: x, y0: minY! - 1, y1: maxY! + 1)
                         }
                         if i >= rd.time_f.count {
                             break
@@ -324,10 +325,8 @@ struct RealtimePlotView: View {
             ctx.translateBy(x: from.x, y: from.y)
             ctx.rotate(by: Angle(radians: dir))
             ctx.stroke(Path { path in
-                path.move(to: CGPoint(x: 0, y: 0))
-                path.addLine(to: CGPoint(x: len - head, y: 0))
-            }, with: .color(color),
-                       lineWidth: thick)
+                path.addHLine(y: 0, x0: 0, x1: len - head)
+            }, with: .color(color), lineWidth: thick)
             ctx.fill(Path { path in
                 path.move(to: CGPoint(x: len, y: 0))
                 path.addLine(to: CGPoint(x: len - head, y: head / 2))
@@ -628,20 +627,14 @@ struct RealtimePlotView: View {
                      at: CGPoint(x: 0, y: 0),
                      anchor: .topLeading)
 */
-        var serverState = "not started"
+
         if let server = vm.broadcaster.server {
-            switch server.state {
-            case .Failed:
-                serverState = "sending failed"
-            case .Stopped:
-                serverState = "stopped"
-            case .Sending:
-                serverState = "sending"
+            if server.state == .Failed {
+                context.draw(Text("Broadcasting A1[g] to the winch app failed!")
+                                .font(font).bold().foregroundColor(.red),
+                             at: CGPoint(x: rd.rect.minX, y: y), anchor: .topLeading)
             }
         }
-        context.draw(Text("Broadcast: \(serverState)").font(font).bold(),
-                     at: CGPoint(x: rd.rect.minX, y: y),
-                     anchor: .topLeading)
 
         if vm.model.mostRecentLatitude != "" {
             context.draw(Text("\(vm.model.mostRecentLatitude), \(vm.model.mostRecentLongitude)").font(font).bold(),
@@ -650,7 +643,7 @@ struct RealtimePlotView: View {
             y += textHeight
         }
         
-        if (vm.model.mostRecentLatitudeScientific * vm.model.mostRecentLongitudeScientific != 0.0) {
+        if vm.model.mostRecentLatitudeScientific * vm.model.mostRecentLongitudeScientific != 0.0 {
             let lat = String(format: "%.2f", vm.model.mostRecentLatitudeScientific)
             let lon = String(format: "%.2f", vm.model.mostRecentLongitudeScientific)
             context.draw(Text("lat: \(lat), lon: \(lon)").font(font).bold(),

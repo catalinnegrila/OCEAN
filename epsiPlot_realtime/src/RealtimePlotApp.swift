@@ -17,7 +17,7 @@ struct RealtimePlotApp: App {
     @AppStorage("lastOpenFile") var lastOpenFile : URL?
     @AppStorage("lastOpenFolder") var lastOpenFolder : URL?
     @AppStorage("lastOpenSocket") var lastOpenSocket : URL?
-    @State private var vm = ViewModel()
+    private var vm = ViewModel()
 
     init() {
 #if os(macOS)
@@ -135,26 +135,6 @@ struct RealtimePlotApp: App {
 #endif
             }
 #endif
-/*
-            CommandGroup(before: CommandGroupPlacement.toolbar) {
-                Section {
-                    Picker("CTD.fishflag", selection: $realtimePlotView.viewMode) {
-                        Text("EPSI Mode").tag(EpsiDataModel.Mode.EPSI)
-                        Text("FCTD Mode").tag(EpsiDataModel.Mode.FCTD)
-                    }
-                    .pickerStyle(InlinePickerStyle())
-                    .onChange(of: realtimePlotView.viewMode) { value in
-                        if (epsiDataModel != nil) {
-                            realtimePlotView.viewMode = value
-                            epsiDataModel!.mode = value
-                            epsiDataModel!.updateWindowTitle()
-                            epsiDataModel!.sourceDataChanged = true
-                            print("changed to \(value)")
-                        }
-                    }
-                }
-            }
- */
         }
     }
 }

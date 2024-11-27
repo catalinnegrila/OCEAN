@@ -219,6 +219,6 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
             this_block.S.append(S)
             this_block.z.append(z)
         }
+        model.ctd_blocks.removeLastBlockIfEmpty()
     }
-
 }

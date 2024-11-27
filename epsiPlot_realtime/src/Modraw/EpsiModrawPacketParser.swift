@@ -52,7 +52,6 @@ class EpsiModrawPacketParser {
         if (DEBUG_VALIDATION) {
             print("chksum2: \(packet.parent.peekString(at: packet.payloadEnd, len: packet.parent.PACKET_CHECKSUM_LEN))")
         }
-        
         let actual_data_len = packet.payloadEnd - i
         if (DEBUG_VALIDATION) {
             print("actual_data_len: \(actual_data_len) expectedDataLen: \(getExpectedBlockSize())")
@@ -67,7 +66,9 @@ class EpsiModrawPacketParser {
             return true
         }
         guard prev_time_s < time_s else {
-            print("Dropping \(signature) past sample[\(sample_index)] current timestamp \(time_s) < previous timestamp \(prev_time_s!)")
+            if (sample_index == 0) {
+                print("Dropping \(signature) past sample[\(sample_index)] current timestamp \(time_s) < previous timestamp \(prev_time_s!)")
+            }
             return false
         }
         this_block.checkAndAppendMissingData(t0: prev_time_s, t1: time_s)

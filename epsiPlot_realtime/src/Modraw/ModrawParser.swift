@@ -3,9 +3,10 @@ import Foundation
 class ModrawPacket {
     var timestamp = 0
     var signature = ""
+    var fillerStart = 0
+    var packetStart = 0
     var payloadStart = 0
     var payloadEnd = 0
-    var packetStart = 0
     var packetEnd = 0
 
     let parent: ModrawParser
@@ -17,6 +18,7 @@ class ModrawPacket {
         return NSDate(timeIntervalSince1970: TimeInterval(Double(parent.currentYearOffsetInSeconds) + timestampInSeconds))
     }
     fileprivate func _parsePacket() -> Bool {
+        fillerStart = parent.cursor
         while !parent.atEnd(offset: parent.PACKET_HEADER_LEN) && !parent.isPacketStart(parent.cursor) {
             parent.cursor += 1
         }
@@ -43,8 +45,11 @@ class ModrawPacket {
         payloadStart = parent.cursor
         while !parent.atEnd()
         {
-            // Does this look like a checksum?
-            if parent.isPacketEndChecksum(parent.cursor)
+            let potentialPacketEnd = parent.cursor + parent.PACKET_END_CHECKSUM_LEN
+            // Does this look like a checksum and a new packet beginning?
+            if parent.isPacketEndChecksum(parent.cursor) &&
+                (parent.isPacketStart(potentialPacketEnd) ||
+                 parent.foundMarker(i: potentialPacketEnd, marker: parent.MODRAW_END_MARKER))
             {
                 payloadEnd = parent.cursor
                 parent.cursor += parent.PACKET_END_CHECKSUM_LEN
@@ -99,7 +104,6 @@ class ModrawHeader {
         return nil
     }
 
-    private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
     fileprivate func _parseIntFromKeyValue(line: String) -> Int {
         return Int(line.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
     }
@@ -173,16 +177,16 @@ class ModrawParser {
         }
         return line
     }
-    func foundMarker(_ marker: String) -> Bool {
-        var i = cursor
+    fileprivate let MODRAW_END_MARKER = "%*****START_FCTD_TAILER_END_RUN*****"
+    fileprivate func foundMarker(i: Int, marker: String) -> Bool {
+        var j = i
         for mc in marker {
-            if i >= data.count { return false }
-            if Character(UnicodeScalar(data[i])) != mc { return false }
-            i += 1
+            if j >= data.count { return false }
+            if Character(UnicodeScalar(data[j])) != mc { return false }
+            j += 1
         }
         return true
     }
-
     func parseHeader() -> ModrawHeader? {
         let header = ModrawHeader(parent: self)
         header.headerStart = cursor
@@ -214,7 +218,6 @@ class ModrawParser {
             j += 1
         }
         return j < data.count && data[j] == ModrawParser.ASCII_DOLLAR
-
     }
     let PACKET_CHECKSUM_LEN = 3 // <*><HEX><HEX>
     let PACKET_END_CHECKSUM_LEN = 5 // <*><HEX><HEX><CR><LF>
@@ -265,7 +268,11 @@ class ModrawParser {
         assert(at + len <= data.count)
         var str = ""
         for i in at..<at+len {
-            str += String(Character(UnicodeScalar(data[i])))
+            if (data[i] == 0) {
+                str += "<0>"
+            } else {
+                str += String(Character(UnicodeScalar(data[i])))
+            }
         }
         return str
     }
@@ -298,12 +305,11 @@ class ModrawParser {
         return val
     }
     func parsePacket() -> ModrawPacket? {
-        let originalCursor = cursor
         let p = ModrawPacket(parent: self)
         if p._parsePacket() {
             return p
         } else {
-            cursor = originalCursor
+            cursor = p.fillerStart
             return nil
         }
     }

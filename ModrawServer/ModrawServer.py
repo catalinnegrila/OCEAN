@@ -1,10 +1,18 @@
 import os, sys, socket, subprocess, time
 from dataclasses import dataclass
 
-#source_dir = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
-source_dir = "/Users/catalin/Documents/OCEAN_data/epsi_data/"
+hostname = socket.gethostname()
+port = 31415
+
+current_cruise_path = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
+if os.path.exists(current_cruise_path):
+    source_dir = current_cruise_path
+    sim_mode = False
+else:
+    source_dir = "/Users/catalin/Documents/OCEAN_data/Freeze/"
+    sim_mode = (hostname == "Catalins-MacBook-Pro.local")
+
 dir_scan_freq = 0.025
-sim_mode = (socket.gethostname() == "Catalins-MacBook-Pro.local")
 sim_block_size = 512
 
 try:
@@ -123,14 +131,15 @@ def sync_file(src_file, connection, dst_file_size):
         with open(src_file.path, 'rb') as src_f:
             src_f.seek(dst_file_size)
             block = src_f.read(src_file.size - dst_file_size)
-            if dst_file_size == 0:
-                print()
-                connection.send(str.encode("!modraw") + block)
-            else:
-                erase_line()
-                connection.send(block)
             src_file_name = os.path.basename(src_file.path)
-            print(f"  {src_file_name}: size {format_bytesize(dst_file_size)}, last append {len(block)}", end="\r")
+            status = f"  {src_file_name}: size {format_bytesize(dst_file_size)}, last append {len(block)}"
+            if dst_file_size == 0:
+                connection.send(str.encode("!modraw") + block)
+                print(status)
+            else:
+                connection.send(block)
+                columns, _ = os.get_terminal_size()
+                print("\033[1F" + status + " "*(columns - len(status)))
             return True
     return False
 
@@ -144,9 +153,6 @@ def is_connection_closed(connection) -> bool:
         return False  # socket is open and reading from it would block
     except ConnectionResetError:
         return True  # socket was closed for some other reason
-    except Exception as e:
-        print(f"Unexpected exception: {e}")
-        return False
     return False
 
 def stream_dir(src_dir, connection, dir_scan_freq):
@@ -159,16 +165,17 @@ def stream_dir(src_dir, connection, dir_scan_freq):
         if most_recent_file != None:
             new_most_recent_file = refresh_most_recent_file(most_recent_file.path)
             if sync_file(new_most_recent_file, connection, most_recent_file.size):
-                most_recent_file = new_most_recent_file
+                most_recent_file.size = new_most_recent_file.size
                 most_recent_file_changed = True
         # If we don't have a file already syncing,
         # or the currently syncing file hasn't changed
         if not most_recent_file_changed:
             # Has a newer file been created?
             new_most_recent_file = get_most_recent_file_from(src_dir)
-            if new_most_recent_file != None and new_most_recent_file != most_recent_file:
+            if new_most_recent_file != None and \
+                (most_recent_file == None or new_most_recent_file.path != most_recent_file.path):
                 sync_file(new_most_recent_file, connection, 0)
-            most_recent_file = new_most_recent_file
+                most_recent_file = new_most_recent_file
 
 def accept_connection(sock):
     connection,address = sock.accept()  
@@ -179,11 +186,7 @@ def accept_connection(sock):
         print("Connection rejected by the server.")
     else:
         connection.send(str.encode("!reset"))
-        try:
-            stream_dir(source_dir, connection, dir_scan_freq)
-        finally:
-            print("\n")
-        print("Connection completed by the client.")
+        stream_dir(source_dir, connection, dir_scan_freq)
     connection.close()
 
 def wait_on_socket(IPAddr, port):
@@ -193,16 +196,19 @@ def wait_on_socket(IPAddr, port):
         sock.bind((IPAddr, port))
         sock.listen(5)
         while True:
+            print()
             restart_simulation()
             print(f"Waiting for client to connect to tcp://{IPAddr}:{port}...")
             accept_connection(sock)
-    except BrokenPipeError:
-        print("Connection closed by the server.")
-    except ConnectionResetError:
-        print("Connection reset by the server.")
+    except BrokenPipeError as e:
+        print(f"Connection closed. {e}")
+    except ConnectionResetError as e:
+        print(f"Connection closed. {e}")
+    except KeyboardInterrupt:
+        print("\r  ")
+        raise
     finally:
         sock.close()
-        print("Socket closed.")
 
 def get_my_ip(hostname):
     result = subprocess.run(["ifconfig"], capture_output=True, text=True)
@@ -214,11 +220,8 @@ def get_my_ip(hostname):
                 return ip
     return "127.0.0.1"
 
-hostname = socket.gethostname()
-IPAddr = get_my_ip(hostname)
-port = 31415
-
 try:
+    IPAddr = get_my_ip(hostname)
     info = get_MODraw_service_info(hostname, IPAddr, port)
     zc = register_MODraw_service(info)
     while True:

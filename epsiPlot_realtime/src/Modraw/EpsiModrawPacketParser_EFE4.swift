@@ -97,5 +97,6 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             this_block.a2_g.append(calculateG(volt: a2_volt))
             this_block.a3_g.append(calculateG(volt: a3_volt))
         }
+        model.epsi_blocks.removeLastBlockIfEmpty()
     }
 }
