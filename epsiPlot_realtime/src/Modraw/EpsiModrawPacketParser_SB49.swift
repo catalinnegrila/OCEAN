@@ -28,29 +28,29 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
     var sbe_cal_cpcor = 0.0
     var PCodeData_lat = 0.0
     override func parse(header: ModrawHeader) {
-        sbe_cal_ta0 = header.getKeyValueDouble(key: "\nTA0=")
-        sbe_cal_ta1 = header.getKeyValueDouble(key: "\nTA1=")
-        sbe_cal_ta2 = header.getKeyValueDouble(key: "\nTA2=")
-        sbe_cal_ta3 = header.getKeyValueDouble(key: "\nTA3=")
-        sbe_cal_pa0 = header.getKeyValueDouble(key: "\nPA0=")
-        sbe_cal_pa1 = header.getKeyValueDouble(key: "\nPA1=")
-        sbe_cal_pa2 = header.getKeyValueDouble(key: "\nPA2=")
-        sbe_cal_ptempa0 = header.getKeyValueDouble(key: "\nPTEMPA0=")
-        sbe_cal_ptempa1 = header.getKeyValueDouble(key: "\nPTEMPA1=")
-        sbe_cal_ptempa2 = header.getKeyValueDouble(key: "\nPTEMPA2=")
-        sbe_cal_ptca0 = header.getKeyValueDouble(key: "\nPTCA0=")
-        sbe_cal_ptca1 = header.getKeyValueDouble(key: "\nPTCA1=")
-        sbe_cal_ptca2 = header.getKeyValueDouble(key: "\nPTCA2=")
-        sbe_cal_ptcb0 = header.getKeyValueDouble(key: "\nPTCB0=")
-        sbe_cal_ptcb1 = header.getKeyValueDouble(key: "\nPTCB1=")
-        sbe_cal_ptcb2 = header.getKeyValueDouble(key: "\nPTCB2=")
-        sbe_cal_cg = header.getKeyValueDouble(key: "\nCG=")
-        sbe_cal_ch = header.getKeyValueDouble(key: "\nCH=")
-        sbe_cal_ci = header.getKeyValueDouble(key: "\nCI=")
-        sbe_cal_cj = header.getKeyValueDouble(key: "\nCJ=")
-        sbe_cal_ctcor = header.getKeyValueDouble(key: "\nCTCOR=")
-        sbe_cal_cpcor = header.getKeyValueDouble(key: "\nCPCOR=")
-        PCodeData_lat = header.getKeyValueDouble(key: "\nPCodeData.lat =")
+        sbe_cal_ta0 = header.getValueForKeyAsDouble("TA0") ?? 8.966051e-004
+        sbe_cal_ta1 = header.getValueForKeyAsDouble("TA1") ?? 2.679749e-004
+        sbe_cal_ta2 = header.getValueForKeyAsDouble("TA2") ?? -6.163411e-007
+        sbe_cal_ta3 = header.getValueForKeyAsDouble("TA3") ?? 1.421661e-007
+        sbe_cal_pa0 = header.getValueForKeyAsDouble("PA0") ?? -3.118436e+000
+        sbe_cal_pa1 = header.getValueForKeyAsDouble("PA1") ?? 8.882233e-003
+        sbe_cal_pa2 = header.getValueForKeyAsDouble("PA2") ?? -1.613100e-010
+        sbe_cal_ptempa0 = header.getValueForKeyAsDouble("PTEMPA0") ?? -6.404567e+001
+        sbe_cal_ptempa1 = header.getValueForKeyAsDouble("PTEMPA1") ?? 5.531468e+001
+        sbe_cal_ptempa2 = header.getValueForKeyAsDouble("PTEMPA2") ?? -1.148773e+000
+        sbe_cal_ptca0 = header.getValueForKeyAsDouble("PTCA0") ?? 5.245131e+005
+        sbe_cal_ptca1 = header.getValueForKeyAsDouble("PTCA1") ?? -2.821193e+001
+        sbe_cal_ptca2 = header.getValueForKeyAsDouble("PTCA2") ?? 5.771249e-001
+        sbe_cal_ptcb0 = header.getValueForKeyAsDouble("PTCB0") ?? 2.517913e+001
+        sbe_cal_ptcb1 = header.getValueForKeyAsDouble("PTCB1") ?? 1.825000e-003
+        sbe_cal_ptcb2 = header.getValueForKeyAsDouble("PTCB2") ?? 0.000000e+000
+        sbe_cal_cg = header.getValueForKeyAsDouble("CG") ?? -9.797148e-001
+        sbe_cal_ch = header.getValueForKeyAsDouble("CH") ?? 1.247451e-001
+        sbe_cal_ci = header.getValueForKeyAsDouble("CI") ?? -1.115099e-004
+        sbe_cal_cj = header.getValueForKeyAsDouble("CJ") ?? 2.674915e-005
+        sbe_cal_ctcor = header.getValueForKeyAsDouble("CTCOR") ?? 3.250000e-006
+        sbe_cal_cpcor = header.getValueForKeyAsDouble("CPCOR") ?? -9.570000e-008
+        PCodeData_lat = header.getValueForKeyAsDouble("PCodeData.lat") ?? 0.0
     }
     let sbe_recs_per_block = 2
     let sbe_timestamp_len = 16
@@ -63,17 +63,17 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
         return sbe_block_rec_len() * sbe_recs_per_block
     }
     func parseSbeTimestamp(packet: ModrawPacket, i: inout Int) -> Double {
-        let time_s = Double(packet.parent.parseHex(start: i, len: sbe_timestamp_len)!) / 1000.0
+        let time_s = Double(packet.parent.peekHex(at: i, len: sbe_timestamp_len)!) / 1000.0
         i += sbe_timestamp_len
         return time_s
     }
     func parseSbeChannel6(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parent.parseHex(start: i, len: sbe_channel6_len)!
+        let channel = packet.parent.peekHex(at: i, len: sbe_channel6_len)!
         i += sbe_channel6_len
         return Int(channel)
     }
     func parseSbeChannel4(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parent.parseHex(start: i, len: sbe_channel4_len)!
+        let channel = packet.parent.peekHex(at: i, len: sbe_channel4_len)!
         i += sbe_channel4_len
         return Int(channel)
     }
@@ -193,14 +193,18 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
         } else {
             this_block = prev_block!
         }
-        for _ in 0..<sbe_recs_per_block {
+        for j in 0..<sbe_recs_per_block {
             let time_s = parseSbeTimestamp(packet: packet, i: &i)
-            this_block.time_s.append(time_s)
 
             let T_raw = parseSbeChannel6(packet: packet, i: &i)
             let C_raw = parseSbeChannel6(packet: packet, i: &i)
             let P_raw = parseSbeChannel6(packet: packet, i: &i)
             let PT_raw = parseSbeChannel4(packet: packet, i: &i)
+            i += 2 // skip the <CR><LF>
+
+            if !isValidSample(this_block: this_block, sample_index: j, prev_time_s: &prev_time_s, time_s: time_s) {
+                continue
+            }
 
             let T = sbe49_get_temperature(T_raw: T_raw)
             let P = sbe49_get_pressure(P_raw: P_raw, PT_raw: PT_raw)
@@ -208,17 +212,12 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
             let sbe_c3515 = 42.914
             let S = sw_salt(cndr: max(C, 0.0) * 10.0 / sbe_c3515, T: T, P: P);
             let z = sw_dpth(P: P, LAT: PCodeData_lat)
+
+            this_block.time_s.append(time_s)
             this_block.P.append(P)
             this_block.T.append(T)
             this_block.S.append(S)
             this_block.z.append(z)
-
-            if (prev_time_s != nil) {
-                this_block.checkAndAppendMissingData(t0: prev_time_s!, t1: time_s)
-            }
-            prev_time_s = time_s
-
-            i += 2 // skip the <CR><LF>
         }
     }
 

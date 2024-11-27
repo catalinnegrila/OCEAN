@@ -6,7 +6,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     var deployment_type: Model.DeploymentType = .EPSI
     override func parse(header: ModrawHeader) {
         let key = "CTD.fishflag"
-        let fishflag = header.getKeyValueString(key: "\n\(key)=")
+        let fishflag = header.getValueForKeyAsString(key) ?? "'EPSI'"
         deployment_type = Model.DeploymentType.from(fishflag: fishflag)
     }
 
@@ -38,12 +38,12 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
         return (volt - efe_acc_offset) / efe_acc_factor
     }
     func parseEfeTimestamp(packet: ModrawPacket, i: inout Int) -> Double {
-        let time_s = Double(packet.parent.parseBinBE(start: i, len: efe_timestamp_len)) / 1000.0
+        let time_s = Double(packet.parent.peekBinBE(at: i, len: efe_timestamp_len)) / 1000.0
         i += efe_timestamp_len
         return time_s
     }
     func parseEfeChannel(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = Int(packet.parent.parseBin(start: i, len: efe_channel_len))
+        let channel = Int(packet.parent.peekBinLE(at: i, len: efe_channel_len))
         i += efe_channel_len
         return channel
     }
@@ -62,7 +62,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             this_block = prev_block!
         }
 
-        for _ in 0..<efe_recs_per_block {
+        for j in 0..<efe_recs_per_block {
             let time_s = parseEfeTimestamp(packet: packet, i: &i)
             let t1_count = parseEfeChannel(packet: packet, i: &i)
             let t2_count = parseEfeChannel(packet: packet, i: &i)
@@ -72,10 +72,9 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             let a2_count = parseEfeChannel(packet: packet, i: &i)
             let a3_count = parseEfeChannel(packet: packet, i: &i)
 
-            if (prev_time_s != nil) {
-                this_block.checkAndAppendMissingData(t0: prev_time_s!, t1: time_s)
+            if !isValidSample(this_block: this_block, sample_index: j, prev_time_s: &prev_time_s, time_s: time_s) {
+                continue
             }
-            prev_time_s = time_s
 
             this_block.time_s.append(time_s)
             this_block.t1_volt.append(unipolar(FR: t_FR, data: t1_count))

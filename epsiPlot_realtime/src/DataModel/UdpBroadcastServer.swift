@@ -3,6 +3,10 @@ import Darwin
 class UdpBroadcastServer {
     fileprivate let server_socket: Int32
     fileprivate var server_address = sockaddr_in()
+    enum State {
+        case Sending, Stopped, Failed
+    }
+    var state: State = .Stopped
 
     init?(port: UInt16) {
         server_address.sin_len = __uint8_t(MemoryLayout<sockaddr_in>.size)
@@ -40,9 +44,11 @@ class UdpBroadcastServer {
             }
         }
         let result = sendto(server_socket, &buf, buf.count, 0, &server_address_sockaddr, socklen_t(MemoryLayout<sockaddr_in>.size))
-        assert(result == buf.count)
         if result < buf.count {
             print("Broadcast failed: \(result) of \(buf.count) bytes")
+            state = .Failed
+        } else {
+            state = .Sending
         }
     }
 }

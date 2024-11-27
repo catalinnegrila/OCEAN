@@ -1,9 +1,10 @@
 import os, sys, socket, subprocess, time
 from dataclasses import dataclass
 
-source_dir = "/Users/catalin/Documents/OCEAN_data/today/"
+#source_dir = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
+source_dir = "/Users/catalin/Documents/OCEAN_data/epsi_data/"
 dir_scan_freq = 0.025
-sim_mode = True
+sim_mode = (socket.gethostname() == "Catalins-MacBook-Pro.local")
 sim_block_size = 512
 
 try:

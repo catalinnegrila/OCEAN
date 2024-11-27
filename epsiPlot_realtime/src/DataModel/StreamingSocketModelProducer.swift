@@ -42,12 +42,11 @@ class StreamingSocketModelProducer: StreamingModelProducer {
         return str
     }
     fileprivate func onReceiveCallback(model: Model, data: Data?) {
-        guard connectionStarted else { return }
         guard let data = data else { return }
-
-        let bytes = newByteArrayFrom(data: data)
-        let header = stringFrom(bytes: bytes[0..<min(7, bytes.count)])
         DispatchQueue.main.async {
+            guard self.connectionStarted else { return }
+            let bytes = newByteArrayFrom(data: data)
+            let header = self.stringFrom(bytes: bytes[0..<min(7, bytes.count)])
             if header == "!reset" {
                 model.reset()
             } else if header == "!modraw" {

@@ -208,7 +208,7 @@ fileprivate class MatFile {
 
         default:
             print("ERROR: Unsupported string encoding: \(String(describing: encoding)) value '\(str)'")
-            assert(false)
+            assertionFailure()
         }
         return str
     }
@@ -298,7 +298,7 @@ fileprivate class MatFile {
             
         default:
             print("Unsupported type: \(String(describing: dataType))")
-            assert(false)
+            assertionFailure()
             return { 0.0 }
         }
     }
@@ -372,7 +372,7 @@ fileprivate class MatNamespaceParser {
             default:
                 print("ERROR: Unsupported root data element!")
                 element.print(force: true)
-                assert(false)
+                assertionFailure()
                 //mat.skip(element.numberOfBytes)
             }
         }

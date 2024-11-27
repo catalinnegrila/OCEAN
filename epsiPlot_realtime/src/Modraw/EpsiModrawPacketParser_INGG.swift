@@ -27,7 +27,7 @@ class EpsiModrawPacketParser_INGG: EpsiModrawPacketParser {
         return nil
     }
     override func parse(packet: ModrawPacket, model: Model) {
-        let str = packet.parent.parseString(start: packet.payloadStart, len: packet.payloadEnd - packet.payloadStart)
+        let str = packet.parent.peekString(at: packet.payloadStart, len: packet.payloadEnd - packet.payloadStart)
         let comp = str.components(separatedBy: ",")
 
         model.mostRecentLatitudeScientific = toScientific(from: comp[2], cardinal: comp[3]) ?? 0.0

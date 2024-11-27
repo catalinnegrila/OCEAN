@@ -628,6 +628,21 @@ struct RealtimePlotView: View {
                      at: CGPoint(x: 0, y: 0),
                      anchor: .topLeading)
 */
+        var serverState = "not started"
+        if let server = vm.broadcaster.server {
+            switch server.state {
+            case .Failed:
+                serverState = "sending failed"
+            case .Stopped:
+                serverState = "stopped"
+            case .Sending:
+                serverState = "sending"
+            }
+        }
+        context.draw(Text("Broadcast: \(serverState)").font(font).bold(),
+                     at: CGPoint(x: rd.rect.minX, y: y),
+                     anchor: .topLeading)
+
         if vm.model.mostRecentLatitude != "" {
             context.draw(Text("\(vm.model.mostRecentLatitude), \(vm.model.mostRecentLongitude)").font(font).bold(),
                          at: CGPoint(x: rd.rect.maxX, y: y),

@@ -16,41 +16,120 @@ class ModrawPacket {
         let timestampInSeconds = Double(timestamp) / 100.0
         return NSDate(timeIntervalSince1970: TimeInterval(Double(parent.currentYearOffsetInSeconds) + timestampInSeconds))
     }
+    fileprivate func _parsePacket() -> Bool {
+        while !parent.atEnd(offset: parent.PACKET_HEADER_LEN) && !parent.isPacketStart(parent.cursor) {
+            parent.cursor += 1
+        }
+        guard !parent.atEnd() else { return false }
+        packetStart = parent.cursor
+        if (parent.peekByte() == ModrawParser.ASCII_T)
+        {
+            parent.cursor += 1
+            timestamp = 0
+            while !parent.atEnd() && ModrawParser.isDigit(parent.peekByte())
+            {
+                timestamp = timestamp * 10 + Int(parent.peekByte() - ModrawParser.ASCII_0)
+                parent.cursor += 1
+            }
+            guard !parent.atEnd() else { return false }
+        }
+
+        guard parent.peekByte() == ModrawParser.ASCII_DOLLAR &&
+              !parent.atEnd(offset: parent.PACKET_SIGNATURE_LEN) else { return false }
+
+        signature = parent.peekString(at: parent.cursor, len: parent.PACKET_SIGNATURE_LEN)
+        parent.cursor += parent.PACKET_SIGNATURE_LEN
+
+        payloadStart = parent.cursor
+        while !parent.atEnd()
+        {
+            // Does this look like a checksum?
+            if parent.isPacketEndChecksum(parent.cursor)
+            {
+                payloadEnd = parent.cursor
+                parent.cursor += parent.PACKET_END_CHECKSUM_LEN
+                packetEnd = parent.cursor
+                break
+            }
+            else
+            {
+                parent.cursor += 1
+            }
+        }
+        guard packetEnd != 0 else { return false }
+        return true
+    }
 }
 
 class ModrawHeader {
     var headerStart = 0
     var headerEnd = 0
-    var content = ""
+    var lines = [String]()
 
-    func getKeyValueString(key: String) -> String {
-        let indexOfKey = content.index(of: key)
-        if (indexOfKey == nil) {
-            print("Key '\(key)' not found in header!")
-            assert(false)
-            return ""
-        }
-        let indexAfterKey = content.index(indexOfKey!, offsetBy: key.count)
-        let valueOnwards = content[indexAfterKey...]
-        var indexOfCrlf = valueOnwards.index(of: "\r\n")
-        if (indexOfCrlf == nil || indexOfCrlf! > valueOnwards.index(indexAfterKey, offsetBy: 32)) {
-            indexOfCrlf = valueOnwards.index(of: "\n")
-        }
-        if (indexOfCrlf == nil) {
-            print("Unterminated key '\(key)' value '\(valueOnwards)'")
-            assert(false)
-            return ""
-        }
-        return valueOnwards[..<indexOfCrlf!].trimmingCharacters(in: .whitespaces)
+    let parent: ModrawParser
+    fileprivate init(parent: ModrawParser) {
+        self.parent = parent
     }
-    func getKeyValueDouble(key: String) -> Double {
-        let str = getKeyValueString(key: key)
-        if let v = Double(str) {
-            return v
+
+    func getValueForKeyAsString(_ key: String) -> String? {
+        var value:String?
+        for line in lines {
+            let comp = line.components(separatedBy: "=")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            if comp.count == 2 && comp[0] == key {
+                value = comp[1]
+                break
+            }
         }
-        print("Invalid numeric value for \(key): \(str)")
-        assert(false)
-        return 0
+        if let value {
+            return value
+        } else {
+            print("Key '\(key)' not found in header!")
+            return nil
+        }
+    }
+    func getValueForKeyAsDouble(_ key: String) -> Double? {
+        if let str = getValueForKeyAsString(key) {
+            if let v = Double(str) {
+                return v
+            } else {
+                print("Invalid numeric value for \(key): \(str)")
+            }
+        }
+        return nil
+    }
+
+    private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
+    fileprivate func _parseIntFromKeyValue(line: String) -> Int {
+        return Int(line.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+    }
+    fileprivate func _parseHeader(header: ModrawHeader) -> Bool {
+        var line = parent.parseLine()
+        guard line != nil else { return false }
+        guard line!.starts(with: "header_file_size_inbytes =") else { return false }
+        header.lines.append(line!)
+        
+        line = parent.parseLine()
+        guard line != nil else { return false }
+        guard line!.starts(with: "TOTAL_HEADER_LINES =") else { return false }
+        header.lines.append(line!)
+        
+        line = parent.parseLine()
+        guard line != nil else { return false }
+        guard line!.contains("****START_FCTD_HEADER_START_RUN****") else { return false }
+        header.lines.append(line!)
+        
+        repeat {
+            line = parent.parseLine()
+            guard line != nil else { return false }
+            if line!.starts(with: "OFFSET_TIME =") {
+                parent.currentYearOffsetInSeconds = _parseIntFromKeyValue(line: line!)
+            }
+            header.lines.append(line!)
+        } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
+
+        header.headerEnd = parent.cursor
+        return true
     }
 }
 
@@ -68,93 +147,46 @@ class ModrawParser {
     }
     init(data: Data) {
         self.data = newByteArrayFrom(data: data)
-    }/*
-    func append(data: Data) {
-        let bytes = newByteArrayFrom(data: data)
-        appendData(bytes: bytes)
-    }*/
+    }
     func appendData(bytes: [UInt8]) {
         self.data.append(contentsOf: bytes) //[0..<bytes.count])
     }
     func appendData(bytes: ArraySlice<UInt8>) {
         self.data.append(contentsOf: bytes)
     }
-    func peekByte() -> UInt8? {
-        guard cursor < data.count else { return nil }
+    func atEnd(offset: Int = 0) -> Bool {
+        return cursor + offset >= data.count
+    }
+    func peekByte() -> UInt8 {
         return data[cursor]
     }
-    func parseByte() -> UInt8? {
-        if let byte = peekByte() {
-            cursor = cursor + 1
-            return byte
-        }
-        return nil
-    }
-    func parseChar() -> Character? {
-        if let byte = parseByte() {
-            return Character(UnicodeScalar(byte))
-        }
-        return nil
-    }
     func parseLine() -> String? {
+        guard !atEnd() else { return nil }
         var line = ""
-        var c : Character?
-        repeat {
-            c = parseChar()
-            guard c != nil else { break }
-            line = line + String(c!)
-        } while !(c!.isNewline)
-        guard line.count > 0 else { return nil }
+        while true {
+            let b = peekByte()
+            cursor += 1
+            if b == ModrawParser.ASCII_CR { continue }
+            if b == ModrawParser.ASCII_LF { break }
+            line += String(Character(UnicodeScalar(b)))
+            if atEnd() { return nil }
+        }
         return line
     }
     func foundMarker(_ marker: String) -> Bool {
-        let oldCursor = cursor
-        defer { cursor = oldCursor }
+        var i = cursor
         for mc in marker {
-            let c = parseChar()
-            if c == nil || c! != mc {
-                return false
-            }
+            if i >= data.count { return false }
+            if Character(UnicodeScalar(data[i])) != mc { return false }
+            i += 1
         }
         return true
     }
 
-    private let endMarker = "%*****START_FCTD_TAILER_END_RUN*****"
-    fileprivate func _parseIntFromKeyValue(line: String) -> Int {
-        return Int(line.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
-    }
-    fileprivate func _parseHeader(header: ModrawHeader) -> Bool {
-        var line = parseLine()
-        guard line != nil else { return false }
-        guard line!.starts(with: "header_file_size_inbytes =") else { return false }
-        header.content += line!
-        
-        line = parseLine()
-        guard line != nil else { return false }
-        guard line!.starts(with: "TOTAL_HEADER_LINES =") else { return false }
-        header.content += line!
-        
-        line = parseLine()
-        guard line != nil else { return false }
-        guard line!.contains("****START_FCTD_HEADER_START_RUN****") else { return false }
-        header.content += line!
-        
-        repeat {
-            line = parseLine()
-            guard line != nil else { return false }
-            if line!.starts(with: "OFFSET_TIME =") {
-                currentYearOffsetInSeconds = _parseIntFromKeyValue(line: line!)
-            }
-            header.content += line!
-        } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
-
-        header.headerEnd = cursor
-        return true
-    }
     func parseHeader() -> ModrawHeader? {
-        let header = ModrawHeader()
+        let header = ModrawHeader(parent: self)
         header.headerStart = cursor
-        if _parseHeader(header: header) {
+        if header._parseHeader(header: header) {
             cursor = header.headerEnd
             return header
         } else {
@@ -229,37 +261,37 @@ class ModrawParser {
                 (c >= ASCII_a && c <= ASCII_f) ||
                 (c >= ASCII_A && c <= ASCII_F)
     }
-    public func parseString(start: Int, len: Int) -> String {
-        assert(start + len <= data.count)
+    public func peekString(at: Int, len: Int) -> String {
+        assert(at + len <= data.count)
         var str = ""
-        for i in start..<start+len {
+        for i in at..<at+len {
             str += String(Character(UnicodeScalar(data[i])))
         }
         return str
     }
-    public func parseHex(start: Int, len: Int) -> UInt64? {
-        let str = parseString(start: start, len: len)
+    public func peekHex(at: Int, len: Int) -> UInt64? {
+        let str = peekString(at: at, len: len)
         return UInt64(str, radix: 16)
     }
-    public func parseBin(start: Int, len: Int) -> UInt64 {
+    public func peekBinLE(at: Int, len: Int) -> UInt64 {
         assert(len <= 8)
         var val = UInt64(0)
         var p256 = UInt64(1)
-        for i in stride(from: start+len, to: start,  by: -1) {
+        for i in stride(from: at+len, to: at,  by: -1) {
             val += UInt64(data[i-1]) * p256
-            if (i > start + 1) {
+            if (i > at + 1) {
                 p256 *= 256
             }
         }
         return val
     }
-    public func parseBinBE(start: Int, len: Int) -> UInt64 {
+    public func peekBinBE(at: Int, len: Int) -> UInt64 {
         assert(len <= 8)
         var val = UInt64(0)
         var p256 = UInt64(1)
-        for i in start..<start+len {
+        for i in at..<at+len {
             val += UInt64(data[i]) * p256
-            if (i < start + len - 1) {
+            if (i < at + len - 1) {
                 p256 *= 256
             }
         }
@@ -268,55 +300,12 @@ class ModrawParser {
     func parsePacket() -> ModrawPacket? {
         let originalCursor = cursor
         let p = ModrawPacket(parent: self)
-        if _parsePacket(p: p) {
+        if p._parsePacket() {
             return p
         } else {
             cursor = originalCursor
             return nil
         }
-    }
-    fileprivate func _parsePacket(p: ModrawPacket) -> Bool {
-        while cursor + PACKET_HEADER_LEN < data.count && !isPacketStart(cursor) {
-            cursor += 1
-        }
-        guard cursor < data.count else { return false }
-        p.packetStart = cursor
-        if (data[cursor] == ModrawParser.ASCII_T)
-        {
-            cursor += 1
-            p.timestamp = 0
-            while cursor < data.count && ModrawParser.isDigit(data[cursor])
-            {
-                p.timestamp = p.timestamp * 10 + Int(data[cursor] - ModrawParser.ASCII_0)
-                cursor += 1
-            }
-            guard cursor < data.count else { return false }
-        }
-
-        guard (data[cursor] == ModrawParser.ASCII_DOLLAR &&
-               cursor + PACKET_SIGNATURE_LEN <= data.count) else { return false }
-
-        p.signature = parseString(start: cursor, len: PACKET_SIGNATURE_LEN)
-        cursor += PACKET_SIGNATURE_LEN
-
-        p.payloadStart = cursor
-        while (cursor < data.count)
-        {
-            // Does this look like a checksum?
-            if isPacketEndChecksum(cursor)
-            {
-                p.payloadEnd = cursor
-                cursor += PACKET_END_CHECKSUM_LEN
-                p.packetEnd = cursor
-                break
-            }
-            else
-            {
-                cursor += 1
-            }
-        }
-        guard p.packetEnd != 0 else { return false }
-        return true
     }
     func rewindPacket(packet: ModrawPacket) {
         cursor = packet.packetStart

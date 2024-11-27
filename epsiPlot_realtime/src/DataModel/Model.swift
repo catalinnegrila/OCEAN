@@ -14,7 +14,7 @@ class Model {
             }
         }
     }
-    
+
     var deploymentType: DeploymentType = .EPSI
     var epsi_blocks = [EpsiModelData]()
     var ctd_blocks = [CtdModelData]()
@@ -37,6 +37,7 @@ class Model {
     }
 
     func reset() {
+        print("model reset")
         deploymentType = .EPSI
         epsi_blocks = [EpsiModelData]()
         ctd_blocks = [CtdModelData]()

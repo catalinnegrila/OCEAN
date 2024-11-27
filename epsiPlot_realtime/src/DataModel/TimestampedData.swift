@@ -69,10 +69,7 @@ class TimestampedData
         }
     }
     func getTimeSlice(t0: Double, t1: Double) -> (Int, Int)? {
-        assert(t0 <= t1)
-        if time_s.isEmpty || time_s.first! > t1 || time_s.last! < t0 {
-            return nil
-        }
+        guard !time_s.isEmpty && t1 >= time_s.first! && t0 <= time_s.last! else { return nil }
         var slice = (0, time_s.count - 1)
         while time_s[slice.0] < t0 {
             slice.0 += 1

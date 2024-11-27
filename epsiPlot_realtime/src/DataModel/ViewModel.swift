@@ -36,6 +36,7 @@ extension Array where Element: TimestampedData {
     var epsi = EpsiViewModelData()
     var ctd = CtdViewModelData()
     var broadcaster = ViewModelBroadcaster()
+    var lastResetCounter = 0
 
     var _modelProducer: ModelProducer?
     var modelProducer: ModelProducer? {
@@ -56,7 +57,7 @@ extension Array where Element: TimestampedData {
     }
     func update() -> Bool {
         if let modelProducer = modelProducer {
-            if (modelProducer.update(model: model)) {
+            if modelProducer.update(model: model) {
                 time_window = modelProducer.getTimeWindow(model: model)
                 epsi.mergeBlocks(time_window: time_window, blocks: &model.epsi_blocks)
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.ctd_blocks)

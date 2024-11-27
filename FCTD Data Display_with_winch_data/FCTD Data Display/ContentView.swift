@@ -572,7 +572,8 @@ struct ContentView: View {
     @State var sound_effect_2: AVAudioPlayer?
     @State var epsi_a1_val = "disconnected"
     @State var epsi_a1_g = [UInt8]()
-    @State var epsi_a1_g_zero_mark = UInt8(0)
+    @State var epsi_a1_g_min = 0.0
+    @State var epsi_a1_g_max = 0.0
     @State var dz_dt: Double = Double.nan
     @State var dz_dt_filtered: Double = Double.nan
     @State var dz_dt_alpha: Double = 0.15;
@@ -665,13 +666,8 @@ struct ContentView: View {
                         VStack(spacing:0){
                             Text("Z Accel")
                                 .custom_title_2()
-                            ZStack {
-                                Canvas{ context, size in
-                                    renderA1(context: context, size: size)
-                                }
-                                TextField("a1_g",text:$epsi_a1_val)
-                                    .custom_text_field_2_title()
-                                    .disabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+                            Canvas{ context, size in
+                                renderA1(context: context, size: size)
                             }
                         }
                         .draw_border()
@@ -1134,56 +1130,126 @@ struct ContentView: View {
         at += size
         return value
     }
+    func vToLerp(v: Double) -> Double {
+        return (v - epsi_a1_g_min) / (epsi_a1_g_max - epsi_a1_g_min)
+    }
+    func lerpToY(s: Double, rect: CGRect) -> Double {
+        return floor(rect.maxY - rect.height * s)
+    }
+    func lerpToX(s: Double, rect: CGRect) -> Double {
+        return floor(rect.minX + rect.width * s)
+    }
+    func dataToX(_ i: Int, rect: CGRect) -> Double {
+        return lerpToX(s: Double(i) / Double(epsi_a1_g.count - 2), rect: rect)
+    }
+    func dataToY(v: UInt8, rect: CGRect) -> Double {
+        return lerpToY(s: Double(v) / 255.0, rect: rect)
+    }
+    func dataToValue(v: UInt8) -> Double {
+        return epsi_a1_g_min + (epsi_a1_g_max - epsi_a1_g_min) * Double(v) / 255.0
+    }
+    func dataToY(_ i: Int, rect: CGRect) -> Double {
+        return dataToY(v: epsi_a1_g[i], rect: rect)
+    }
+    func drawArrow(context: GraphicsContext, from: CGPoint, to: CGPoint, thick: Double, head: Double, color: Color) {
+        let dx = to.x - from.x
+        let dy = to.y - from.y
+        let len = sqrt(dx * dx + dy * dy)
+        let dir = atan2(dy, dx)
+        context.drawLayer { ctx in
+            ctx.translateBy(x: from.x, y: from.y)
+            ctx.rotate(by: Angle(radians: dir))
+            ctx.stroke(Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: len - head, y: 0))
+            }, with: .color(color),
+                       lineWidth: thick)
+            ctx.fill(Path { path in
+                path.move(to: CGPoint(x: len, y: 0))
+                path.addLine(to: CGPoint(x: len - head, y: head / 2))
+                path.addLine(to: CGPoint(x: len - head, y: -head / 2))
+            }, with: .color(color))
+        }
+    }
+    let a1_pos_color = Color(red: 233/255, green: 145/255, blue: 195/255)
+    let a1_neg_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     func renderA1(context: GraphicsContext, size: CGSize) {
-        if (epsi_a1_g.isEmpty) {
-            return
-        }
-        let rect = CGRect(x: 0.0, y: 0.0, width: size.width, height: size.height)
-        func dataToX(_ i: Int) -> Double {
-            return floor(rect.minX + rect.width * Double(i) / Double(epsi_a1_g.count - 2))
-        }
-        func dataToY(v: UInt8) -> Double {
-            return floor(rect.maxY - rect.height * Double(v) / 255.0)
-        }
-        func dataToY(_ i: Int) -> Double {
-            return dataToY(v: epsi_a1_g[i])
-        }
+        guard !epsi_a1_g.isEmpty else { return }
+        let vgap = 5.0
+        let rect = CGRect(x: 0.0, y: 5.0, width: size.width, height: size.height - 2 * vgap)
     
-        context.stroke(Path { path in
-            let y = dataToY(v: self.epsi_a1_g_zero_mark)
-            path.move(to: CGPoint(x: rect.minX, y: y))
-            path.addLine(to: CGPoint(x: rect.maxX, y: y))
-        }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
+        let label_x = lerpToX(s: 0.5, rect: rect)
+        var mark = floor(epsi_a1_g_min)
+        while mark <= ceil(epsi_a1_g_max) {
+            let mark_y = lerpToY(s: vToLerp(v: mark), rect: rect)
 
-        let a1_color = Color(red: 129/255, green: 39/255, blue: 120/255)
-        var x0 = dataToX(0)
-        var y0_0 = dataToY(0)
-        var y0_1 = dataToY(1)
-        context.stroke(Path { path in
-            path.move(to: CGPoint(x: x0, y: y0_0))
-            path.addLine(to: CGPoint(x: x0, y: y0_1))
-        }, with: .color(a1_color))
-        let filler = (epsi_a1_g.count/2 < Int(rect.width))
-        for i in stride(from: 2, to: epsi_a1_g.count, by: 2) {
-            let x1 = dataToX(i)
-            let y1_0 = dataToY(i)
-            let y1_1 = dataToY(i + 1)
-            if filler {
-                context.fill(Path { path in
-                    path.move(to: CGPoint(x: x0, y: y0_0))
-                    path.addLine(to: CGPoint(x: x0, y: y0_1))
-                    path.addLine(to: CGPoint(x: x1, y: y1_1))
-                    path.addLine(to: CGPoint(x: x1, y: y1_0))
-                }, with: .color(a1_color.opacity(0.5)))
-            }
+            let style = mark - floor(mark) > 0.0 ?
+                        StrokeStyle(lineWidth: 0.5, dash: [5]) :
+                        StrokeStyle(lineWidth: 2.0)
             context.stroke(Path { path in
-                path.move(to: CGPoint(x: x1, y: y1_0))
-                path.addLine(to: CGPoint(x: x1, y: y1_1))
-            }, with: .color(a1_color), lineWidth: 2)
-            x0 = x1
-            y0_0 = y1_0
-            y0_1 = y1_1
+                path.move(to: CGPoint(x: rect.minX, y: mark_y))
+                path.addLine(to: CGPoint(x: rect.maxX, y: mark_y))
+            }, with: .color(.gray), style: style)
+
+            let anchor:UnitPoint = (rect.maxY - mark_y) < 10.0 ? .bottom : .top
+            context.draw(Text(String(format: "%.1f", mark)).foregroundColor(.gray),
+                         at: CGPoint(x: label_x, y: mark_y),
+                         anchor: anchor)
+            if mark == 0.0 {
+                let arrow_x = rect.maxX - 10.0
+                let arrow_len = 50.0
+                let arrow_thick = 10.0
+                let arrow_head = 20.0
+                let arrow_gap = 2.0
+                var arrow_y = mark_y
+                var hideUpArrow = false
+                var hideDownArrow = false
+                if mark_y < rect.minY {
+                    arrow_y = max(mark_y, rect.minY)
+                    hideUpArrow = true
+                }
+                if mark_y > rect.maxY {
+                    arrow_y = min(mark_y, rect.maxY)
+                    hideDownArrow = true
+                }
+                if !hideUpArrow {
+                    drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y - arrow_gap), to: CGPoint(x: arrow_x, y: arrow_y - arrow_len), thick: arrow_thick, head: arrow_head, color: a1_pos_color)
+                }
+                if !hideDownArrow {
+                    drawArrow(context: context, from: CGPoint(x: arrow_x, y: arrow_y + arrow_gap), to: CGPoint(x: arrow_x, y: arrow_y + arrow_len),    thick: arrow_thick, head: arrow_head, color: a1_neg_color)
+                }
+            }
+            mark += 0.5
         }
+
+        let path = Path { path in
+            path.move(to: CGPoint(x: dataToX(0, rect: rect), y: dataToY(0, rect: rect)))
+            for i in 1..<epsi_a1_g.count {
+                path.addLine(to: CGPoint(x: dataToX(i, rect: rect), y: dataToY(i, rect: rect)))
+            }
+        }
+        let lineWidth = 8.0
+        let zero_y = lerpToY(s: vToLerp(v: 0.0), rect: rect)
+        if (zero_y > rect.minY) {
+            context.drawLayer { ctx in
+                ctx.clip(to: Path(CGRect(x: rect.minX, y: rect.minY - vgap, width: rect.width, height: zero_y - rect.minY + vgap)))
+                ctx.stroke(path, with: .color(a1_pos_color), lineWidth: lineWidth)
+            }
+        }
+        if (zero_y < rect.maxY) {
+            context.drawLayer { ctx in
+                ctx.clip(to: Path(CGRect(x: rect.minX, y: zero_y, width: rect.width, height: rect.maxY - zero_y + vgap)))
+                ctx.stroke(path, with: .color(a1_neg_color), lineWidth: lineWidth)
+            }
+        }
+        /*
+        let last_v = dataToValue(v: epsi_a1_g.last!)
+        let last_y = dataToY(v: epsi_a1_g.last!, rect: rect)
+        let anchor:UnitPoint = (rect.maxY - last_y) < 10.0 ? .bottomTrailing : .topTrailing
+        context.draw(Text(String(format: "%.1fg", last_v)).font(.title).bold().foregroundColor(.black),
+                     at: CGPoint(x: rect.maxX, y: last_y),
+                     anchor: anchor)
+         */
     }
     func connect_and_get_EPSI_data(){
         do{
@@ -1210,18 +1276,17 @@ struct ContentView: View {
                     DispatchQueue.main.async {
                         if received > 0 {
                             self.epsi_a1_g.removeAll()
-                            self.epsi_a1_val = "NaN"
-                            var i = 0
+                            self.epsi_a1_val = "no data"
                             if received > 4 + 4 + 2 {
-                                self.epsi_a1_val = ""
-                                let minv = Double(readValue(Float.self, from: &buffer, at: &i))
-                                let maxv = Double(readValue(Float.self, from: &buffer, at: &i))
+                                var i = 0
+                                self.epsi_a1_g_min = Double(readValue(Float.self, from: &buffer, at: &i))
+                                self.epsi_a1_g_max = Double(readValue(Float.self, from: &buffer, at: &i))
                                 let samples = Int(readValue(UInt16.self, from: &buffer, at: &i))
                                 if samples > 0 {
-                                    self.epsi_a1_g = Array(buffer[i..<i+2*samples])
-                                    i += 2*samples
-                                    self.epsi_a1_g_zero_mark = buffer[i]
+                                    self.epsi_a1_g = Array(buffer[i..<i+samples])
+                                    i += samples
                                 }
+                                self.epsi_a1_val = ""
                             }
                         }
                     }

@@ -13,13 +13,14 @@ class EpsiModrawParser {
     init(bytes: ArraySlice<UInt8>) {
         modrawParser = ModrawParser(bytes: bytes)
     }
-    fileprivate func parseHeader(model: Model) {
-        guard let header = modrawParser.parseHeader() else { return }
+    fileprivate func parseHeader(model: Model) -> Bool {
+        guard let header = modrawParser.parseHeader() else { return false }
         for packetParser in packetParsers {
             packetParser.parse(header: header)
         }
-        CTD_fishflag = header.getKeyValueString(key: "\nCTD.fishflag=")
+        CTD_fishflag = header.getValueForKeyAsString("CTD.fishflag") ?? "'EPSI'"
         model.deploymentType = Model.DeploymentType.from(fishflag: CTD_fishflag)
+        return true
     }
     func getHeaderInfo() -> String {
         return CTD_fishflag
@@ -34,7 +35,7 @@ class EpsiModrawParser {
     }
     func parse(model: Model) {
         if modrawParser.cursor == 0 {
-            parseHeader(model: model)
+            guard parseHeader(model: model) else { return }
         }
 
         while true {

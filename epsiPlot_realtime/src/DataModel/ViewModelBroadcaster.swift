@@ -2,8 +2,11 @@ import Foundation
 
 class ViewModelBroadcaster {
     var server = UdpBroadcastServer(port: 50211)
-    var lastBroadcast: TimeInterval = 0
-    var broadcastFreq = 0.1
+    fileprivate var lastBroadcast: TimeInterval = 0
+    fileprivate let broadcastFreq = 0.1
+    fileprivate let duration = 5.0 // seconds
+    fileprivate let num_samples = 5 * 30
+
     func broadcast(vm: ViewModel) {
         guard !vm.epsi.time_s.isEmpty else { return }
         guard let server = server else { return }
@@ -15,41 +18,49 @@ class ViewModelBroadcaster {
         let time_s = vm.epsi.time_s[...]
         let a1_g = vm.epsi.a1_g[...]
 
-        let duration = 5.0 // seconds
-        let samples = 256
         let first_time_s = time_s.last! - duration
         var i = time_s.count - 1
+        var prevNumber = a1_g[i]
         while i > 0 && time_s[i] > first_time_s {
+            if !a1_g[i].isNaN {
+                prevNumber = a1_g[i]
+            }
             i -= 1
         }
 
-        var minv = a1_g[i]
-        var maxv = a1_g[i]
-        var samples_f = [(Double, Double)]()
-        samples_f.reserveCapacity(samples)
-        for j in 0..<samples {
-            var sample_minv = a1_g[i]
-            var sample_maxv = a1_g[i]
-            let last_time_s = first_time_s + duration * Double(j) / Double(samples - 1)
-            while i < time_s.count && time_s[i] < last_time_s {
-                sample_minv = min(sample_minv, a1_g[i])
-                sample_maxv = max(sample_maxv, a1_g[i])
+        let v = a1_g[i].isNaN ? prevNumber : a1_g[i]
+        var minv = v
+        var maxv = v
+        var samples_f = [Double]()
+        samples_f.reserveCapacity(num_samples)
+        for j in 0..<num_samples {
+            let v = a1_g[i].isNaN ? prevNumber : a1_g[i]
+            var sum = v
+            var n = 1
+            let last_time_s = first_time_s + duration * Double(j) / Double(num_samples - 1)
+            while i < time_s.count - 1 && time_s[i] < last_time_s {
                 i += 1
+                let v = a1_g[i].isNaN ? prevNumber : a1_g[i]
+                minv = min(minv, v)
+                maxv = max(maxv, v)
+                prevNumber = v
+                sum += v
+                n += 1
             }
-            samples_f.append((sample_minv, sample_maxv))
-            minv = min(minv, sample_minv)
-            maxv = max(maxv, sample_maxv)
+            samples_f.append(sum / Double(n))
         }
 
-        let midv = min(0.5, max(-0.5, (minv + maxv) / 2.0))
-        maxv = midv + 0.5
-        minv = midv - 0.5
-        
+        let midv = (minv + maxv) / 2.0
+        maxv = max(midv + 0.5, maxv)
+        minv = min(midv - 0.5, minv)
+
         let header_size = 4 + 4 + 2
         var buf = Array<UInt8>()
-        buf.reserveCapacity(header_size + 2 * samples)
+        buf.reserveCapacity(header_size + samples_f.count)
 
         func toByte(_ v: Double) -> UInt8 {
+            guard v > minv else { return UInt8(0) }
+            guard v < maxv else { return UInt8(255) }
             return UInt8(255.0 * (v - minv) / (maxv - minv))
         }
         func append<T>(value: T) {
@@ -61,10 +72,9 @@ class ViewModelBroadcaster {
 
         append(value: Float(minv))
         append(value: Float(maxv))
-        append(value: UInt16(samples))
-        for j in 0..<samples {
-            buf.append(toByte(samples_f[j].0))
-            buf.append(toByte(samples_f[j].1))
+        append(value: UInt16(samples_f.count))
+        for j in 0..<samples_f.count {
+            buf.append(toByte(samples_f[j]))
         }
 
         server.broadcast(&buf)
