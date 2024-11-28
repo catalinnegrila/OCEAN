@@ -7,4 +7,4 @@ client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 client.bind(("", 50211))
 while True:
     data, addr = client.recvfrom(1024)
-    print("received message: %s"%data)
+    print(f"received from {addr} message: %s"%data)

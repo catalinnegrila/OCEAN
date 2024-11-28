@@ -37,6 +37,6 @@ class EpsiModrawPacketParser_INGG: EpsiModrawPacketParser {
     }
     override func isValid(packet: ModrawPacket) -> Bool {
         return (packet.signature == signature) &&
-        packet.parent.data[packet.payloadStart] == ModrawParser.ASCII_A // $INGGA
+        packet.parent.data[packet.payloadStart] == ModrawUtils.ASCII_A // $INGGA
     }
 }

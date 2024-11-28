@@ -317,7 +317,11 @@ class udp_server_t {
         
         server_address.sin_len = __uint8_t(MemoryLayout<sockaddr_in>.size)
         server_address.sin_family = sa_family_t(AF_INET)
+//#if DEBUG
+//        inet_aton("127.0.0.1", &server_address.sin_addr)
+//#else
         server_address.sin_addr.s_addr = in_addr_t((0).bigEndian)
+//#endif
         server_address.sin_port = port.bigEndian
         
         // convert between sockaddr type and sockadd_in type for pointer
@@ -666,8 +670,13 @@ struct ContentView: View {
                         VStack(spacing:0){
                             Text("Z Accel")
                                 .custom_title_2()
-                            Canvas{ context, size in
-                                renderA1(context: context, size: size)
+                            ZStack {
+                                Canvas{ context, size in
+                                    renderA1(context: context, size: size)
+                                }
+                                TextField("",text:$epsi_a1_val)
+                                    .custom_text_field_2_title()
+                                    .disabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
                             }
                         }
                         .draw_border()
@@ -1268,7 +1277,7 @@ struct ContentView: View {
                 var len = socklen_t(MemoryLayout<sockaddr_storage>.size)
 
                 let s = Int32(self.epsi_server_src.handle)
-                var buffer = [UInt8](repeating:0, count: 5 * 1024)
+                var buffer = [UInt8](repeating:0, count: 1024)
                 
                 withUnsafeMutablePointer(to: &info, { (pinfo) -> () in
                     let paddr = UnsafeMutableRawPointer(pinfo).assumingMemoryBound(to: sockaddr.self)

@@ -455,7 +455,7 @@ struct RealtimePlotView: View {
         epsi_rd.rect = CGRect(x: rd.rect.minX, y: rd.rect.minY, width: rd.rect.width, height: rd.rect.height / 2)
         
         let a1_yAxis = rangeToYAxis(range: vm.epsi.a1_g_range)
-        renderGrid(rd: epsi_rd, yAxis: a1_yAxis, leftLabels: true, format: "%.1f")
+        renderGrid(rd: epsi_rd, yAxis: a1_yAxis, leftLabels: false, format: "%.1f")
         render1D(rd: epsi_rd, yAxis: vm.epsi.a1_g_range, data: &vm.epsi.a1_g, color: a1_color)
         if (vm.epsi.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: epsi_rd.rect, labels: [(a1_color, "z")])
@@ -466,7 +466,7 @@ struct RealtimePlotView: View {
         let epsi_a23_g_range = minmax(v1: vm.epsi.a2_g_range, v2: vm.epsi.a3_g_range)
         
         let a23_yAxis = rangeToYAxis(range: epsi_a23_g_range)
-        renderGrid(rd: epsi_rd, yAxis: a23_yAxis, leftLabels: false, format: "%.1f")
+        renderGrid(rd: epsi_rd, yAxis: a23_yAxis, leftLabels: true, format: "%.1f")
         render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: &vm.epsi.a2_g, color: a2_color)
         render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: &vm.epsi.a3_g, color: a3_color)
         if (vm.epsi.time_s.count > 0) {

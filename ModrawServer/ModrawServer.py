@@ -9,7 +9,7 @@ if os.path.exists(current_cruise_path):
     source_dir = current_cruise_path
     sim_mode = False
 else:
-    source_dir = "/Users/catalin/Documents/OCEAN_data/Freeze/"
+    source_dir = "/Users/catalin/Documents/OCEAN_data/epsi_data/"
     sim_mode = (hostname == "Catalins-MacBook-Pro.local")
 
 dir_scan_freq = 0.025
@@ -73,11 +73,12 @@ def get_all_files():
     file_names.sort()
     return file_names
 
-def restart_simulation():
+def restart_simulation(connection):
     if sim_mode:
-        print("!!!Running in simulator mode!!!")
+        connection.send(str.encode("!reset"))
         global sim_all_files, sim_current_file_idx, sim_current_file
         sim_all_files = get_all_files()
+        print(f"Restarting simulation with {len(sim_all_files)} file(s)")
         if len(sim_all_files) == 0:
             print(f"{source_dir} is empty. Nothing to do.")
             exit(1)
@@ -97,7 +98,7 @@ def refresh_most_recent_file(file_path):
     else:
         return FileInfo(file_path)
 
-def get_most_recent_file_from(dir_path):
+def get_most_recent_file_from(dir_path, connection):
     if sim_mode:
         global sim_all_files, sim_current_file_idx, sim_current_file
         if sim_current_file != None and sim_current_file.size == sim_current_file.sim_size:
@@ -105,7 +106,7 @@ def get_most_recent_file_from(dir_path):
                 sim_current_file_idx += 1
                 sim_current_file = FileInfo(sim_all_files[sim_current_file_idx])
             else:
-                sim_current_file = None
+                restart_simulation(connection)
         return sim_current_file
     else:
         all_files = get_all_files()
@@ -157,6 +158,7 @@ def is_connection_closed(connection) -> bool:
 
 def stream_dir(src_dir, connection, dir_scan_freq):
     print(f"Watching {src_dir} for changes... Press Ctrl+C to stop.")
+    restart_simulation(connection)
     most_recent_file = None
     while not is_connection_closed(connection):
         time.sleep(dir_scan_freq)
@@ -171,7 +173,7 @@ def stream_dir(src_dir, connection, dir_scan_freq):
         # or the currently syncing file hasn't changed
         if not most_recent_file_changed:
             # Has a newer file been created?
-            new_most_recent_file = get_most_recent_file_from(src_dir)
+            new_most_recent_file = get_most_recent_file_from(src_dir, connection)
             if new_most_recent_file != None and \
                 (most_recent_file == None or new_most_recent_file.path != most_recent_file.path):
                 sync_file(new_most_recent_file, connection, 0)
@@ -197,7 +199,6 @@ def wait_on_socket(IPAddr, port):
         sock.listen(5)
         while True:
             print()
-            restart_simulation()
             print(f"Waiting for client to connect to tcp://{IPAddr}:{port}...")
             accept_connection(sock)
     except BrokenPipeError as e:

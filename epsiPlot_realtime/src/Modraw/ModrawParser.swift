@@ -3,7 +3,6 @@ import Foundation
 class ModrawPacket {
     var timestamp = 0
     var signature = ""
-    var fillerStart = 0
     var packetStart = 0
     var payloadStart = 0
     var payloadEnd = 0
@@ -18,25 +17,21 @@ class ModrawPacket {
         return NSDate(timeIntervalSince1970: TimeInterval(Double(parent.currentYearOffsetInSeconds) + timestampInSeconds))
     }
     fileprivate func _parsePacket() -> Bool {
-        fillerStart = parent.cursor
-        while !parent.atEnd(offset: parent.PACKET_HEADER_LEN) && !parent.isPacketStart(parent.cursor) {
-            parent.cursor += 1
-        }
-        guard !parent.atEnd() else { return false }
         packetStart = parent.cursor
-        if (parent.peekByte() == ModrawParser.ASCII_T)
+        guard !parent.atEnd() else { return false }
+        if (parent.peekByte() == ModrawUtils.ASCII_T)
         {
             parent.cursor += 1
             timestamp = 0
-            while !parent.atEnd() && ModrawParser.isDigit(parent.peekByte())
+            while !parent.atEnd() && ModrawUtils.isDigit(parent.peekByte())
             {
-                timestamp = timestamp * 10 + Int(parent.peekByte() - ModrawParser.ASCII_0)
+                timestamp = timestamp * 10 + Int(parent.peekByte() - ModrawUtils.ASCII_0)
                 parent.cursor += 1
             }
             guard !parent.atEnd() else { return false }
         }
 
-        guard parent.peekByte() == ModrawParser.ASCII_DOLLAR &&
+        guard parent.peekByte() == ModrawUtils.ASCII_DOLLAR &&
               !parent.atEnd(offset: parent.PACKET_SIGNATURE_LEN) else { return false }
 
         signature = parent.peekString(at: parent.cursor, len: parent.PACKET_SIGNATURE_LEN)
@@ -45,19 +40,19 @@ class ModrawPacket {
         payloadStart = parent.cursor
         while !parent.atEnd()
         {
-            let potentialPacketEnd = parent.cursor + parent.PACKET_END_CHECKSUM_LEN
             // Does this look like a checksum and a new packet beginning?
-            if parent.isPacketEndChecksum(parent.cursor) &&
-                (parent.isPacketStart(potentialPacketEnd) ||
-                 parent.foundMarker(i: potentialPacketEnd, marker: parent.MODRAW_END_MARKER))
-            {
+            if parent.isPacketEndChecksum() {
                 payloadEnd = parent.cursor
                 parent.cursor += parent.PACKET_END_CHECKSUM_LEN
-                packetEnd = parent.cursor
-                break
-            }
-            else
-            {
+                if !parent.atEnd() && parent.peekByte() == ModrawUtils.ASCII_LF {
+                    parent.cursor += 1
+                }
+                if parent.isPacketStart() ||
+                    parent.foundEndMarker() {
+                    packetEnd = parent.cursor
+                    break
+                }
+            } else {
                 parent.cursor += 1
             }
         }
@@ -132,8 +127,37 @@ class ModrawHeader {
             header.lines.append(line!)
         } while !line!.contains("****END_FCTD_HEADER_START_RUN****")
 
+        if !parent.atEnd() && parent.peekByte() == 0 {
+            parent.cursor += 1
+        }
+
         header.headerEnd = parent.cursor
         return true
+    }
+}
+
+class ModrawUtils {
+    static let ASCII_LF     = UInt8(0x0A) // '\n'
+    static let ASCII_CR     = UInt8(0x0D) // '\r'
+    static let ASCII_a      = UInt8(0x61) // 'a'
+    static let ASCII_f      = UInt8(0x66) // 'f'
+    static let ASCII_A      = UInt8(0x41) // 'A'
+    static let ASCII_F      = UInt8(0x46) // 'F'
+    static let ASCII_S      = UInt8(0x53) // 'S'
+    static let ASCII_O      = UInt8(0x4F) // 'O'
+    static let ASCII_M      = UInt8(0x4D) // 'M'
+    static let ASCII_T      = UInt8(0x54) // 'T'
+    static let ASCII_STAR   = UInt8(0x2A) // '*'
+    static let ASCII_0      = UInt8(0x30) // '0'
+    static let ASCII_9      = UInt8(0x39) // '9'
+    static let ASCII_DOLLAR = UInt8(0x24) // '$'
+    static func isDigit(_ c : UInt8) -> Bool {
+        return c >= ASCII_0 && c <= ASCII_9
+    }
+    static func isHexDigit(_ c : UInt8) -> Bool {
+        return isDigit(c) ||
+                (c >= ASCII_a && c <= ASCII_f) ||
+                (c >= ASCII_A && c <= ASCII_F)
     }
 }
 
@@ -170,8 +194,8 @@ class ModrawParser {
         while true {
             let b = peekByte()
             cursor += 1
-            if b == ModrawParser.ASCII_CR { continue }
-            if b == ModrawParser.ASCII_LF { break }
+            if b == ModrawUtils.ASCII_CR { continue }
+            if b == ModrawUtils.ASCII_LF { break }
             line += String(Character(UnicodeScalar(b)))
             if atEnd() { return nil }
         }
@@ -187,6 +211,9 @@ class ModrawParser {
         }
         return true
     }
+    func foundEndMarker(offset: Int = 0) -> Bool {
+        return foundMarker(i: cursor + offset, marker: MODRAW_END_MARKER)
+    }
     func parseHeader() -> ModrawHeader? {
         let header = ModrawHeader(parent: self)
         header.headerStart = cursor
@@ -199,25 +226,26 @@ class ModrawParser {
         }
     }
 
-    func isPacketStart(_ i: Int) -> Bool {
+    func isPacketStart() -> Bool {
+        var i = cursor
         if (i + 4 <= data.count &&
-            data[i] == ModrawParser.ASCII_DOLLAR &&
-            data[i + 1] == ModrawParser.ASCII_S &&
-            data[i + 2] == ModrawParser.ASCII_O &&
-            data[i + 3] == ModrawParser.ASCII_M) {
+            data[i] == ModrawUtils.ASCII_DOLLAR &&
+            data[i + 1] == ModrawUtils.ASCII_S &&
+            data[i + 2] == ModrawUtils.ASCII_O &&
+            data[i + 3] == ModrawUtils.ASCII_M) {
             return true
         }
         if (i >= data.count) {
             return false
         }
-        if (data[i] != ModrawParser.ASCII_T) {
+        if (data[i] != ModrawUtils.ASCII_T) {
             return false
         }
-        var j = i + 1
-        while j < data.count && ModrawParser.isDigit(data[j]) {
-            j += 1
+        i += 1
+        while i < data.count && ModrawUtils.isDigit(data[i]) {
+            i += 1
         }
-        return j < data.count && data[j] == ModrawParser.ASCII_DOLLAR
+        return i < data.count && data[i] == ModrawUtils.ASCII_DOLLAR
     }
     let PACKET_CHECKSUM_LEN = 3 // <*><HEX><HEX>
     let PACKET_END_CHECKSUM_LEN = 5 // <*><HEX><HEX><CR><LF>
@@ -225,53 +253,24 @@ class ModrawParser {
     let PACKET_HEADER_LEN = 1 + 10 + 5 // <T>10*<dec><$>4*<alphanum>
     func isChecksum(_ i: Int) -> Bool {
         return i <= data.count - 3 &&
-                data[i] == ModrawParser.ASCII_STAR &&
-                ModrawParser.isHexDigit(data[i+1]) &&
-                ModrawParser.isHexDigit(data[i+2])
+                data[i] == ModrawUtils.ASCII_STAR &&
+                ModrawUtils.isHexDigit(data[i+1]) &&
+                ModrawUtils.isHexDigit(data[i+2])
     }
-    func isPacketEndChecksum(_ i: Int) -> Bool {
-        return isChecksum(i) &&
-                i <= data.count - PACKET_END_CHECKSUM_LEN &&
-                data[i+3] == ModrawParser.ASCII_CR &&
-                data[i+4] == ModrawParser.ASCII_LF
-    }
-    func isPacketEnd(_ i: Int) -> Bool {
-        return isPacketEndChecksum(i - PACKET_END_CHECKSUM_LEN) ||
-                (i <= data.count &&
-                 data[i - 1] == ModrawParser.ASCII_LF &&
-                 isPacketEndChecksum(i - 1 - PACKET_END_CHECKSUM_LEN))
+    fileprivate func isPacketEndChecksum() -> Bool {
+        return isChecksum(cursor) &&
+                cursor <= data.count - PACKET_END_CHECKSUM_LEN &&
+                data[cursor+3] == ModrawUtils.ASCII_CR &&
+                data[cursor+4] == ModrawUtils.ASCII_LF
     }
 
-    public static let ASCII_LF     = UInt8(0x0A) // '\n'
-    public static let ASCII_CR     = UInt8(0x0D) // '\r'
-    public static let ASCII_a      = UInt8(0x61) // 'a'
-    public static let ASCII_f      = UInt8(0x66) // 'f'
-    public static let ASCII_A      = UInt8(0x41) // 'A'
-    public static let ASCII_F      = UInt8(0x46) // 'F'
-    public static let ASCII_S      = UInt8(0x53) // 'S'
-    public static let ASCII_O      = UInt8(0x4F) // 'O'
-    public static let ASCII_M      = UInt8(0x4D) // 'M'
-    public static let ASCII_T      = UInt8(0x54) // 'T'
-    public static let ASCII_STAR   = UInt8(0x2A) // '*'
-    public static let ASCII_0      = UInt8(0x30) // '0'
-    public static let ASCII_9      = UInt8(0x39) // '9'
-    public static let ASCII_DOLLAR = UInt8(0x24) // '$'
-    public static func isDigit(_ c : UInt8) -> Bool {
-        return c >= ASCII_0 && c <= ASCII_9
-    }
-    public static func isHexDigit(_ c : UInt8) -> Bool {
-        return isDigit(c) ||
-                (c >= ASCII_a && c <= ASCII_f) ||
-                (c >= ASCII_A && c <= ASCII_F)
-    }
     public func peekString(at: Int, len: Int) -> String {
-        assert(at + len <= data.count)
         var str = ""
-        for i in at..<at+len {
-            if (data[i] == 0) {
+        for b in data[at..<at+len] {
+            if (b == 0) {
                 str += "<0>"
             } else {
-                str += String(Character(UnicodeScalar(data[i])))
+                str += String(Character(UnicodeScalar(b)))
             }
         }
         return str
@@ -281,35 +280,26 @@ class ModrawParser {
         return UInt64(str, radix: 16)
     }
     public func peekBinLE(at: Int, len: Int) -> UInt64 {
-        assert(len <= 8)
-        var val = UInt64(0)
-        var p256 = UInt64(1)
-        for i in stride(from: at+len, to: at,  by: -1) {
-            val += UInt64(data[i-1]) * p256
-            if (i > at + 1) {
-                p256 *= 256
-            }
-        }
-        return val
+        assert(len <= MemoryLayout<UInt64>.size)
+        return data[at..<at + len]
+            .reduce(0, { soFar, new in
+                    (soFar << 8) | UInt64(new)
+            })
     }
     public func peekBinBE(at: Int, len: Int) -> UInt64 {
-        assert(len <= 8)
-        var val = UInt64(0)
-        var p256 = UInt64(1)
-        for i in at..<at+len {
-            val += UInt64(data[i]) * p256
-            if (i < at + len - 1) {
-                p256 *= 256
-            }
-        }
-        return val
+        assert(len <= MemoryLayout<UInt64>.size)
+        return data[at..<at + len]
+            .reversed()
+            .reduce(0, { soFar, new in
+                    (soFar << 8) | UInt64(new)
+            })
     }
     func parsePacket() -> ModrawPacket? {
         let p = ModrawPacket(parent: self)
         if p._parsePacket() {
             return p
         } else {
-            cursor = p.fillerStart
+            cursor = p.packetStart
             return nil
         }
     }

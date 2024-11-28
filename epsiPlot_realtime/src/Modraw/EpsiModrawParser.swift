@@ -38,7 +38,7 @@ class EpsiModrawParser {
             guard parseHeader(model: model) else { return }
         }
 
-        while true {
+        while !modrawParser.foundEndMarker() {
             if let packet = modrawParser.parsePacket() {
                 if let packetParser = getParserFor(packet: packet) {
                     if (packetParser.isValid(packet: packet)) {

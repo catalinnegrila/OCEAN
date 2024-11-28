@@ -6,6 +6,7 @@ class ViewModelBroadcaster {
     fileprivate let broadcastFreq = 0.1
     fileprivate let duration = 5.0 // seconds
     fileprivate let num_samples = 5 * 30
+    fileprivate let range = 1.5
 
     func broadcast(vm: ViewModel) {
         guard !vm.epsi.time_s.isEmpty else { return }
@@ -50,9 +51,9 @@ class ViewModelBroadcaster {
             samples_f.append(sum / Double(n))
         }
 
-        let midv = (minv + maxv) / 2.0
-        maxv = max(midv + 0.5, maxv)
-        minv = min(midv - 0.5, minv)
+        let midv = (minv + maxv) / 2
+        maxv = midv + range / 2
+        minv = midv - range / 2
 
         let header_size = 4 + 4 + 2
         var buf = Array<UInt8>()
@@ -75,6 +76,16 @@ class ViewModelBroadcaster {
         append(value: UInt16(samples_f.count))
         for j in 0..<samples_f.count {
             buf.append(toByte(samples_f[j]))
+        }
+
+        func readValue<Result>(_: Result.Type, at: Int) -> Result
+        {
+            let size = MemoryLayout<Result>.size
+            assert(at + size <= buf.count)
+            let value: Result = buf.withUnsafeBytes {
+                return $0.load(fromByteOffset: at, as: Result.self)
+            }
+            return value
         }
 
         server.broadcast(&buf)

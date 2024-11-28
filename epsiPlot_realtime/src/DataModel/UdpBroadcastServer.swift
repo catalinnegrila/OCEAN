@@ -12,7 +12,11 @@ class UdpBroadcastServer {
         server_address.sin_len = __uint8_t(MemoryLayout<sockaddr_in>.size)
         server_address.sin_family = sa_family_t(AF_INET)
         server_address.sin_addr.s_addr = in_addr_t((0).bigEndian)
+#if DEBUG
+        inet_aton("<broadcast>", &server_address.sin_addr)
+#else
         inet_aton("255.255.255.255", &server_address.sin_addr)
+#endif
         server_address.sin_port = port.bigEndian
         
         server_socket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)
