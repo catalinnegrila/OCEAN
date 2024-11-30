@@ -13,7 +13,7 @@ public class ViewModel: ObservableObject
     var ctd = CtdViewModelData()
     @Published var broadcaster = ViewModelBroadcaster()
 
-    var modelProducer: ModelProducer? {
+    @Published var modelProducer: ModelProducer? {
         willSet {
             if let modelProducer {
                 modelProducer.stop()

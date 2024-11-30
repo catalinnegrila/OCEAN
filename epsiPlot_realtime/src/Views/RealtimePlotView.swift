@@ -20,23 +20,29 @@ struct RealtimePlotView: View {
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
 
     @StateObject var vm: ViewModel
-
+    // TODO: find less hacky way to size the Canvas to the content
+    @State var newHeight = 0.0
+    
     var body: some View {
-        VStack {
-            Canvas { context, size in
-                //let stopwatch = Stopwatch(label: "Render")
-                render(context: context, size: size)
-                //stopwatch.printElapsed()
-            }
-            .id(refreshView)
-            .frame(alignment: .topLeading)
-            .navigationTitle($vm.model.title)
-            .onReceive(refreshTimer) { _ in
-                Task {
-                    //let stopwatch = Stopwatch(label: "Update")
-                    if (vm.update()) {
-                        //stopwatch.printElapsed()
-                        refreshView.toggle()
+        ScrollView {
+            VStack {
+                Canvas { context, size in
+                    //let stopwatch = Stopwatch(label: "Render")
+                    render(context: context, size: size)
+                    //stopwatch.printElapsed()
+                }
+                .id(refreshView)
+                .frame(minWidth: 300)
+                .frame(height: newHeight)
+                .navigationTitle($vm.model.title)
+                .onReceive(refreshTimer) { _ in
+                    Task {
+                        //let stopwatch = Stopwatch(label: "Update")
+                        if (vm.update()) {
+                            newHeight = getRenderHeight()
+                            //stopwatch.printElapsed()
+                            refreshView.toggle()
+                        }
                     }
                 }
             }
@@ -278,14 +284,28 @@ struct RealtimePlotView: View {
     let dzdt_up_color = Color(red: 233/255, green: 145/255, blue: 195/255)
     let dzdt_down_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
-    let leftLabelsWidth = 50.0
+    let plotHeight = 100.0
+    let leftLabelsWidth = 70.0
+    let rightLabelsWidth = 40.0
+    let timelineLabelsHeight = 10.0
     let vgap = 25.0
-    let hgap = 30.0
     let font = Font.body
-    
+
+    func getRenderHeight() -> Double {
+        let plotCount: Double
+        switch vm.model.d.deploymentType {
+        case .EPSI:
+            plotCount = 7
+            
+        case .FCTD:
+            plotCount = 5
+        }
+
+        return vgap + plotCount * (plotHeight + vgap) + timelineLabelsHeight
+    }
     func drawMainLabel(context: GraphicsContext, rc: CGRect, text: String) {
         context.drawLayer { ctx in
-            ctx.translateBy(x: leftLabelsWidth/2, y: (rc.maxY + rc.minY) / 2)
+            ctx.translateBy(x: 0.35 * leftLabelsWidth, y: (rc.maxY + rc.minY) / 2)
             ctx.rotate(by: Angle(degrees: -90))
             ctx.draw(Text(text).font(font).bold(), at: CGPoint(x: 0, y: -5), anchor: .center)
         }
@@ -585,7 +605,7 @@ struct RealtimePlotView: View {
             context: context,
             time_window: vm.time_window,
             xAxis: xAxis)
-        rd.rect = CGRect(x: hgap + leftLabelsWidth, y: vgap, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
+        rd.rect = CGRect(x: leftLabelsWidth, y: vgap, width: max(size.width - leftLabelsWidth - rightLabelsWidth, 5), height: plotHeight)
 
         switch vm.model.d.deploymentType {
         case .EPSI:
@@ -625,20 +645,6 @@ struct RealtimePlotView: View {
             if !xAxis.isEmpty {
                 y += textHeight
             }
-        }
-
-        context.draw(Text("\(vm.model.d.mostRecentLatitude), \(vm.model.d.mostRecentLongitude)").font(font).bold(),
-                     at: CGPoint(x: rd.rect.maxX, y: y),
-                     anchor: .topTrailing)
-        y += textHeight
-
-        if !vm.model.d.mostRecentLatitudeScientific.isNaN && !vm.model.d.mostRecentLongitudeScientific.isNaN {
-            let lat = String(format: "%.2f", vm.model.d.mostRecentLatitudeScientific)
-            let lon = String(format: "%.2f", vm.model.d.mostRecentLongitudeScientific)
-            context.draw(Text("lat: \(lat), lon: \(lon)").font(font).bold(),
-                         at: CGPoint(x: rd.rect.maxX, y: y),
-                         anchor: .topTrailing)
-            y += textHeight
         }
     }
 }

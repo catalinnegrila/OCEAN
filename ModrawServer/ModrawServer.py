@@ -183,7 +183,7 @@ def stream_dir(src_dir, connection, dir_scan_freq):
                 most_recent_file = new_most_recent_file
 
 def accept_connection(sock):
-    connection,address = sock.accept()  
+    connection,address = sock.accept()
     print(f"Connection started from {address[0]}:{address[1]}")
     buf = connection.recv(100).decode("utf-8")
     if buf != "!modraw":
@@ -208,9 +208,6 @@ def wait_on_socket(IPAddr, port):
         print(f"Connection closed. {e}")
     except ConnectionResetError as e:
         print(f"Connection closed. {e}")
-    except KeyboardInterrupt:
-        print("\r  ")
-        raise
     finally:
         sock.close()
 
@@ -232,7 +229,8 @@ try:
         wait_on_socket(IPAddr, port)
 
 except KeyboardInterrupt:
-    print("Sync stopped.")
+    print()
+    pass
 
 finally:
     unregister_MODraw_service(zc, info)

@@ -32,6 +32,6 @@ struct RealtimePlotApp: App {
         } .windowToolbarStyle(.unifiedCompact)
         UtilityWindow("Info", id: "info") {
             InfoView(vm: vm)
-        }.commandsRemoved()
+        }.commandsRemoved().windowResizability(.contentSize) 
     }
 }

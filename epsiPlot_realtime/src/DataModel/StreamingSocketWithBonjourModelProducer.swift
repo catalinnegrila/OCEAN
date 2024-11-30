@@ -18,19 +18,18 @@ class StreamingSocketWithBonjourModelProducer: StreamingSocketModelProducer {
                 break
             }}
         browser.browseResultsChangedHandler = { (results, changes) in
-            for result in results {
+            enumerateResults: for result in results {
                 switch result.endpoint {
                 case let .service(name: name, type: type, domain: domain, interface: _):
-                    self.connectionName = name
-                    model.title = "Streaming from service '\(name)' Type: \(type) Domain: \(domain)"
+                    self.connectionName = "'\(name)' Type: \(type) Domain: \(domain)"
+                    print("Discovered service \(self.connectionName!)")
                     if name.contains("MODraw"){
                         let proto: NWParameters = .tcp
                         if let opt = proto.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
                             opt.version = .v4
                         }
-                        if (self.connection == nil) {
-                            self.openConnection(model: model, nwConnection: NWConnection(to: result.endpoint, using: proto))
-                        }
+                        self.openConnection(model: model, nwConnection: NWConnection(to: result.endpoint, using: proto))
+                        break enumerateResults
                     }
                 default:
                     break
