@@ -1,16 +1,22 @@
 import Foundation
 
-class ViewModelBroadcaster {
-    var server = UdpBroadcastServer(port: 50211)
+struct ViewModelBroadcaster {
+    fileprivate var server = UdpBroadcastServer(port: 50211)
     fileprivate var lastBroadcast: TimeInterval = 0
     fileprivate let broadcastFreq = 0.1
     fileprivate let duration = 5.0 // seconds
     fileprivate let num_samples = 5 * 30
     fileprivate let range = 1.5
 
-    func broadcast(vm: ViewModel) {
+    enum State: String {
+        case Starting, Sending, Stopped, Error
+    }
+    public var state: State = .Starting
+
+    mutating func broadcast(vm: ViewModel) {
         guard !vm.epsi.time_s.isEmpty else { return }
-        guard let server = server else { return }
+        guard let server = server else { state = .Error; return }
+        guard state != .Stopped else { return }
 
         let currentBroadcast = ProcessInfo.processInfo.systemUptime
         guard currentBroadcast - lastBroadcast > broadcastFreq else { return }
@@ -88,6 +94,6 @@ class ViewModelBroadcaster {
             return value
         }
 
-        server.broadcast(&buf)
+        state = server.broadcast(&buf) ? .Sending : .Error
     }
 }

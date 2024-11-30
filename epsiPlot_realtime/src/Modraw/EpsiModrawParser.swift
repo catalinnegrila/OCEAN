@@ -5,8 +5,6 @@ class EpsiModrawParser {
     fileprivate var packetParsers: [EpsiModrawPacketParser] =
         [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49(), EpsiModrawPacketParser_INGG()  ]
 
-    fileprivate var CTD_fishflag = ""
-
     init(fileUrl: URL) throws {
         modrawParser = try ModrawParser(fileUrl: fileUrl)
     }
@@ -18,12 +16,9 @@ class EpsiModrawParser {
         for packetParser in packetParsers {
             packetParser.parse(header: header)
         }
-        CTD_fishflag = header.getValueForKeyAsString("CTD.fishflag") ?? "'EPSI'"
-        model.deploymentType = Model.DeploymentType.from(fishflag: CTD_fishflag)
+        model.d.fishflag = header.getValueForKeyAsString(Model.fishflagFieldName) ?? "n/a"
+        model.d.deploymentType = Model.DeploymentType.from(fishflag: model.d.fishflag)
         return true
-    }
-    func getHeaderInfo() -> String {
-        return CTD_fishflag
     }
     fileprivate func getParserFor(packet: ModrawPacket) -> EpsiModrawPacketParser? {
         for packetParser in packetParsers {
@@ -43,7 +38,7 @@ class EpsiModrawParser {
                 if let packetParser = getParserFor(packet: packet) {
                     if (packetParser.isValid(packet: packet)) {
                         packetParser.parse(packet: packet, model: model)
-                        model.isUpdated = true
+                        model.d.isUpdated = true
                     } else {
                         modrawParser.rewindPacket(packet: packet)
                         break

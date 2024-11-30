@@ -24,6 +24,9 @@ class StreamingSocketModelProducer: StreamingModelProducer {
     func openConnection(model: Model, nwConnection: NWConnection) {
         connection = ClientConnection(nwConnection: nwConnection)
         print("\(connectionName!): created")
+        connection.onReadyCallback = { (nwConnection: NWConnection) -> Void in
+            self.onReadyCallback(model: model, nwConnection: nwConnection)
+        }
         connection.onStopCallback = { (error: Error?) -> Void in
             self.onStopCallback(model: model, error: error)
         }
@@ -40,6 +43,19 @@ class StreamingSocketModelProducer: StreamingModelProducer {
             str += String(Character(UnicodeScalar(byte)))
         }
         return str
+    }
+    fileprivate func onReadyCallback(model: Model, nwConnection: NWConnection) {
+        var endpointDescr = "<unknown endpoint>"
+        if let path = nwConnection.currentPath, let endpoint = path.remoteEndpoint {
+            switch(endpoint) {
+            case let .hostPort(host: host, port: port):
+                let IPAddr = host.debugDescription.components(separatedBy: "%")[0]
+                endpointDescr = "\(IPAddr):\(port)"
+            default:
+                break
+            }
+        }
+        model.title = "Connected to tcp://\(endpointDescr)"
     }
     fileprivate func onReceiveCallback(model: Model, data: Data?) {
         guard let data = data else { return }
@@ -70,11 +86,11 @@ class StreamingSocketModelProducer: StreamingModelProducer {
         if error == nil {
             if connectionStarted {
                 retryCount += 1
-                model.status = "Connection to \(connectionName!) stopped. Retrying (attempt \(retryCount))..."
-                Task {
-                    sleep(1)
-                    retryConnection(model: model)
+                DispatchQueue.main.async {
+                    model.title = "Connection to \(self.connectionName!) stopped. Retrying (attempt \(self.retryCount))..."
                 }
+                sleep(1)
+                retryConnection(model: model)
             }
         } else {
             print("\(connectionName!): stopped with error: \(error!)")

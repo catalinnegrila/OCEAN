@@ -20,6 +20,11 @@ class TimestampedData
     var time_s = [Double]()
     var dataGaps = [DataGapInfo]()
 
+    required init() {
+        self.capacity = 0
+        self.expected_sample_duration = 0.0
+        assertionFailure()
+    }
     init(capacity: Int, samples_per_sec: Int) {
         self.capacity = capacity
         self.expected_sample_duration = 1.0 / Double(samples_per_sec)
@@ -129,6 +134,17 @@ extension Array where Element: TimestampedData {
                 removeLast()
             }
         }
+    }
+    mutating func getLastTwoBlocks() -> (Element?, Element) {
+        let prev_block = last
+        let this_block: Element
+        if (prev_block == nil || prev_block!.isFull()) {
+            this_block = Element()
+            append(this_block)
+        } else {
+            this_block = prev_block!
+        }
+        return (prev_block, this_block)
     }
 }
 

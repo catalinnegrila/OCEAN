@@ -3,17 +3,20 @@ from dataclasses import dataclass
 
 hostname = socket.gethostname()
 port = 31415
+dir_scan_freq = 0.025 # Seconds between scanning for changes to the source folder
+sim_block_size = 512
 
 current_cruise_path = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
 if os.path.exists(current_cruise_path):
     source_dir = current_cruise_path
     sim_mode = False
 else:
-    source_dir = "/Users/catalin/Documents/OCEAN_data/epsi_data/"
+    source_dir = "/Users/catalin/Projects/OCEAN_data/new_data/"
     sim_mode = (hostname == "Catalins-MacBook-Pro.local")
 
-dir_scan_freq = 0.025
-sim_block_size = 512
+if not os.path.exists(source_dir):
+    print(f"Source directory {source_dir} does not exist! Nothing to do.")
+    exit(1)
 
 try:
     import zeroconf

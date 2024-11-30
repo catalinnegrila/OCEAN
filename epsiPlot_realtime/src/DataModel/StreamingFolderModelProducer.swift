@@ -12,12 +12,8 @@ class StreamingFolderModelProducer: StreamingModelProducer {
         let fileAttributes = try! FileManager.default.attributesOfItem(atPath: fileUrl!.path)
         let newModrawSize = fileAttributes[.size] as! Int
         let oldModrawSize = epsiModrawParser.modrawParser.data.count
-        if (oldModrawSize == newModrawSize) {
-            return false
-        }
+        guard oldModrawSize != newModrawSize else { return false }
 
-        let blockSize = newModrawSize - oldModrawSize
-        print("Updating \(fileUrl!.path) with \(blockSize)")
         let inputFileData = try! Data(contentsOf: fileUrl!)
         // TODO: does this read the entire file each time?
         var newData = [UInt8](repeating: 0, count: newModrawSize - oldModrawSize)
@@ -32,10 +28,10 @@ class StreamingFolderModelProducer: StreamingModelProducer {
             self.fileUrl = fileUrl
             epsiModrawParser = try EpsiModrawParser(fileUrl: fileUrl)
             epsiModrawParser!.parse(model: model)
-            model.status = "Streaming \(fileUrl.path) -- \(epsiModrawParser!.getHeaderInfo())"
+            model.title = "Streaming \(fileUrl.path)"
         }
         catch {
-            model.status = error.localizedDescription
+            model.title = error.localizedDescription
         }
     }
     fileprivate func getMostRecentFilePath(model: Model) -> String? {
@@ -56,7 +52,7 @@ class StreamingFolderModelProducer: StreamingModelProducer {
                     }
                 }
             } catch {
-                model.status = "\(error.localizedDescription), \(fileUrl)"
+                model.title = "\(error.localizedDescription), \(fileUrl)"
             }
         }
         return mostRecentFilePath

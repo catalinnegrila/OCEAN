@@ -3,7 +3,6 @@ import Network
 
 @available(macOS 10.14, *)
 class ClientConnection {
-
     let nwConnection: NWConnection
     let queue = DispatchQueue(label: "Client connection Q")
 
@@ -11,6 +10,7 @@ class ClientConnection {
         self.nwConnection = nwConnection
     }
 
+    var onReadyCallback: ((NWConnection) -> Void)? = nil
     var onStopCallback: ((Error?) -> Void)? = nil
     var onReceiveCallback: ((Data?) -> Void)? = nil
 
@@ -29,7 +29,7 @@ class ClientConnection {
             }
             if isComplete {
                 self.onConnectionEnded()
-            } else if let error = error {
+            } else if let error {
                 self.onConnectionFailed(error: error)
             } else {
                 self.setupReceive()
@@ -43,17 +43,9 @@ class ClientConnection {
         case .waiting(let error):
             onConnectionFailed(error: error)
         case .ready:
-            var endpointDescr = "<unknown endpoint>"
-            if let path = nwConnection.currentPath, let endpoint = path.remoteEndpoint {
-                switch(endpoint) {
-                case let .hostPort(host: host, port: port):
-                    let IPAddr = host.debugDescription.components(separatedBy: "%")[0]
-                    endpointDescr = "\(IPAddr):\(port)"
-                default:
-                    break
-                }
+            if let onReadyCallback {
+                onReadyCallback(nwConnection)
             }
-            print("Connected to tcp://\(endpointDescr)")
         case .failed(let error):
             onConnectionFailed(error: error)
         default:
@@ -85,7 +77,7 @@ class ClientConnection {
     private func stop(error: Error?) {
         self.nwConnection.stateUpdateHandler = nil
         self.nwConnection.cancel()
-        if let onStopCallback = self.onStopCallback {
+        if let onStopCallback {
             //self.onStopCallback = nil
             onStopCallback(error)
         }

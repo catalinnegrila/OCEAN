@@ -183,16 +183,9 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
     override func parse(packet: ModrawPacket, model: Model) {
         var i = getEpsiPayloadStart(packet: packet)
 
-        let prev_block = model.ctd_blocks.last
-        var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
+        let (prev_block, this_block) = model.d.ctd_blocks.getLastTwoBlocks()
+        var prev_time_s = prev_block?.time_s.last!
 
-        let this_block : CtdModelData
-        if (prev_block == nil || prev_block!.isFull()) {
-            this_block = CtdModelData()
-            model.ctd_blocks.append(this_block)
-        } else {
-            this_block = prev_block!
-        }
         for j in 0..<sbe_recs_per_block {
             let time_s = parseSbeTimestamp(packet: packet, i: &i)
 
@@ -219,6 +212,6 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
             this_block.S.append(S)
             this_block.z.append(z)
         }
-        model.ctd_blocks.removeLastBlockIfEmpty()
+        model.d.ctd_blocks.removeLastBlockIfEmpty()
     }
 }

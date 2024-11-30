@@ -6,13 +6,13 @@ class StreamingSocketWithBonjourModelProducer: StreamingSocketModelProducer {
     
     override func retryConnection(model: Model)
     {
-        model.status = "Using Bonjour to discover services on the network..."
+        model.title = "Using Bonjour to discover services on the network..."
         browser = NWBrowser(for: .bonjour(type: "_http._tcp", domain: ""), using: .tcp)
         browser.stateUpdateHandler = { newState in
             print("NWBrowser: state '\(newState)'")
             switch newState {
             case .failed(let error):
-                model.status = error.localizedDescription
+                model.title = error.localizedDescription
                 self.browser.cancel()
             default:
                 break
@@ -22,7 +22,7 @@ class StreamingSocketWithBonjourModelProducer: StreamingSocketModelProducer {
                 switch result.endpoint {
                 case let .service(name: name, type: type, domain: domain, interface: _):
                     self.connectionName = name
-                    model.status = "Streaming from service '\(name)' Type: \(type) Domain: \(domain)"
+                    model.title = "Streaming from service '\(name)' Type: \(type) Domain: \(domain)"
                     if name.contains("MODraw"){
                         let proto: NWParameters = .tcp
                         if let opt = proto.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {

@@ -12,34 +12,38 @@ extension Path {
 }
 
 struct RealtimePlotView: View {
+    @Environment(\.openWindow) var openWindow
+    @Environment(\.dismissWindow) var dismissWindow
     @Environment(\.colorScheme) var colorScheme
+
     @State private var refreshView = false
     let refreshTimer = Timer.publish(every: 1.0/30, on: .main, in: .common).autoconnect()
-    @State/*Object*/ var vm: ViewModel
-    
+
+    @StateObject var vm: ViewModel
+
     var body: some View {
         VStack {
-            chart
-                .id(refreshView)
-                .frame(alignment: .topLeading)
-                .navigationTitle(vm.model.status)
-                .onReceive(refreshTimer) { _ in
-                    Task {
-                        //let stopwatch = Stopwatch(label: "Update")
-                        if (vm.update()) {
-                            //stopwatch.printElapsed()
-                            refreshView.toggle()
-                        }
+            Canvas { context, size in
+                //let stopwatch = Stopwatch(label: "Render")
+                render(context: context, size: size)
+                //stopwatch.printElapsed()
+            }
+            .id(refreshView)
+            .frame(alignment: .topLeading)
+            .navigationTitle($vm.model.title)
+            .onReceive(refreshTimer) { _ in
+                Task {
+                    //let stopwatch = Stopwatch(label: "Update")
+                    if (vm.update()) {
+                        //stopwatch.printElapsed()
+                        refreshView.toggle()
                     }
                 }
-        }
-    }
-    
-    private var chart: some View {
-        return Canvas{ context, size in
-            //let stopwatch = Stopwatch(label: "Render")
-            render(context: context, size: size)
-            //stopwatch.printElapsed()
+            }
+        }.toolbar {
+            ToolbarItem() {
+                WindowVisibilityToggle(windowID: "info")
+            }
         }
     }
     
@@ -583,7 +587,7 @@ struct RealtimePlotView: View {
             xAxis: xAxis)
         rd.rect = CGRect(x: hgap + leftLabelsWidth, y: vgap, width: max(size.width - 2 * hgap - leftLabelsWidth, 5), height: 100)
 
-        switch vm.model.deploymentType {
+        switch vm.model.d.deploymentType {
         case .EPSI:
             renderEpsi_t(rd: rd)
             renderEpsi_s(rd: rd)
@@ -622,30 +626,15 @@ struct RealtimePlotView: View {
                 y += textHeight
             }
         }
-/*
-        context.draw(Text("Status: \(vm.model.status)").font(font).bold(),
-                     at: CGPoint(x: 0, y: 0),
-                     anchor: .topLeading)
-*/
 
-        if let server = vm.broadcaster.server {
-            if server.state == .Failed {
-                context.draw(Text("Broadcasting A1[g] to the winch app failed!")
-                                .font(font).bold().foregroundColor(.red),
-                             at: CGPoint(x: rd.rect.minX, y: y), anchor: .topLeading)
-            }
-        }
+        context.draw(Text("\(vm.model.d.mostRecentLatitude), \(vm.model.d.mostRecentLongitude)").font(font).bold(),
+                     at: CGPoint(x: rd.rect.maxX, y: y),
+                     anchor: .topTrailing)
+        y += textHeight
 
-        if vm.model.mostRecentLatitude != "" {
-            context.draw(Text("\(vm.model.mostRecentLatitude), \(vm.model.mostRecentLongitude)").font(font).bold(),
-                         at: CGPoint(x: rd.rect.maxX, y: y),
-                         anchor: .topTrailing)
-            y += textHeight
-        }
-        
-        if vm.model.mostRecentLatitudeScientific * vm.model.mostRecentLongitudeScientific != 0.0 {
-            let lat = String(format: "%.2f", vm.model.mostRecentLatitudeScientific)
-            let lon = String(format: "%.2f", vm.model.mostRecentLongitudeScientific)
+        if !vm.model.d.mostRecentLatitudeScientific.isNaN && !vm.model.d.mostRecentLongitudeScientific.isNaN {
+            let lat = String(format: "%.2f", vm.model.d.mostRecentLatitudeScientific)
+            let lon = String(format: "%.2f", vm.model.d.mostRecentLongitudeScientific)
             context.draw(Text("lat: \(lat), lon: \(lon)").font(font).bold(),
                          at: CGPoint(x: rd.rect.maxX, y: y),
                          anchor: .topTrailing)

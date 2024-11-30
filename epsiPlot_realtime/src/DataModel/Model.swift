@@ -1,6 +1,6 @@
 import Foundation
 
-class Model {
+class Model: Observable {
     enum DeploymentType: Int {
         case EPSI = 1, FCTD
         
@@ -14,47 +14,54 @@ class Model {
             }
         }
     }
-
-    var deploymentType: DeploymentType = .EPSI
-    var epsi_blocks = [EpsiModelData]()
-    var ctd_blocks = [CtdModelData]()
-    var mostRecentLatitudeScientific = 0.0
-    var mostRecentLongitudeScientific = 0.0
-    var mostRecentLatitude = ""
-    var mostRecentLongitude = ""
-    var isUpdated = true
-
-    fileprivate var _status = "No data source"
-    var status: String {
-        get {
-            return _status
-        }
-        set(newStatus) {
-            isUpdated = true
-            _status = newStatus
-            print(_status)
+    static let fishflagFieldName = "CTD.fishflag"
+    struct ModelData {
+        var fishflag: String = ""
+        var deploymentType: DeploymentType = .EPSI
+        var epsi_blocks = [EpsiModelData]()
+        var ctd_blocks = [CtdModelData]()
+        var mostRecentLatitudeScientific = Double.nan
+        var mostRecentLongitudeScientific = Double.nan
+        var mostRecentLatitude = "n/a"
+        var mostRecentLongitude = "n/a"
+        var isUpdated = true
+    }
+    @Published var d = ModelData()
+    @Published var title: String {
+        didSet {
+            d.isUpdated = true
+            print(title)
         }
     }
 
+    init() {
+        title = ""
+    }
     func reset() {
         print("model reset")
-        deploymentType = .EPSI
-        epsi_blocks = [EpsiModelData]()
-        ctd_blocks = [CtdModelData]()
-        mostRecentLatitudeScientific = 0.0
-        mostRecentLongitudeScientific = 0.0
-        mostRecentLatitude = ""
-        mostRecentLongitude = ""
-        isUpdated = true
+        d = ModelData()
     }
-
     func appendNewFileBoundary() {
-        if !epsi_blocks.isEmpty {
-            epsi_blocks.last!.appendNewFileBoundary()
+        if !d.epsi_blocks.isEmpty {
+            d.epsi_blocks.last!.appendNewFileBoundary()
         }
-        if !ctd_blocks.isEmpty {
-            ctd_blocks.last!.appendNewFileBoundary()
+        if !d.ctd_blocks.isEmpty {
+            d.ctd_blocks.last!.appendNewFileBoundary()
         }
+    }
+    func getEndTime() -> Double {
+        let epsi_time_end = d.epsi_blocks.getEndTime()
+        let ctd_time_end = d.ctd_blocks.getEndTime()
+        return max(epsi_time_end, ctd_time_end)
+    }
+    func getBeginTime() -> Double {
+        let epsi_time_begin = d.epsi_blocks.getBeginTime()
+        let ctd_time_begin = d.ctd_blocks.getBeginTime()
+        return min(epsi_time_begin, ctd_time_begin)
+    }
+    func resetIsUpdated() -> Bool {
+        defer { d.isUpdated = false }
+        return d.isUpdated
     }
 }
 
@@ -64,8 +71,7 @@ class ModelProducer {
     func stop() {
     }
     func update(model: Model) -> Bool {
-        defer { model.isUpdated = false }
-        return model.isUpdated
+        return model.resetIsUpdated()
     }
     func getTimeWindow(model: Model) -> (Double, Double) {
         return (0.0, 0.0)

@@ -8,7 +8,7 @@ class EpsiModelData : TimestampedData
     var a2_g : [Double] = []
     var a3_g : [Double] = []
     
-    init() {
+    required init() {
         super.init(capacity: 8000, samples_per_sec: 333) // 100 blocks
         reserveCapacity(capacity)
     }

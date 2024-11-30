@@ -5,7 +5,7 @@ class CtdModelData : TimestampedData
     var S : [Double] = []
     var z : [Double] = []
 
-    init() {
+    required init() {
         super.init(capacity: 200, samples_per_sec: 16) // 100 blocks
         reserveCapacity(capacity)
     }

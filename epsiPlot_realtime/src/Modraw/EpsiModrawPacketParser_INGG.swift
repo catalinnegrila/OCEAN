@@ -30,10 +30,10 @@ class EpsiModrawPacketParser_INGG: EpsiModrawPacketParser {
         let str = packet.parent.peekString(at: packet.payloadStart, len: packet.payloadEnd - packet.payloadStart)
         let comp = str.components(separatedBy: ",")
 
-        model.mostRecentLatitudeScientific = toScientific(from: comp[2], cardinal: comp[3]) ?? 0.0
-        model.mostRecentLongitudeScientific = toScientific(from: comp[4], cardinal: comp[5]) ?? 0.0
-        model.mostRecentLatitude = toLatLon(from: comp[2], cardinal: comp[3]) ?? ""
-        model.mostRecentLongitude = toLatLon(from: comp[4], cardinal: comp[5]) ?? ""
+        model.d.mostRecentLatitudeScientific = toScientific(from: comp[2], cardinal: comp[3]) ?? 0.0
+        model.d.mostRecentLongitudeScientific = toScientific(from: comp[4], cardinal: comp[5]) ?? 0.0
+        model.d.mostRecentLatitude = toLatLon(from: comp[2], cardinal: comp[3]) ?? ""
+        model.d.mostRecentLongitude = toLatLon(from: comp[4], cardinal: comp[5]) ?? ""
     }
     override func isValid(packet: ModrawPacket) -> Bool {
         return (packet.signature == signature) &&

@@ -5,8 +5,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
 
     var deployment_type: Model.DeploymentType = .EPSI
     override func parse(header: ModrawHeader) {
-        let key = "CTD.fishflag"
-        let fishflag = header.getValueForKeyAsString(key) ?? "'EPSI'"
+        let fishflag = header.getValueForKeyAsString(Model.fishflagFieldName) ?? "'EPSI'"
         deployment_type = Model.DeploymentType.from(fishflag: fishflag)
     }
 
@@ -50,17 +49,8 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     override func parse(packet: ModrawPacket, model: Model)
     {
         var i = getEpsiPayloadStart(packet: packet)
-
-        let prev_block = model.epsi_blocks.last
-        var prev_time_s = (prev_block != nil) ? prev_block!.time_s.last! : nil
-
-        let this_block : EpsiModelData
-        if (prev_block == nil || prev_block!.isFull()) {
-            this_block = EpsiModelData()
-            model.epsi_blocks.append(this_block)
-        } else {
-            this_block = prev_block!
-        }
+        let (prev_block, this_block) = model.d.epsi_blocks.getLastTwoBlocks()
+        var prev_time_s = prev_block?.time_s.last!
 
         for j in 0..<efe_recs_per_block {
             let time_s = parseEfeTimestamp(packet: packet, i: &i)
@@ -97,6 +87,6 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
             this_block.a2_g.append(calculateG(volt: a2_volt))
             this_block.a3_g.append(calculateG(volt: a3_volt))
         }
-        model.epsi_blocks.removeLastBlockIfEmpty()
+        model.d.epsi_blocks.removeLastBlockIfEmpty()
     }
 }

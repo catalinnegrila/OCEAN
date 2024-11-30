@@ -3,10 +3,6 @@ import Darwin
 class UdpBroadcastServer {
     fileprivate let server_socket: Int32
     fileprivate var server_address = sockaddr_in()
-    enum State {
-        case Sending, Stopped, Failed
-    }
-    var state: State = .Stopped
 
     init?(port: UInt16) {
         server_address.sin_len = __uint8_t(MemoryLayout<sockaddr_in>.size)
@@ -40,7 +36,7 @@ class UdpBroadcastServer {
     deinit {
         close(server_socket)
     }
-    func broadcast(_ buf: inout [UInt8]) {
+    func broadcast(_ buf: inout [UInt8]) -> Bool {
         // convert between sockaddr type and sockaddr_in type for pointer
         var server_address_sockaddr = withUnsafePointer(to: &server_address){
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
@@ -48,11 +44,10 @@ class UdpBroadcastServer {
             }
         }
         let result = sendto(server_socket, &buf, buf.count, 0, &server_address_sockaddr, socklen_t(MemoryLayout<sockaddr_in>.size))
-        if result < buf.count {
+        guard result == buf.count else {
             print("Broadcast failed: \(result) of \(buf.count) bytes")
-            state = .Failed
-        } else {
-            state = .Sending
+            return false
         }
+        return true
     }
 }

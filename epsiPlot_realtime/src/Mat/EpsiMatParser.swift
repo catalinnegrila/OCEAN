@@ -6,8 +6,8 @@ class EpsiMatParser
     {
         let mat = try MatParser(fileUrl: fileUrl)
             
-        model.epsi_blocks = [EpsiModelData()]
-        let epsi = model.epsi_blocks.first!
+        model.d.epsi_blocks = [EpsiModelData()]
+        let epsi = model.d.epsi_blocks.first!
         epsi.time_s = mat.getMatrixNumeric1(name: "epsi.time_s")
         epsi.t1_volt = mat.getMatrixNumeric1(name: "epsi.t1_volt")
         epsi.t2_volt = mat.getMatrixNumeric1(name: "epsi.t2_volt")
@@ -17,14 +17,14 @@ class EpsiMatParser
         epsi.a2_g = mat.getMatrixNumeric1(name: "epsi.a2_g")
         epsi.a3_g = mat.getMatrixNumeric1(name: "epsi.a3_g")
         
-        model.ctd_blocks = [CtdModelData()]
-        let ctd = model.ctd_blocks.first!
+        model.d.ctd_blocks = [CtdModelData()]
+        let ctd = model.d.ctd_blocks.first!
         ctd.time_s = mat.getMatrixNumeric1(name: "ctd.time_s")
         ctd.P = mat.getMatrixNumeric1(name: "ctd.P")
         ctd.T = mat.getMatrixNumeric1(name: "ctd.T")
         ctd.S = mat.getMatrixNumeric1(name: "ctd.S")
         ctd.z = mat.getMatrixNumeric1(name: "ctd.z")
-        model.isUpdated = true
+        model.d.isUpdated = true
     }
 }
 
