@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "ADB2DEA52CE6149A0085614F"
-               BuildableName = "ModrawSim"
-               BlueprintName = "ModrawSim"
-               ReferencedContainer = "container:ModrawSim.xcodeproj">
+               BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
+               BuildableName = "ModrawVis.app"
+               BlueprintName = "ModrawVis"
+               ReferencedContainer = "container:ModrawVis.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,35 +36,21 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
-      ignoresPersistentStateOnLaunch = "NO"
+      customWorkingDirectory = "/Users/catalin/Documents/OCEAN"
+      ignoresPersistentStateOnLaunch = "YES"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES"
-      viewDebuggingEnabled = "No">
+      allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "ADB2DEA52CE6149A0085614F"
-            BuildableName = "ModrawSim"
-            BlueprintName = "ModrawSim"
-            ReferencedContainer = "container:ModrawSim.xcodeproj">
+            BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
+            BuildableName = "ModrawVis.app"
+            BlueprintName = "ModrawVis"
+            ReferencedContainer = "container:ModrawVis.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "-s 10"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-o  /Users/catalin/Projects/OCEAN_data/out/"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-i /Users/catalin/Projects/OCEAN_data/new_data/"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -76,10 +62,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "ADB2DEA52CE6149A0085614F"
-            BuildableName = "ModrawSim"
-            BlueprintName = "ModrawSim"
-            ReferencedContainer = "container:ModrawSim.xcodeproj">
+            BlueprintIdentifier = "AD96DE3D2CDD432E001FA567"
+            BuildableName = "ModrawVis.app"
+            BlueprintName = "ModrawVis"
+            ReferencedContainer = "container:ModrawVis.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

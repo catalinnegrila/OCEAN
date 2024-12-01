@@ -47,9 +47,9 @@ print(f'  Current heading: {current_head} deg')
 
 # ek80 depth, lds\docs\format_description
 # ['$EMDBS', '13085.9', 'f', '3988.57', 'M', '2180.98', 'F*1A']
-#emdbs = ParserLib.WaitForMessage(55005, '$EMDBS')
-#depth = emdbs[3]
-#print(f'Ocean depth: {depth} m')
+emdbs = ParserLib.WaitForMessage(55005, '$EMDBS')
+depth = emdbs[3]
+print(f'Ocean depth: {depth} m')
 
 # Upload
 

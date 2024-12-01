@@ -7,28 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AD2539072CFD171500FCB7D1 /* ModrawLib in Frameworks */ = {isa = PBXBuildFile; productRef = AD2539062CFD171500FCB7D1 /* ModrawLib */; };
-		ADB2DEB82CE615120085614F /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = ADB2DEB72CE615120085614F /* ArgumentParser */; };
+		ADCEEC132CFD30FB005B9F33 /* ModrawLib in Frameworks */ = {isa = PBXBuildFile; productRef = ADCEEC122CFD30FB005B9F33 /* ModrawLib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		ADB2DEA42CE6149A0085614F /* CopyFiles */ = {
+		AD1A52212CFBF1AD00413327 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
+			dstPath = "";
+			dstSubfolderSpec = 10;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 1;
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		ADB2DEA62CE6149A0085614F /* ModrawSim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ModrawSim; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD0F632A2CF094590012120C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AD96DE3E2CDD432E001FA567 /* ModrawVis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ModrawVis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		ADB2DEA82CE6149A0085614F /* src */ = {
+		AD96DE402CDD432E001FA567 /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = src;
 			sourceTree = "<group>";
@@ -36,30 +37,38 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		ADB2DEA32CE6149A0085614F /* Frameworks */ = {
+		AD96DE3B2CDD432E001FA567 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AD2539072CFD171500FCB7D1 /* ModrawLib in Frameworks */,
-				ADB2DEB82CE615120085614F /* ArgumentParser in Frameworks */,
+				ADCEEC132CFD30FB005B9F33 /* ModrawLib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		ADB2DE9D2CE6149A0085614F = {
+		AD253A332CFD300E00FCB7D1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				ADB2DEA82CE6149A0085614F /* src */,
-				ADB2DEA72CE6149A0085614F /* Products */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		AD96DE352CDD432E001FA567 = {
+			isa = PBXGroup;
+			children = (
+				AD0F632A2CF094590012120C /* Info.plist */,
+				AD96DE402CDD432E001FA567 /* src */,
+				AD253A332CFD300E00FCB7D1 /* Frameworks */,
+				AD96DE3F2CDD432E001FA567 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		ADB2DEA72CE6149A0085614F /* Products */ = {
+		AD96DE3F2CDD432E001FA567 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ADB2DEA62CE6149A0085614F /* ModrawSim */,
+				AD96DE3E2CDD432E001FA567 /* ModrawVis.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,70 +76,79 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		ADB2DEA52CE6149A0085614F /* ModrawSim */ = {
+		AD96DE3D2CDD432E001FA567 /* ModrawVis */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = ADB2DEAD2CE6149A0085614F /* Build configuration list for PBXNativeTarget "ModrawSim" */;
+			buildConfigurationList = AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "ModrawVis" */;
 			buildPhases = (
-				ADB2DEA22CE6149A0085614F /* Sources */,
-				ADB2DEA32CE6149A0085614F /* Frameworks */,
-				ADB2DEA42CE6149A0085614F /* CopyFiles */,
+				AD96DE3A2CDD432E001FA567 /* Sources */,
+				AD96DE3B2CDD432E001FA567 /* Frameworks */,
+				AD96DE3C2CDD432E001FA567 /* Resources */,
+				AD1A52212CFBF1AD00413327 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				ADB2DEA82CE6149A0085614F /* src */,
+				AD96DE402CDD432E001FA567 /* src */,
 			);
-			name = ModrawSim;
+			name = ModrawVis;
 			packageProductDependencies = (
-				ADB2DEB72CE615120085614F /* ArgumentParser */,
-				AD2539062CFD171500FCB7D1 /* ModrawLib */,
+				ADCEEC122CFD30FB005B9F33 /* ModrawLib */,
 			);
-			productName = ModrawSim;
-			productReference = ADB2DEA62CE6149A0085614F /* ModrawSim */;
-			productType = "com.apple.product-type.tool";
+			productName = ModrawVis;
+			productReference = AD96DE3E2CDD432E001FA567 /* ModrawVis.app */;
+			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		ADB2DE9E2CE6149A0085614F /* Project object */ = {
+		AD96DE362CDD432E001FA567 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
-					ADB2DEA52CE6149A0085614F = {
+					AD96DE3D2CDD432E001FA567 = {
 						CreatedOnToolsVersion = 16.1;
 					};
 				};
 			};
-			buildConfigurationList = ADB2DEA12CE6149A0085614F /* Build configuration list for PBXProject "ModrawSim" */;
+			buildConfigurationList = AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "ModrawVis" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = ADB2DE9D2CE6149A0085614F;
+			mainGroup = AD96DE352CDD432E001FA567;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				ADB2DEB62CE615120085614F /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
-				AD2539052CFD171500FCB7D1 /* XCLocalSwiftPackageReference "../ModrawLib" */,
+				ADCEEC112CFD30FB005B9F33 /* XCLocalSwiftPackageReference "../ModrawLib" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = ADB2DEA72CE6149A0085614F /* Products */;
+			productRefGroup = AD96DE3F2CDD432E001FA567 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				ADB2DEA52CE6149A0085614F /* ModrawSim */,
+				AD96DE3D2CDD432E001FA567 /* ModrawVis */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		AD96DE3C2CDD432E001FA567 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
-		ADB2DEA22CE6149A0085614F /* Sources */ = {
+		AD96DE3A2CDD432E001FA567 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -140,7 +158,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		ADB2DEAB2CE6149A0085614F /* Debug */ = {
+		AD96DE4B2CDD432F001FA567 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -203,7 +221,7 @@
 			};
 			name = Debug;
 		};
-		ADB2DEAC2CE6149A0085614F /* Release */ = {
+		AD96DE4C2CDD432F001FA567 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -237,7 +255,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -258,45 +276,104 @@
 			};
 			name = Release;
 		};
-		ADB2DEAE2CE6149A0085614F /* Debug */ = {
+		AD96DE4E2CDD432F001FA567 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = src/Entitlements.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				DEVELOPMENT_TEAM = ZJ29KCD5KX;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = "";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				KEEP_PRIVATE_EXTERNS = NO;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = MOTIVE.ModrawVis;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+				STRIP_STYLE = none;
+				STRIP_SWIFT_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = "";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "";
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
 		};
-		ADB2DEAF2CE6149A0085614F /* Release */ = {
+		AD96DE4F2CDD432F001FA567 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = src/Entitlements.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				DEVELOPMENT_TEAM = ZJ29KCD5KX;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = "";
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				KEEP_PRIVATE_EXTERNS = NO;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = MOTIVE.ModrawVis;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+				STRIP_STYLE = none;
+				STRIP_SWIFT_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = "";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
+				SYMROOT = "${PROJECT_DIR}/bin";
+				TARGETED_DEVICE_FAMILY = "";
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		ADB2DEA12CE6149A0085614F /* Build configuration list for PBXProject "ModrawSim" */ = {
+		AD96DE392CDD432E001FA567 /* Build configuration list for PBXProject "ModrawVis" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				ADB2DEAB2CE6149A0085614F /* Debug */,
-				ADB2DEAC2CE6149A0085614F /* Release */,
+				AD96DE4B2CDD432F001FA567 /* Debug */,
+				AD96DE4C2CDD432F001FA567 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		ADB2DEAD2CE6149A0085614F /* Build configuration list for PBXNativeTarget "ModrawSim" */ = {
+		AD96DE4D2CDD432F001FA567 /* Build configuration list for PBXNativeTarget "ModrawVis" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				ADB2DEAE2CE6149A0085614F /* Debug */,
-				ADB2DEAF2CE6149A0085614F /* Release */,
+				AD96DE4E2CDD432F001FA567 /* Debug */,
+				AD96DE4F2CDD432F001FA567 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -304,34 +381,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		AD2539052CFD171500FCB7D1 /* XCLocalSwiftPackageReference "../ModrawLib" */ = {
+		ADCEEC112CFD30FB005B9F33 /* XCLocalSwiftPackageReference "../ModrawLib" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../ModrawLib;
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		ADB2DEB62CE615120085614F /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
-		AD2539062CFD171500FCB7D1 /* ModrawLib */ = {
+		ADCEEC122CFD30FB005B9F33 /* ModrawLib */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ModrawLib;
 		};
-		ADB2DEB72CE615120085614F /* ArgumentParser */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = ADB2DEB62CE615120085614F /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
-			productName = ArgumentParser;
-		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = ADB2DE9E2CE6149A0085614F /* Project object */;
+	rootObject = AD96DE362CDD432E001FA567 /* Project object */;
 }
