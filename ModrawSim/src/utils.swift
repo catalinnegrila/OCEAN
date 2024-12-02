@@ -29,8 +29,12 @@ func deleteFile(fileURL: URL) throws {
     }
 }
 
-func getCurrentTimeMs() -> Int {
-    return Int(NSDate().timeIntervalSince1970 * 1000.0)
+func getCurrentTimeInSeconds() -> Double {
+    return NSDate().timeIntervalSince1970
+}
+
+func roundTo(_ v: Double, _ m: Double) -> Double {
+    return Double(round(m * v) / m)
 }
 
 

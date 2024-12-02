@@ -45,30 +45,33 @@ for i in 0..<inputFileUrlList.count {
     }
     appendToURL(fileURL: outputFileUrl, data: Data(inputFileParser.data[0..<header.headerEnd]))
 
-    let realWorldStartTime = getCurrentTimeMs()
-    var modrawStartTime: Int?
+    let realWorldStartTime = getCurrentTimeInSeconds()
+    var modrawStartTime: Double?
     var lastProgress = -1.0
     
     var packet = inputFileParser.parsePacket()
     while packet != nil {
-        let currentProgress = Double(round(10.0 * inputFileParser.getProgress()) / 10.0)
+        let currentProgress = roundTo(inputFileParser.getProgress(), 10.0)
 
         if lastProgress != currentProgress {
-            //print(" Progress: \(currentProgress)%  ", terminator: "\r")
-            //fflush(stdout)
+            print(" Progress: \(currentProgress)%  ", terminator: "\r")
+            fflush(stdout)
             lastProgress = currentProgress
         }
-            
-        let modrawPacketTime = packet!.getTimestamp()
+
+        let modrawPacketTime = packet!.getTimestampInSeconds()
         if modrawPacketTime != nil {
             if modrawStartTime == nil {
                 modrawStartTime = modrawPacketTime
             }
             let modrawTime = modrawPacketTime! - modrawStartTime!
-            let realWorldTime = getCurrentTimeMs() - realWorldStartTime
+            let realWorldTime = getCurrentTimeInSeconds() - realWorldStartTime
             if modrawTime > realWorldTime {
-                //print("Sleep: \(modrawTime - realWorldTime)")
-                //usleep(UInt32(Double(modrawTime - realWorldTime) / options.speed))
+                // Packet timestamps aren't reliable (first couple ones have multi-second
+                // gaps) so we're trickling the packets at a heuristically determined speed.
+                //let deltaMicroseconds = (modrawTime - realWorldTime) * 1_000_000.0
+                let deltaMicroseconds = 1_000_000.0
+                usleep(UInt32(deltaMicroseconds / options.speed))
             }
         }
 
@@ -76,9 +79,6 @@ for i in 0..<inputFileUrlList.count {
         packet = inputFileParser.parsePacket()
         let packetEnd = packet != nil ? packet!.packetStart : inputFileParser.data.count
         appendToURL(fileURL: outputFileUrl, data: Data(inputFileParser.data[packetStart..<packetEnd]))
-        if packet == nil {
-            print("File duration: \(modrawPacketTime! - modrawStartTime!)")
-        }
     }
 }
 

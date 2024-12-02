@@ -51,13 +51,14 @@ public class ModrawPacket {
     public func getPayloadStart(signatureLen: Int) -> Int {
         return signatureStart + signatureLen
     }
-    public func getTimestamp() -> Int? {
+    public func getTimestampInSeconds() -> Double? {
         guard let timestampStart else { return nil }
-        return Int(parent.peekString(at: timestampStart, len: signatureStart - timestampStart), radix: 10)
+        let timestampStr = parent.peekString(at: timestampStart, len: signatureStart - timestampStart)
+        guard let timestamp = Int(timestampStr, radix: 10) else { return nil }
+        return Double(timestamp) / 100.0
     }
     public func getTimestampAsDate(_ currentYearOffsetInSeconds: Int) -> NSDate? {
-        guard let timestamp = getTimestamp() else { return nil }
-        let timestampInSeconds = Double(timestamp) / 100.0
+        guard let timestampInSeconds = getTimestampInSeconds() else { return nil }
         return NSDate(timeIntervalSince1970: TimeInterval(Double(currentYearOffsetInSeconds) + timestampInSeconds))
     }
     fileprivate static func getTimestampRange(_ parent: ModrawParser) -> (Int, Int)? {
