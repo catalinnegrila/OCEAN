@@ -20,10 +20,13 @@ if options.batchMode {
     }
 }
 
+let fileManager = FileManager.default
 let inputFileUrlList = try options.inputFileUrlList
 for inputFileUrl in inputFileUrlList {
     let outputFileUrl = options.outputFileUrl(inputFileUrl)
-    try deleteFile(fileURL: outputFileUrl)
+    if fileManager.fileExists(atPath: outputFileUrl.path) {
+        try fileManager.removeItem(atPath: outputFileUrl.path)
+    }
 }
 
 for i in 0..<inputFileUrlList.count {

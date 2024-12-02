@@ -23,10 +23,6 @@ func appendToURL(fileURL: URL, data: Data) {
 }
 
 func deleteFile(fileURL: URL) throws {
-    let fileManager = FileManager.default
-    if fileManager.fileExists(atPath: fileURL.path) {
-        try fileManager.removeItem(atPath: fileURL.path)
-    }
 }
 
 func getCurrentTimeInSeconds() -> Double {
