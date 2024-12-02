@@ -22,7 +22,5 @@ if [ -e $FILE_PATH ]; then
         eval "sudo $COMMAND"
         RESULT=$?
     fi
-else
-    echo "$FILE_PATH doesn't exist, nothing to do."
 fi
 exit $RESULT

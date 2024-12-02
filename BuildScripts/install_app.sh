@@ -18,6 +18,7 @@ INSTALL_DIR=$2
 
 GCP="gcp -rfL"
 which gcp2 >/dev/null || GCP="cp -R"
+printf "\nInstalling to $INSTALL_DIR...\n"
 
 # Copy app
 $SCRIPT_DIR/sudo_if_needed.sh $INSTALL_DIR "$GCP $APP_PATH $INSTALL_DIR"
@@ -31,7 +32,7 @@ if [ $RESULT -ne 0 -o ${PIPESTATUS[0]} -ne 0 ]; then
     printf "${BRed}Failed to copy $APP_PATH -> $INSTALL_DIR${Color_Off}\n"
     #printf "  Manually copy your $APP_NAME app from $OUT_DIR\n"
 else
-    printf "\n${BGreen}Successfully copied $APP_PATH -> $INSTALL_DIR${Color_Off}\n"
+    printf "${BGreen}Successfully copied $APP_PATH -> $INSTALL_DIR${Color_Off}\n"
 fi
 which gcp >/dev/null || printf "\n${BBlue}HINT:${Color_Off} ${Blue}To speed up copying the binaries, run 'brew install coreutils'.\n      This script can use 'gcp' for recursively copying folders.\n" 
 

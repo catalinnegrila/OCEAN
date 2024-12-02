@@ -15,13 +15,17 @@ INSTALL_DIR=$3
 OUT_DIR="$WORKSPACE_DIR/bin"
 
 # Clean up previous install
-printf "Cleaning up previous install...\n"
+printf "Cleaning up previous installation in $INSTALL_DIR...\n"
 FILE_PATH="$INSTALL_DIR/$APP_NAME"
+if [ -e "$FILE_PATH.app" ]; then
+    FILE_PATH="$FILE_PATH.app"
+fi
 $SCRIPT_DIR/sudo_if_needed.sh $FILE_PATH "rm -rf $FILE_PATH"
 
 FILE_PATH="$FILE_PATH.dSYM"
 $SCRIPT_DIR/sudo_if_needed.sh $FILE_PATH "rm -rf $FILE_PATH"
 
+printf "\n"
 "$SCRIPT_DIR/build_workspace.sh" $APP_NAME $WORKSPACE_DIR $OUT_DIR
 RESULT=$?
 if [ $RESULT -eq 0 ]; then
