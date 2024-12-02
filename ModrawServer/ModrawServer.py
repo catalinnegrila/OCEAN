@@ -207,7 +207,8 @@ def sync_file(src_file, modraw_destination, dst_file_size):
             return True
     return False
 
-def stream_from_dir(modraw_source, modraw_destination, dir_scan_freq):
+def stream_from_dir(modraw_destination, dir_scan_freq):
+    modraw_source = createModrawSource()
     print(f"Watching {modraw_source.source_dir} for changes... Press Ctrl+C to stop.")
     most_recent_file = None
     while not modraw_destination.isStopped():
@@ -229,7 +230,7 @@ def stream_from_dir(modraw_source, modraw_destination, dir_scan_freq):
                 sync_file(new_most_recent_file, modraw_destination, 0)
                 most_recent_file = new_most_recent_file
 
-def wait_on_socket(IPAddr, port, modraw_source):
+def wait_on_socket(IPAddr, port):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -247,7 +248,7 @@ def wait_on_socket(IPAddr, port, modraw_source):
             else:
                 connection.send(str.encode("!reset"))
                 modraw_destination = ModrawSocketDestination(connection)
-                stream_from_dir(modraw_source, modraw_destination, dir_scan_freq)
+                stream_from_dir(modraw_destination, dir_scan_freq)
             connection.close()
 
     except BrokenPipeError as e:
@@ -267,35 +268,35 @@ def get_my_ip(hostname):
                 return ip
     return "127.0.0.1"
 
-def stream_to_socket(modraw_source):
+def stream_to_socket():
     hostname = socket.gethostname()
     IPAddr = get_my_ip(hostname)
     info = get_MODraw_service_info(hostname, IPAddr, port)
     zc = register_MODraw_service(info)
     try:
         while True:
-            wait_on_socket(IPAddr, port, modraw_source)
+            wait_on_socket(IPAddr, port)
     finally:
         unregister_MODraw_service(zc, info)
 
+def createModrawSource():
+    if sim_mode:
+        return ModrawFilesFromSimulatedFolderSource(source_dir)
+    else:
+        return ModrawFilesFromUpdatingFolderSource(source_dir)
 
-def stream_to_dir(modraw_source):
+def stream_to_dir():
     modraw_destination = ModrawFolderDestination(destination_dir)
-    stream_from_dir(modraw_source, modraw_destination, dir_scan_freq)
+    stream_from_dir(modraw_destination, dir_scan_freq)
 
 try:
     if not os.path.exists(source_dir):
         print(f"Source directory {source_dir} does not exist! Nothing to do.")
         exit(1)
 
-    if sim_mode:
-        modraw_source = ModrawFilesFromSimulatedFolderSource(source_dir)
-    else:
-        modraw_source = ModrawFilesFromUpdatingFolderSource(source_dir)
-
     if destination_dir == None:
-        stream_to_socket(modraw_source)
+        stream_to_socket()
     else:
-        stream_to_dir(modraw_source)
+        stream_to_dir()
 except KeyboardInterrupt:
     pass

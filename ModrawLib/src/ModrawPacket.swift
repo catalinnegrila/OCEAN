@@ -34,9 +34,11 @@ public class ModrawPacket {
                 if !parent.atEnd() && parent.peekByte().toChar() == "\n" {
                     parent.cursor += 1
                 }
-                if isPacketStart() ||
-                    parent.foundEndMarker() {
+                if isPacketStart() || parent.foundEndMarker() {
                     break
+                } else {
+                    // False positive, continue
+                    checksumStart = 0
                 }
             } else {
                 parent.cursor += 1

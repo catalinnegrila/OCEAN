@@ -67,10 +67,7 @@ for i in 0..<inputFileUrlList.count {
             let modrawTime = modrawPacketTime! - modrawStartTime!
             let realWorldTime = getCurrentTimeInSeconds() - realWorldStartTime
             if modrawTime > realWorldTime {
-                // Packet timestamps aren't reliable (first couple ones have multi-second
-                // gaps) so we're trickling the packets at a heuristically determined speed.
-                //let deltaMicroseconds = (modrawTime - realWorldTime) * 1_000_000.0
-                let deltaMicroseconds = 1_000_000.0
+                let deltaMicroseconds = (modrawTime - realWorldTime) * 1_000_000.0
                 usleep(UInt32(deltaMicroseconds / options.speed))
             }
         }
