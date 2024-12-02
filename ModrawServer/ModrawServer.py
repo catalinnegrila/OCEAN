@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 port = 31415
 dir_scan_freq = 0.025 # Seconds between scanning for changes to the source folder
-sim_block_size = 512
+sim_block_size = 512 * 2
 
 source_dir = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
 if os.path.exists(source_dir):
@@ -31,10 +31,10 @@ try:
     def get_MODraw_service_info(hostname, IPAddr, port):
         return zeroconf.ServiceInfo(
                 "_http._tcp.local.",
-                "MODraw Server._http._tcp.local.",
+                "ModrawServer._http._tcp.local.",
                 addresses=[socket.inet_aton(IPAddr)],
                 port=port,
-                properties={'description': 'MODraw streaming for realtime EPSI/FCTD visualization.'},
+                properties={'description': 'Modraw streaming for realtime EPSI/FCTD visualization.'},
                 server=hostname
             )
 

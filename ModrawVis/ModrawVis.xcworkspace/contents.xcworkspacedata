@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "container:../ModrawSim/ModrawSim.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "container:ModrawVis.xcodeproj">
    </FileRef>
 </Workspace>

@@ -1,9 +1,7 @@
 #!/bin/bash
-APP_NAME="ModrawSim"
-ARCHIVE_NAME="Latest"
-INSTALL_LOCATION="/usr/local/bin"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+BUILD_SCRIPTS="$(realpath $SCRIPT_DIR/../BuildScripts)"
 
-rm -rf $ARCHIVE_NAME.*
-xcodebuild archive -workspace $APP_NAME.xcworkspace -scheme $APP_NAME -configuration Release -archivePath $ARCHIVE_NAME
-echo sudo may prompt for credentials to install $APP_NAME to $INSTALL_LOCATION
-sudo cp $ARCHIVE_NAME.xcarchive/Products/$INSTALL_LOCATION/$APP_NAME $INSTALL_LOCATION
+INSTALL_DIR="/usr/local/bin"
+
+"$BUILD_SCRIPTS/build_and_install.sh" "ModrawSim" $SCRIPT_DIR $INSTALL_DIR

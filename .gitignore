@@ -2,14 +2,13 @@
 *.mat
 *.modraw
 
-data/
-out/
-
 ## Build generated
 .build/
 bin/
 build/
 DerivedData/
+*.xcarchive/
+xcodebuild.log
 
 ## Various settings
 *.pbxuser

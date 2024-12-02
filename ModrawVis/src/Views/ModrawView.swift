@@ -46,11 +46,11 @@ struct ModrawView: View {
                     }
                 }
             }
-        }.toolbar {
+        }/*.toolbar {
             ToolbarItem() {
                 WindowVisibilityToggle(windowID: "info")
             }
-        }
+        }*/
     }
     
     func renderGrid(rd: RenderData, yAxis: [Double], leftLabels: Bool, format: String) {
@@ -287,7 +287,7 @@ struct ModrawView: View {
     let plotHeight = 100.0
     let leftLabelsWidth = 70.0
     let rightLabelsWidth = 40.0
-    let timelineLabelsHeight = 10.0
+    let timelineLabelsHeight = 10.0 + 40.0
     let vgap = 25.0
     let font = Font.body
 
@@ -645,6 +645,18 @@ struct ModrawView: View {
             if !xAxis.isEmpty {
                 y += textHeight
             }
+        }
+
+        if let pos = vm.model.d.mostRecentCoords {
+            func drawPos(_ text: String) {
+                context.draw(Text(text).font(font).bold(),
+                                      at: CGPoint(x: rd.rect.maxX, y: y),
+                                      anchor: .topTrailing)
+                y += textHeight
+            }
+
+            drawPos(pos.describe())
+            drawPos(pos.describeSci())
         }
     }
 }

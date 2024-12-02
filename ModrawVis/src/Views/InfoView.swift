@@ -9,10 +9,6 @@ struct InfoView: View {
            case .Error: return .red
        }
     }
-    func toString(_ latlon: Double) -> String {
-        guard !latlon.isNaN else { return "n/a" }
-        return String(format: "%.2f", latlon)
-    }
     func timeWindowToString() -> String {
         let dt = vm.time_window.1 - vm.time_window.0
         guard dt > 0.0 else { return "n/a" }
@@ -31,20 +27,20 @@ struct InfoView: View {
                 }
                 GridRow {
                     Text("Latitude (scientific):")
-                    Text(toString(vm.model.d.mostRecentLatitudeScientific)).bold()
+                    Text(vm.model.d.mostRecentCoords?.lat.describeSci() ?? "n/a").bold()
                 }
                 GridRow {
                     Text("Longitude (scientific):")
-                    Text(toString(vm.model.d.mostRecentLongitudeScientific)).bold()
+                    Text(vm.model.d.mostRecentCoords?.lon.describeSci() ?? "n/a").bold()
                 }
                 Divider()
                 GridRow {
                     Text("Latitude:")
-                    Text(vm.model.d.mostRecentLatitude).bold()
+                    Text(vm.model.d.mostRecentCoords?.lat.describe() ?? "n/a").bold()
                 }
                 GridRow {
                     Text("Longitude:")
-                    Text(vm.model.d.mostRecentLongitude).bold()
+                    Text(vm.model.d.mostRecentCoords?.lon.describe() ?? "n/a").bold()
                 }
                 Divider()
                 GridRow {

@@ -1,12 +1,8 @@
 #!/bin/bash
-TARGET_DIR="/Volumes/sci/shipside/SKQ202417S/Alex"
-APP_NAME="ModrawVis"
-ARCHIVE_NAME="Latest"
-rm -rf $TARGET_DIR/$APP_NAME.*
-rm -rf $ARCHIVE_NAME.*
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+BUILD_SCRIPTS="$(realpath $SCRIPT_DIR/../BuildScripts)"
 
-xcodebuild archive -workspace $APP_NAME.xcworkspace -scheme $APP_NAME -configuration Release -archivePath $ARCHIVE_NAME
+# Update this to something sensible once off the ship
+INSTALL_DIR="/Volumes/sci/shipside/SKQ202417S/Alex"
 
-# brew install coreutils
-gcp -rfL "$ARCHIVE_NAME.xcarchive/Products/Applications/$APP_NAME.app" $TARGET_DIR
-gcp -rfL "$ARCHIVE_NAME.xcarchive/dSYMs/$APP_NAME.app.dSYM" $TARGET_DIR  
+"$BUILD_SCRIPTS/build_and_install.sh" "ModrawVis" $SCRIPT_DIR $INSTALL_DIR

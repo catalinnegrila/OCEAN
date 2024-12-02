@@ -16,14 +16,11 @@ class Model: Observable {
     }
     static let fishflagFieldName = "CTD.fishflag"
     struct ModelData {
-        var fishflag: String = ""
+        var fishflag: String = "n/a"
         var deploymentType: DeploymentType = .EPSI
         var epsi_blocks = [EpsiModelData]()
         var ctd_blocks = [CtdModelData]()
-        var mostRecentLatitudeScientific = Double.nan
-        var mostRecentLongitudeScientific = Double.nan
-        var mostRecentLatitude = "n/a"
-        var mostRecentLongitude = "n/a"
+        var mostRecentCoords: LatLon?
         var isUpdated = true
     }
     @Published var d = ModelData()
