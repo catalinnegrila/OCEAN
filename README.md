@@ -1,5 +1,3 @@
-# OCEAN
-
 ## Quick Setup Notes
 
 ### For the production environment
