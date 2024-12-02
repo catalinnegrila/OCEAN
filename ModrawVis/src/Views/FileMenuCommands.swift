@@ -15,13 +15,10 @@ struct FileMenuCommands: Commands {
         picker.canResolveUbiquitousConflicts = true
 
         if (chooseFiles) {
-            picker.allowedFileTypes = ["mat", "modraw"] // Deprecated
-            /*picker.allowedContentTypes = [UTType]()
-            for ext in ["mat", "modraw"] {
-                let utt = UTType(tag: ext, tagClass: .filenameExtension, conformingTo: nil)
-                assert(utt != nil)
-                picker.allowedContentTypes.append(utt!)
-            }*/
+            picker.allowedContentTypes = [
+                UTType(filenameExtension: "modraw")!,
+                UTType(filenameExtension: "mat")!
+            ]
         }
 
         if (picker.runModal() == .OK) {
