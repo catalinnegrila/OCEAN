@@ -17,15 +17,14 @@ to a network location. If you have access to the **Desktop** or **Applications**
 DEV3, you can point it there.
 3. If you want to manually copy the app, you will find it in `./ModrawVis/bin` after
 running `./ModrawVis/build.sh` assuming no errors.
-
-You can now start `ModrawVis` on DEV3:
-1. Select **File -> Connect to DEV1** to have it automatically connect to 192.168.1.168.
-2. If the IP has changed, you will need to recompile `ModrawVis` with the new address.
+4. You can now start `ModrawVis` on DEV3.
+5. Select **File -> Connect to DEV1** to have it automatically connect to 192.168.1.168.
+6. If the IP has changed, you will need to recompile `ModrawVis` with the new address.
 Search and replace it files, it should be in the `./ModrawVis/src/Views/FileMenuCommands.swift`
-3. If you're able to `pip install zeroconf` on DEV1, that will allow `ModrawServer` to advertise
+7. If you're able to `pip install zeroconf` on DEV1, that will allow `ModrawServer` to advertise
 itself over the network. You can then simply select **File -> Connect with Bonjour** to
 automatically discover the IP of DEV1.
-4. If all else fails, you can always **File -> Open Folder...** to go in the usual
+8. If all else fails, you can always **File -> Open Folder...** to go in the usual
 folder scanning mode. Note that this will introduce a lag as that folder gets
 updated over SMB during acquisition.
 
