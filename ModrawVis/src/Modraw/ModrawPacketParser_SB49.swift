@@ -194,7 +194,10 @@ class ModrawPacketParser_SB49 : ModrawPacketParser_BlockData {
             let C_raw = parseSbeChannel6(packet: packet, i: &i)
             let P_raw = parseSbeChannel6(packet: packet, i: &i)
             let PT_raw = parseSbeChannel4(packet: packet, i: &i)
-            i += 2 // skip the <CR><LF>
+            assert(packet.parent.data[i].toChar() == "\r")
+            i += 1
+            assert(packet.parent.data[i].toChar() == "\n")
+            i += 1
 
             if !isValidSample(this_block: this_block, sample_index: j, prev_time_s: &prev_time_s, time_s: time_s) {
                 continue

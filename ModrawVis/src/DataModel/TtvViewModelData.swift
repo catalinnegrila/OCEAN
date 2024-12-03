@@ -1,0 +1,2 @@
+class TtvViewModelData: TtvModelData {
+}

@@ -13,6 +13,7 @@ public class ViewModel: ObservableObject
     var ctd = CtdViewModelData()
     var fluor = FluorViewModelData()
     var vnav = VnavViewModelData()
+    var ttv = VnavViewModelData()
     @Published var broadcaster = ViewModelBroadcaster()
 
     @Published var modelProducer: ModelProducer? {
@@ -71,6 +72,7 @@ public class ViewModel: ObservableObject
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
                 fluor.mergeBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
                 vnav.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
+                ttv.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
                 broadcaster.broadcast(vm: self)
                 return true
             }

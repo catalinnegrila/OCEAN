@@ -1,6 +1,6 @@
 import Foundation
 
-extension UInt8 {
+public extension UInt8 {
     func toChar() -> Character {
         return Character(UnicodeScalar(self))
     }

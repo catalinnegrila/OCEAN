@@ -25,6 +25,7 @@ class Model: Observable {
         var ctd_blocks = [CtdModelData]()
         var fluor_blocks = [FluorModelData]()
         var vnav_blocks = [VnavModelData]()
+        var ttv_blocks = [TtvModelData]()
         var mostRecentCoords: LatLon?
         var isUpdated = true
     }
@@ -56,19 +57,24 @@ class Model: Observable {
         if !d.vnav_blocks.isEmpty {
             d.vnav_blocks.last!.appendNewFileBoundary()
         }
+        if !d.ttv_blocks.isEmpty {
+            d.ttv_blocks.last!.appendNewFileBoundary()
+        }
     }
     func getEndTime() -> Double {
         var endTime = d.epsi_blocks.getEndTime()
         endTime = max(endTime, d.ctd_blocks.getEndTime())
-        //endTime = max(endTime, d.fluor_blocks.getEndTime())
-        //endTime = max(endTime, d.vnav_blocks.getEndTime())
+        endTime = max(endTime, d.fluor_blocks.getEndTime())
+        endTime = max(endTime, d.vnav_blocks.getEndTime())
+        endTime = max(endTime, d.ttv_blocks.getEndTime())
         return endTime
     }
     func getBeginTime() -> Double {
         var beginTime = d.epsi_blocks.getBeginTime()
         beginTime = min(beginTime, d.ctd_blocks.getBeginTime())
-        //beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
-        //beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
+        beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
+        beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
+        beginTime = min(beginTime, d.ttv_blocks.getBeginTime())
         return beginTime
     }
     func resetIsUpdated() -> Bool {

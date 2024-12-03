@@ -26,22 +26,30 @@ class ModrawPacketParser_VNAV: ModrawPacketParser_BlockData {
             }
 
             let str = packet.parent.peekString(at: i, len: checksumStart - i)
-            let vnmar = str.components(separatedBy: ",")
-            assert(vnmar[0] == "$VNMAR")
-            assert(vnmar.count >= 4)
-            this_block.time_s.append(time_s)
-            this_block.compass_x.append(Double(vnmar[1])!)
-            this_block.compass_y.append(Double(vnmar[2])!)
-            this_block.compass_z.append(Double(vnmar[3])!)
-            if vnmar.count >= 10 {
-                this_block.acceleration_x.append(Double(vnmar[4])!)
-                this_block.acceleration_y.append(Double(vnmar[5])!)
-                this_block.acceleration_z.append(Double(vnmar[6])!)
-                this_block.gyro_x.append(Double(vnmar[7])!)
-                this_block.gyro_y.append(Double(vnmar[8])!)
-                this_block.gyro_z.append(Double(vnmar[9])!)
+            let comp = str.components(separatedBy: ",")
+            switch comp[0] {
+            case "$VNMAR":
+                assert(comp.count == 10)
+                this_block.time_s.append(time_s)
+                this_block.compass_x.append(Double(comp[1])!)
+                this_block.compass_y.append(Double(comp[2])!)
+                this_block.compass_z.append(Double(comp[3])!)
+                this_block.acceleration_x.append(Double(comp[4])!)
+                this_block.acceleration_y.append(Double(comp[5])!)
+                this_block.acceleration_z.append(Double(comp[6])!)
+                this_block.gyro_x.append(Double(comp[7])!)
+                this_block.gyro_y.append(Double(comp[8])!)
+                this_block.gyro_z.append(Double(comp[9])!)
+            case "$VNYPR":
+                assert(comp.count == 4)
+                this_block.time_s.append(time_s)
+                this_block.yaw.append(Double(comp[1])!)
+                this_block.pitch.append(Double(comp[2])!)
+                this_block.roll.append(Double(comp[3])!)
+            default:
+                print("Unknown VNAV packet type: \(comp[0])")
+                assertionFailure()
             }
-            assert(vnmar.count == 4 || vnmar.count == 10) // Sanity check
             i = checksumStart + ModrawPacket.PACKET_END_CHECKSUM_LEN
             j += 1
         }

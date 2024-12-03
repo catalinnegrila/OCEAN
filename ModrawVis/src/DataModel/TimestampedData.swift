@@ -94,7 +94,9 @@ class TimestampedData
     {
         assert(channels.count == from.channels.count)
         for i in 0..<channels.count - 1 { // skip the time_f channel
-            channels[i].data.append(contentsOf: from.channels[i].data[first..<first+count])
+            if !from.channels[i].isEmpty { // some channels are optional
+                channels[i].data.append(contentsOf: from.channels[i].data[first..<first+count])
+            }
         }
         for dataGap in from.dataGaps {
             if (dataGap.t1 >= from.time_s[first] && dataGap.t0 <= from.time_s[first + count - 1]) {
