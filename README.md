@@ -1,6 +1,6 @@
 ## Quick Setup Notes
 
-### For the production environment
+### For the live environment
 
 Setup `ModrawServer.py` on DEV1:
 1. Copy to and run from DEV1 `./ModrawServer/ModrawServer.py`
