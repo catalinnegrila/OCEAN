@@ -8,6 +8,8 @@ class DataGapInfo
     var type: DataGapType
     var t0: Double
     var t1: Double
+    var t0_f = 0.0
+    var t1_f = 0.0
     init(type: DataGapType, t0: Double, t1: Double) {
         self.type = type
         self.t0 = t0
@@ -77,14 +79,12 @@ class TimestampedData
     func isFull() -> Bool {
         return time_s.count >= capacity
     }
-    func reserveCapacity(_ newCapacity: Int)
-    {
+    func reserveCapacity(_ newCapacity: Int) {
         for i in 0..<channels.count {
             channels[i].data.reserveCapacity(newCapacity)
         }
     }
-    func removeAll()
-    {
+    func removeAll() {
         dataGaps.removeAll()
         for i in 0..<channels.count {
             channels[i].data.removeAll()
@@ -110,23 +110,20 @@ class TimestampedData
     func getLastTimestamp() -> Double {
         return time_s.data.last!
     }
-    func appendNewFileBoundary()
-    {
+    func appendNewFileBoundary() {
         let boundary_size = 0.025
         dataGaps.append(DataGapInfo(type: .NEW_FILE_BOUNDARY,
                                     t0: getLastTimestamp() - boundary_size,
                                     t1: getLastTimestamp() + boundary_size))
     }
-    func checkAndAppendMissingData(t0: Double, t1: Double)
-    {
+    func checkAndAppendMissingData(t0: Double, t1: Double) {
         if ((t1 - t0) > 2 * expected_sample_duration) {
             dataGaps.append(DataGapInfo(type: .MISSING_DATA,
                                         t0: t0 + expected_sample_duration,
                                         t1: t1 - expected_sample_duration))
         }
     }
-    func transferOverlappingGapsFrom(prevBlock: TimestampedData)
-    {
+    func transferOverlappingGapsFrom(prevBlock: TimestampedData) {
         if let dataGap = prevBlock.dataGaps.last {
             if dataGap.t1 > getFirstTimestamp() {
                 dataGaps.insert(dataGap, at: 0)
@@ -145,10 +142,17 @@ class TimestampedData
         return slice
     }
     func calculateDerivedData(time_window: (Double, Double)) {
+        func s_to_f(_ s: Double ) -> Double {
+            return (s - time_window.0) / (time_window.1 - time_window.0)
+        }
         assert(time_f.isEmpty)
         time_f.data.reserveCapacity(time_s.count)
         for i in 0..<time_s.count {
-            time_f.append((time_s[i] - time_window.0) / (time_window.1 - time_window.0))
+            time_f.append(s_to_f(time_s[i]))
+        }
+        for i in 0..<dataGaps.count {
+            dataGaps[i].t0_f = s_to_f(dataGaps[i].t0)
+            dataGaps[i].t1_f = s_to_f(dataGaps[i].t1)
         }
     }
     func mergeBlocks<T: TimestampedData>(time_window: (Double, Double), blocks: inout [T]) {

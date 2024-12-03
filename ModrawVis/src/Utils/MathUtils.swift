@@ -15,3 +15,8 @@ func movmean(mat : [Double], window: Int) -> [Double]
     }
     return result
 }
+
+func rangeUnion(_ r1: (Double, Double), _ r2: (Double, Double)) -> (Double, Double)
+{
+    return (min(r1.0, r2.0), max(r1.1, r2.1))
+}

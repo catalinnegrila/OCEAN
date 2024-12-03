@@ -70,12 +70,26 @@ struct InfoView: View {
                     }
                 }
                 Divider()
-/*
-                GridRow {
-                    Text("Model producer:")
-                    Text(String(describing: vm.modelProducer!.self))
+                ForEach($vm.graphs, id: \.id) { $graph in
+                    GridRow {
+                        Text(graph.id)
+                        HStack {
+                            if graph.visible {
+                                Text(String("Visible")).bold()
+                                    .foregroundColor(.green)
+                                Button("Hide") {
+                                    graph.setVisible(fishflag: vm.model.d.fishflag, visible: false)
+                                }
+                            } else {
+                                Text(String("Hidden")).bold()
+                                    .foregroundColor(.blue)
+                                Button("Show") {
+                                    graph.setVisible(fishflag: vm.model.d.fishflag, visible: true)
+                                }
+                            }
+                        }
+                    }
                 }
- */
             }
             Spacer()
         }.frame(width: 350).frame(minHeight: 250)
