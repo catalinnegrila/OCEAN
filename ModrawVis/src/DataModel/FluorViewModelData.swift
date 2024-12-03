@@ -18,9 +18,9 @@ class FluorViewModelData: FluorModelData {
         if (time_s.count > 0)
         {
             calculateTimeF(time_window: time_window, time_f: &time_f)
-            chla_range = minmax(mat: chla)
-            bb_range = minmax(mat: bb)
-            fDOM_range = minmax(mat: fDOM)
+            chla_range = chla.range()
+            bb_range = bb.range()
+            fDOM_range = fDOM.range()
         }
     }
 }

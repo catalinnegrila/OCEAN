@@ -22,8 +22,8 @@ struct ViewModelBroadcaster {
         guard currentBroadcast - lastBroadcast > broadcastFreq else { return }
         lastBroadcast = currentBroadcast
 
-        let time_s = vm.epsi.time_s[...]
-        let a1_g = vm.epsi.a1_g[...]
+        let time_s = vm.epsi.time_s.data[...]
+        let a1_g = vm.epsi.a1_g.data[...]
 
         let first_time_s = time_s.last! - duration
         var i = time_s.count - 1

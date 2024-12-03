@@ -35,7 +35,7 @@ class ModrawPacketParser_ECOP : ModrawPacketParser_BlockData {
         var i = getBlockDataPayloadStart(packet: packet)
 
         let (prev_block, this_block) = model.d.fluor_blocks.getLastTwoBlocks()
-        var prev_time_s = prev_block?.time_s.last!
+        var prev_time_s = prev_block?.time_s.data.last!
 
         for j in 0..<ecop_recs_per_block {
             let time_s = parseEcopTimestamp(packet: packet, i: &i)

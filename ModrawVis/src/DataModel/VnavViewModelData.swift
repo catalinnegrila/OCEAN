@@ -34,17 +34,17 @@ class VnavViewModelData: VnavModelData {
         if (time_s.count > 0)
         {
             calculateTimeF(time_window: time_window, time_f: &time_f)
-            compass_x_range = minmax(mat: compass_x)
-            compass_y_range = minmax(mat: compass_y)
-            compass_z_range = minmax(mat: compass_z)
+            compass_x_range = compass_x.range()
+            compass_y_range = compass_y.range()
+            compass_z_range = compass_z.range()
 
-            acceleration_x_range = minmax(mat: acceleration_x)
-            acceleration_y_range = minmax(mat: acceleration_y)
-            acceleration_z_range = minmax(mat: acceleration_z)
+            acceleration_x_range = acceleration_x.range()
+            acceleration_y_range = acceleration_y.range()
+            acceleration_z_range = acceleration_z.range()
 
-            gyro_x_range = minmax(mat: gyro_x)
-            gyro_y_range = minmax(mat: gyro_y)
-            gyro_z_range = minmax(mat: gyro_z)
+            gyro_x_range = gyro_x.range()
+            gyro_y_range = gyro_y.range()
+            gyro_z_range = gyro_z.range()
         }
     }
 }

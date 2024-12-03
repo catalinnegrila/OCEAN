@@ -60,15 +60,15 @@ class Model: Observable {
     func getEndTime() -> Double {
         var endTime = d.epsi_blocks.getEndTime()
         endTime = max(endTime, d.ctd_blocks.getEndTime())
-        endTime = max(endTime, d.fluor_blocks.getEndTime())
-        endTime = max(endTime, d.vnav_blocks.getEndTime())
+        //endTime = max(endTime, d.fluor_blocks.getEndTime())
+        //endTime = max(endTime, d.vnav_blocks.getEndTime())
         return endTime
     }
     func getBeginTime() -> Double {
         var beginTime = d.epsi_blocks.getBeginTime()
         beginTime = min(beginTime, d.ctd_blocks.getBeginTime())
-        beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
-        beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
+        //beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
+        //beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
         return beginTime
     }
     func resetIsUpdated() -> Bool {

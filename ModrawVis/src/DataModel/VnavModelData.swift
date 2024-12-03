@@ -1,70 +1,23 @@
 class VnavModelData : TimestampedData
 {
-    var compass_x : [Double] = []
-    var compass_y : [Double] = []
-    var compass_z : [Double] = []
+    var compass_x : Channel { get { channels[0] }}
+    var compass_y : Channel { get { channels[1] }}
+    var compass_z : Channel { get { channels[2] }}
 
-    var acceleration_x : [Double] = []
-    var acceleration_y : [Double] = []
-    var acceleration_z : [Double] = []
+    var acceleration_x : Channel { get { channels[3] }}
+    var acceleration_y : Channel { get { channels[4] }}
+    var acceleration_z : Channel { get { channels[5] }}
 
-    var gyro_x : [Double] = []
-    var gyro_y : [Double] = []
-    var gyro_z : [Double] = []
+    var gyro_x : Channel { get { channels[6] }}
+    var gyro_y : Channel { get { channels[7] }}
+    var gyro_z : Channel { get { channels[8] }}
 
-    var yaw : [Double] {
-        get { compass_x }
-    }
-    var pitch : [Double] {
-        get { compass_y }
-    }
-    var roll : [Double] {
-        get { compass_z }
-    }
+    var yaw : Channel { get { channels[0] }}
+    var pitch : Channel { get { channels[1] }}
+    var roll : Channel { get { channels[2] }}
 
     required init() {
-        super.init(capacity: 200, samples_per_sec: 16) // 100 blocks
-        reserveCapacity(capacity)
-    }
-    override func reserveCapacity(_ newCapacity: Int)
-    {
-        super.reserveCapacity(newCapacity)
-        compass_x.reserveCapacity(newCapacity)
-        compass_y.reserveCapacity(newCapacity)
-        compass_z.reserveCapacity(newCapacity)
-        acceleration_x.reserveCapacity(newCapacity)
-        acceleration_y.reserveCapacity(newCapacity)
-        acceleration_z.reserveCapacity(newCapacity)
-        gyro_x.reserveCapacity(newCapacity)
-        gyro_y.reserveCapacity(newCapacity)
-        gyro_z.reserveCapacity(newCapacity)
-    }
-    override func removeAll() {
-        super.removeAll()
-        compass_x.removeAll()
-        compass_y.removeAll()
-        compass_z.removeAll()
-        acceleration_x.removeAll()
-        acceleration_y.removeAll()
-        acceleration_z.removeAll()
-        gyro_x.removeAll()
-        gyro_y.removeAll()
-        gyro_z.removeAll()
-    }
-    override func append(from: TimestampedData, first: Int, count: Int)
-    {
-        super.append(from: from, first: first, count: count)
-        if let from = from as? VnavModelData {
-            compass_x.append(contentsOf: from.compass_x[first..<first+count])
-            compass_y.append(contentsOf: from.compass_y[first..<first+count])
-            compass_z.append(contentsOf: from.compass_z[first..<first+count])
-            acceleration_x.append(contentsOf: from.acceleration_x[first..<first+count])
-            acceleration_y.append(contentsOf: from.acceleration_y[first..<first+count])
-            acceleration_z.append(contentsOf: from.acceleration_z[first..<first+count])
-            gyro_x.append(contentsOf: from.gyro_x[first..<first+count])
-            gyro_y.append(contentsOf: from.gyro_y[first..<first+count])
-            gyro_z.append(contentsOf: from.gyro_z[first..<first+count])
-        }
+        super.init(numChannels: 9, capacity: 200, samples_per_sec: 16) // 100 blocks
     }
 }
 

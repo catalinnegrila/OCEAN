@@ -52,7 +52,7 @@ class ModrawPacketParser_EFE4 : ModrawPacketParser_BlockData {
     {
         var i = getBlockDataPayloadStart(packet: packet)
         let (prev_block, this_block) = model.d.epsi_blocks.getLastTwoBlocks()
-        var prev_time_s = prev_block?.time_s.last!
+        var prev_time_s = prev_block?.time_s.data.last!
 
         for j in 0..<efe_recs_per_block {
             let time_s = parseEfeTimestamp(packet: packet, i: &i)

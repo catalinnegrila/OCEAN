@@ -6,11 +6,11 @@ class CtdViewModelData: CtdModelData {
     var S_range = (0.0, 0.0)
     var z_range = (0.0, 0.0)
 
-    var z_pos = [Double]()
-    var z_neg = [Double]()
+    var z_pos = TimestampedData.Channel()
+    var z_neg = TimestampedData.Channel()
 
     var dzdt = [Double]()
-    var dzdt_movmean = [Double]()
+    var dzdt_movmean = TimestampedData.Channel()
     var dzdt_range = (0.0, 0.0)
 
     override func removeAll()
@@ -21,10 +21,10 @@ class CtdViewModelData: CtdModelData {
         T_range = (0, 0)
         S_range = (0, 0)
         z_range = (0, 0)
-        z_pos.removeAll()
-        z_neg.removeAll()
+        z_pos.data.removeAll()
+        z_neg.data.removeAll()
         dzdt.removeAll()
-        dzdt_movmean.removeAll()
+        dzdt_movmean.data.removeAll()
         dzdt_range = (0, 0)
         dzdt_range = (0, 0)
     }
@@ -33,10 +33,10 @@ class CtdViewModelData: CtdModelData {
         if (time_s.count > 0)
         {
             calculateTimeF(time_window: time_window, time_f: &time_f)
-            P_range = minmax(mat: P)
-            T_range = minmax(mat: T)
-            S_range = minmax(mat: S)
-            z_range = minmax(mat: z)
+            P_range = P.range()
+            T_range = T.range()
+            S_range = S.range()
+            z_range = z.range()
             // Invert Z to show >0 going down
             z_range = (z_range.1, z_range.0)
 
@@ -49,15 +49,15 @@ class CtdViewModelData: CtdModelData {
             if (dzdt.count > 1) {
                 dzdt[0] = dzdt[1]
             }
-            dzdt_movmean = movmean(mat: dzdt, window: 40)
-            dzdt_range = minmax(mat: dzdt_movmean)
+            dzdt_movmean.data = movmean(mat: dzdt, window: 40)
+            dzdt_range = dzdt_movmean.range()
             // Invert dzdt same as z
             dzdt_range = (dzdt_range.1, dzdt_range.0)
 
-            z_pos.removeAll()
-            z_pos.reserveCapacity(z.count)
-            z_neg.removeAll()
-            z_neg.reserveCapacity(z.count)
+            z_pos.data.removeAll()
+            z_pos.data.reserveCapacity(z.count)
+            z_neg.data.removeAll()
+            z_neg.data.reserveCapacity(z.count)
             for i in 0..<z.count {
                 z_pos.append(dzdt[i] > 0 ? z[i] : Double.nan)
                 z_neg.append(dzdt[i] > 0 ? Double.nan : z[i])

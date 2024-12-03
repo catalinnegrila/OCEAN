@@ -1,24 +1,5 @@
 import Foundation
 
-func mean(mat : [Double]) -> Double
-{
-    var sum = 0.0
-    for i in 0..<mat.count
-    {
-        sum += mat[i]
-    }
-    return sum / Double(mat.count)
-}
-
-func rms(mat : [Double]) -> Double
-{
-    var sum = 0.0
-    for i in 0..<mat.count {
-        sum += mat[i] * mat[i]
-    }
-    return sqrt(sum / (Double(mat.count) * Double(mat.count)))
-}
-
 func movmean(mat : [Double], window: Int) -> [Double]
 {
     var result = Array(repeating: 0.0, count: mat.count)
@@ -34,9 +15,3 @@ func movmean(mat : [Double], window: Int) -> [Double]
     }
     return result
 }
-
-func minmax<T:Comparable>(mat : [T]) -> (T, T)
-{
-    return (mat.min()!, mat.max()!)
-}
-

@@ -14,7 +14,7 @@ class ModrawPacketParser_VNAV: ModrawPacketParser_BlockData {
     override func parse(packet: ModrawPacket, model: Model) {
         var i = getBlockDataPayloadStart(packet: packet)
         let (prev_block, this_block) = model.d.vnav_blocks.getLastTwoBlocks()
-        var prev_time_s = prev_block?.time_s.last!
+        var prev_time_s = prev_block?.time_s.data.last!
 
         var j = 0
         while let checksumStart = packet.findNextPacketEndChecksum(from: i),

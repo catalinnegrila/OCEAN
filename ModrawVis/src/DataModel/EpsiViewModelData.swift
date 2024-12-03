@@ -35,10 +35,10 @@ class EpsiViewModelData: EpsiModelData {
         if (time_s.count > 0)
         {
             calculateTimeF(time_window: time_window, time_f: &time_f)
-            t1_volt_mean = mean(mat: t1_volt)
-            t2_volt_mean = mean(mat: t2_volt)
-            s1_volt_rms = rms(mat: s1_volt)
-            s2_volt_rms = rms(mat: s2_volt)
+            t1_volt_mean = t1_volt.mean()
+            t2_volt_mean = t2_volt.mean()
+            s1_volt_rms = s1_volt.rms()
+            s2_volt_rms = s2_volt.rms()
             
             for i in 0..<time_s.count {
                 t1_volt[i] -= t1_volt_mean
@@ -47,13 +47,13 @@ class EpsiViewModelData: EpsiModelData {
                 s2_volt[i] -= s2_volt_rms
             }
             
-            t1_volt_range = minmax(mat: t1_volt)
-            t2_volt_range = minmax(mat: t2_volt)
-            s1_volt_range = minmax(mat: s1_volt)
-            s2_volt_range = minmax(mat: s2_volt)
-            a1_g_range = minmax(mat: a1_g)
-            a2_g_range = minmax(mat: a2_g)
-            a3_g_range = minmax(mat: a3_g)
+            t1_volt_range = t1_volt.range()
+            t2_volt_range = t2_volt.range()
+            s1_volt_range = s1_volt.range()
+            s2_volt_range = s2_volt.range()
+            a1_g_range = a1_g.range()
+            a2_g_range = a2_g.range()
+            a3_g_range = a3_g.range()
         }
     }
 }
