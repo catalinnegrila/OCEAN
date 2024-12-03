@@ -35,7 +35,11 @@ class TimestampedData
         }
         func range() -> (Double, Double)
         {
-            return (data.min()!, data.max()!)
+            return data.isEmpty ? (0.0, 0.0) : (data.min()!, data.max()!)
+        }
+        func invRange() -> (Double, Double)
+        {
+            return data.isEmpty ? (0.0, 0.0) : (data.max()!, data.min()!)
         }
         func mean() -> Double
         {
@@ -54,7 +58,8 @@ class TimestampedData
     let expected_sample_duration: Double
     var dataGaps = [DataGapInfo]()
     var channels = [Channel]()
-    var time_s: Channel { get { channels.last! }}
+    var time_s: Channel { get { channels[channels.count-2] }}
+    var time_f: Channel { get { channels[channels.count-1] }}
 
     required init() {
         self.capacity = 0
@@ -64,7 +69,7 @@ class TimestampedData
     init(numChannels: Int, capacity: Int, samples_per_sec: Int) {
         self.capacity = capacity
         self.expected_sample_duration = 1.0 / Double(samples_per_sec)
-        for _ in 0..<numChannels + 1 {
+        for _ in 0..<numChannels + 2 {
             self.channels.append(Channel())
         }
         reserveCapacity(capacity)
@@ -88,7 +93,7 @@ class TimestampedData
     func append(from: TimestampedData, first: Int, count: Int)
     {
         assert(channels.count == from.channels.count)
-        for i in 0..<channels.count {
+        for i in 0..<channels.count - 1 { // skip the time_f channel
             channels[i].data.append(contentsOf: from.channels[i].data[first..<first+count])
         }
         for dataGap in from.dataGaps {
@@ -137,20 +142,20 @@ class TimestampedData
         }
         return slice
     }
-    func calculateTimeF(time_window: (Double, Double), time_f: inout [Double]) {
-        time_f.removeAll()
-        time_f.reserveCapacity(time_s.count)
+    func calculateDerivedData(time_window: (Double, Double)) {
+        assert(time_f.isEmpty)
+        time_f.data.reserveCapacity(time_s.count)
         for i in 0..<time_s.count {
             time_f.append((time_s[i] - time_window.0) / (time_window.1 - time_window.0))
         }
-    }
-    func calculateDerivedData(time_window: (Double, Double)) {
     }
     func mergeBlocks<T: TimestampedData>(time_window: (Double, Double), blocks: inout [T]) {
         removeAll()
         blocks.removeBlocksOlderThan(t0: time_window.0)
         blocks.appendSamplesBetween(t0: time_window.0, t1: time_window.1, data: self)
-        calculateDerivedData(time_window: time_window)
+        if !time_s.isEmpty {
+            calculateDerivedData(time_window: time_window)
+        }
     }
 }
 

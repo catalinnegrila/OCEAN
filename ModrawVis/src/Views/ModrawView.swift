@@ -135,7 +135,7 @@ struct ModrawView: View {
         let gray = isDarkTheme() ? 0.15 : 0.85
         let color = Color(red: gray, green: gray, blue: gray, opacity: 0.5)
         
-        for dataGap in rd.dataGaps {
+        for dataGap in rd.d.dataGaps {
 #if !DEBUG
             if dataGap.type == .NEW_FILE_BOUNDARY { continue }
 #endif
@@ -154,13 +154,13 @@ struct ModrawView: View {
             }
         }
         if (!rd.time_f.isEmpty) {
-            let minX = lerpToX(rc: rc, s: rd.time_f.first!)
+            let minX = lerpToX(rc: rc, s: rd.time_f[0])
             assert(minX >= rc.minX)
             if (minX - rc.minX > 2) {
                 let rcEmpty = CGRect(x: rc.minX + 1, y: rc.minY + 1, width: minX - rc.minX - 1, height: rc.height - 2)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
-            let maxX = lerpToX(rc: rc, s: rd.time_f.last!)
+            let maxX = lerpToX(rc: rc, s: rd.time_f[rd.time_f.count-1])
             if (rc.maxX - maxX > 2) {
                 let rcEmpty = CGRect(x: maxX, y: rc.minY + 1, width: rc.maxX - maxX - 1, height: rc.height - 2)
                 context.fill(Path(rcEmpty), with: .color(color))
@@ -204,11 +204,11 @@ struct ModrawView: View {
         if (!data.isEmpty && !rd.time_f.isEmpty) {
             let rc = rd.rect
             let context = rd.context
-            let minX = lerpToX(rc: rc, s: rd.time_f.first!)
-            let maxX = lerpToX(rc: rc, s: rd.time_f.last!)
+            let minX = lerpToX(rc: rc, s: rd.time_f[0])
+            let maxX = lerpToX(rc: rc, s: rd.time_f[rd.time_f.count-1])
             
             var emptyX = 0.0
-            for dataGap in rd.dataGaps {
+            for dataGap in rd.d.dataGaps {
                 let x0 = max(rc.minX + 1, timeToX(rc: rc, t: dataGap.t0, t0: rd.time_window.0, t1: rd.time_window.1))
                 let x1 = min(rc.maxX - 1, timeToX(rc: rc, t: dataGap.t1, t0: rd.time_window.0, t1: rd.time_window.1))
                 if (x1 - x0 >= 1) {
@@ -385,35 +385,25 @@ struct ModrawView: View {
         }
     }
     class RenderData: RenderDataEnv {
-        let time_s: ArraySlice<Double>
-        let time_f: ArraySlice<Double>
-        let dataGaps: ArraySlice<DataGapInfo>
+        let d: TimestampedData
+        var time_s: TimestampedData.Channel { get { return d.time_s }}
+        var time_f: TimestampedData.Channel { get { return d.time_f }}
         init(context: GraphicsContext, rd: RenderData) {
-            self.time_s = rd.time_s
-            self.time_f = rd.time_f
-            self.dataGaps = rd.dataGaps
+            self.d = rd.d
             super.init(context: context, rd: rd)
         }
-        init(epsi: EpsiViewModelData, rd: RenderDataEnv) {
-            self.time_s = epsi.time_s.data[...]
-            self.time_f = epsi.time_f[...]
-            self.dataGaps = epsi.dataGaps[...]
-            super.init(context: rd.context, rd: rd)
-        }
-        init(ctd: CtdViewModelData, rd: RenderDataEnv) {
-            self.time_s = ctd.time_s.data[...]
-            self.time_f = ctd.time_f[...]
-            self.dataGaps = ctd.dataGaps[...]
+        init(_ d: TimestampedData, rd: RenderDataEnv) {
+            self.d = d
             super.init(context: rd.context, rd: rd)
         }
     }
     
     func renderEpsi_t(rd: RenderDataEnv) {
-        let epsi_rd = RenderData(epsi: vm.epsi, rd: rd)
+        let epsi_rd = RenderData(vm.epsi, rd: rd)
         let t1_color = isDarkTheme() ? Color(red: 182/255, green: 114/255, blue: 182/255) : Color(red: 21/255, green: 53/255, blue: 136/255)
         let t2_color = Color(red: 114/255, green: 182/255, blue: 182/255, opacity: 0.75)
         
-        let epsi_t_volt_range = minmax(v1: vm.epsi.t1_volt_range, v2: vm.epsi.t2_volt_range)
+        let epsi_t_volt_range = minmax(v1: vm.epsi.t1_volt.range(), v2: vm.epsi.t2_volt.range())
         
         let t_yAxis = rangeToYAxis(range: epsi_t_volt_range)
         
@@ -423,7 +413,7 @@ struct ModrawView: View {
         render1D(rd: epsi_rd, yAxis: epsi_t_volt_range, data: vm.epsi.t2_volt, color: t2_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "FP07 [Volt]")
-        if (vm.epsi.time_s.count > 0) {
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: rd.rect, labels: [
                 (t1_color, "t1 - \(String(format: "%.2g", vm.epsi.t1_volt_mean))"),
                 (t2_color, "t2 - \(String(format: "%.2g", vm.epsi.t2_volt_mean))")])
@@ -431,8 +421,8 @@ struct ModrawView: View {
         rd.offsetRectY(vgap: vgap)
     }
     func renderEpsi_s(rd: RenderDataEnv) {
-        let epsi_rd = RenderData(epsi: vm.epsi, rd: rd)
-        let epsi_s_volt_range = minmax(v1: vm.epsi.s1_volt_range, v2: vm.epsi.s2_volt_range)
+        let epsi_rd = RenderData(vm.epsi, rd: rd)
+        let epsi_s_volt_range = minmax(v1: vm.epsi.s1_volt.range(), v2: vm.epsi.s2_volt.range())
         
         let s_yAxis = rangeToYAxis(range: epsi_s_volt_range)
         renderGrid(rd: epsi_rd, yAxis: s_yAxis, leftLabels: true, format: "%.2f")
@@ -440,7 +430,7 @@ struct ModrawView: View {
         render1D(rd: epsi_rd, yAxis: epsi_s_volt_range, data: vm.epsi.s2_volt, color: s2_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "Shear [Volt]")
-        if (vm.epsi.time_s.count > 0) {
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: rd.rect, labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", vm.epsi.s1_volt_rms))"),
                 (s2_color, "s2 - rms \(String(format: "%.2g", vm.epsi.s2_volt_rms))")])
@@ -448,71 +438,76 @@ struct ModrawView: View {
         rd.offsetRectY(vgap: vgap)
     }
     func renderEpsi_s1(rd: RenderDataEnv) {
-        let epsi_rd = RenderData(epsi: vm.epsi, rd: rd)
-        let s1_yAxis = rangeToYAxis(range: vm.epsi.s1_volt_range)
+        let epsi_rd = RenderData(vm.epsi, rd: rd)
+        let s1_volt_range = vm.epsi.s1_volt.range()
+        let s1_yAxis = rangeToYAxis(range: s1_volt_range)
         renderGrid(rd: epsi_rd, yAxis: s1_yAxis, leftLabels: true, format: "%.2f")
-        render1D(rd: epsi_rd, yAxis: vm.epsi.s1_volt_range, data: vm.epsi.s1_volt, color: s1_color)
+        render1D(rd: epsi_rd, yAxis: s1_volt_range, data: vm.epsi.s1_volt, color: s1_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "s1 [Volt]")
-        if (vm.epsi.time_s.count > 0) {
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: rd.rect, labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", vm.epsi.s1_volt_rms))")])
         }
         rd.offsetRectY(vgap: vgap)
     }
     func renderEpsi_s2(rd: RenderDataEnv) {
-        let epsi_rd = RenderData(epsi: vm.epsi, rd: rd)
-        let s2_yAxis = rangeToYAxis(range: vm.epsi.s2_volt_range)
+        let epsi_rd = RenderData(vm.epsi, rd: rd)
+        let s2_volt_range = vm.epsi.s2_volt.range()
+        let s2_yAxis = rangeToYAxis(range: s2_volt_range)
         renderGrid(rd: epsi_rd, yAxis: s2_yAxis, leftLabels: true, format: "%.2f")
-        render1D(rd: epsi_rd, yAxis: vm.epsi.s2_volt_range, data: vm.epsi.s2_volt, color: s2_color)
+        render1D(rd: epsi_rd, yAxis: s2_volt_range, data: vm.epsi.s2_volt, color: s2_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "s2 [Volt]")
-        if (vm.epsi.time_s.count > 0) {
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: rd.rect, labels: [
                 (s2_color, "s2 - rms \(String(format: "%.2g", vm.epsi.s2_volt_rms))")])
         }
         rd.offsetRectY(vgap: vgap)
     }
     func renderEpsi_a(rd: RenderDataEnv) {
-        let epsi_rd = RenderData(epsi: vm.epsi, rd: rd)
+        let epsi_rd = RenderData(vm.epsi, rd: rd)
         // EPSI a1
         epsi_rd.rect = CGRect(x: rd.rect.minX, y: rd.rect.minY, width: rd.rect.width, height: rd.rect.height / 2)
         
-        let a1_yAxis = rangeToYAxis(range: vm.epsi.a1_g_range)
+        let a1_g_range = vm.epsi.a1_g.range()
+        let a1_yAxis = rangeToYAxis(range: a1_g_range)
         renderGrid(rd: epsi_rd, yAxis: a1_yAxis, leftLabels: false, format: "%.1f")
-        render1D(rd: epsi_rd, yAxis: vm.epsi.a1_g_range, data: vm.epsi.a1_g, color: a1_color)
-        if (vm.epsi.time_s.count > 0) {
+        render1D(rd: epsi_rd, yAxis: a1_g_range, data: vm.epsi.a1_g, color: a1_color)
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: epsi_rd.rect, labels: [(a1_color, "z")])
         }
 
         // EPSI a2, a3
         epsi_rd.offsetRectY(vgap: 0)
-        let epsi_a23_g_range = minmax(v1: vm.epsi.a2_g_range, v2: vm.epsi.a3_g_range)
+        let epsi_a23_g_range = minmax(v1: vm.epsi.a2_g.range(), v2: vm.epsi.a3_g.range())
         
         let a23_yAxis = rangeToYAxis(range: epsi_a23_g_range)
         renderGrid(rd: epsi_rd, yAxis: a23_yAxis, leftLabels: true, format: "%.1f")
         render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: vm.epsi.a2_g, color: a2_color)
         render1D(rd: epsi_rd, yAxis: epsi_a23_g_range, data: vm.epsi.a3_g, color: a3_color)
-        if (vm.epsi.time_s.count > 0) {
+        if (epsi_rd.time_s.count > 0) {
             drawSubLabels(context: rd.context, rc: epsi_rd.rect, labels: [(a2_color, "x"), (a3_color, "y")])
         }
         drawMainLabel(context: rd.context, rc: rd.rect, text: "Accel [g]")
         rd.offsetRectY(vgap: vgap)
     }
     func renderCtd_T(rd: RenderDataEnv) {
-        let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
-        let T_yAxis = rangeToYAxis(range: vm.ctd.T_range)
+        let ctd_rd = RenderData(vm.ctd, rd: rd)
+        let T_range = vm.ctd.T.range()
+        let T_yAxis = rangeToYAxis(range: T_range)
         renderGrid(rd: ctd_rd, yAxis: T_yAxis, leftLabels: true, format: "%.1f")
-        render1D(rd: ctd_rd, yAxis: vm.ctd.T_range, data: vm.ctd.T, color: T_color)
+        render1D(rd: ctd_rd, yAxis: T_range, data: vm.ctd.T, color: T_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "T [\u{00B0}C]")
         rd.offsetRectY(vgap: vgap)
     }
     func renderCtd_S(rd: RenderDataEnv) {
-        let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
-        let S_yAxis = rangeToYAxis(range: vm.ctd.S_range)
+        let ctd_rd = RenderData(vm.ctd, rd: rd)
+        let S_range = vm.ctd.S.range()
+        let S_yAxis = rangeToYAxis(range: S_range)
         renderGrid(rd: ctd_rd, yAxis: S_yAxis, leftLabels: true, format: "%.1f")
-        render1D(rd: ctd_rd, yAxis: vm.ctd.S_range, data: vm.ctd.S, color: S_color)
+        render1D(rd: ctd_rd, yAxis: S_range, data: vm.ctd.S, color: S_color)
         
         drawMainLabel(context: rd.context, rc: rd.rect, text: "S")
         rd.offsetRectY(vgap: vgap);
@@ -524,7 +519,7 @@ struct ModrawView: View {
         return zero_s * rd.rect.minY + (1.0 - zero_s) * rd.rect.maxY
     }
     func renderCtd_dzdt(rd: RenderDataEnv) {
-        let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
+        let ctd_rd = RenderData(vm.ctd, rd: rd)
 
         var dzdt_yAxis: [Double]
         let dzdt_min = vm.ctd.dzdt_range.0
@@ -562,7 +557,7 @@ struct ModrawView: View {
         rd.offsetRectY(vgap: vgap)
     }
     func renderCtd_z(rd: RenderDataEnv) {
-        let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
+        let ctd_rd = RenderData(vm.ctd, rd: rd)
         let z_yAxis = rangeToYAxis(range: vm.ctd.z_range)
         renderGrid(rd: ctd_rd, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
         render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: vm.ctd.z, color: P_color)
@@ -570,7 +565,7 @@ struct ModrawView: View {
         rd.offsetRectY(vgap: vgap)
     }
     func renderCtd_z_dzdt(rd: RenderDataEnv) {
-        let ctd_rd = RenderData(ctd: vm.ctd, rd: rd)
+        let ctd_rd = RenderData(vm.ctd, rd: rd)
         let z_yAxis = rangeToYAxis(range: vm.ctd.z_range)
         renderGrid(rd: ctd_rd, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
         render1D(rd: ctd_rd, yAxis: vm.ctd.z_range, data: vm.ctd.z_pos, color: dzdt_down_color)
