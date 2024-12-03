@@ -1,6 +1,6 @@
 import ModrawLib
 
-class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
+class ModrawPacketParser_EFE4 : ModrawPacketParser_BlockData {
     init() {
         super.init(signature: "$EFE4")
     }
@@ -23,7 +23,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     func efe_rec_len() -> Int {
         return efe_timestamp_len + efe_n_channels * efe_channel_len
     }
-    override func getExpectedBlockSize() -> Int {
+    override func getExpectedBlockDataLen() -> Int? {
         return efe_rec_len() * efe_recs_per_block
     }
     let t_FR = 2.5
@@ -50,7 +50,7 @@ class EpsiModrawPacketParser_EFE4 : EpsiModrawPacketParser {
     }
     override func parse(packet: ModrawPacket, model: Model)
     {
-        var i = getEpsiPayloadStart(packet: packet)
+        var i = getBlockDataPayloadStart(packet: packet)
         let (prev_block, this_block) = model.d.epsi_blocks.getLastTwoBlocks()
         var prev_time_s = prev_block?.time_s.last!
 

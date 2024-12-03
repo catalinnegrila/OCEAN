@@ -1,5 +1,8 @@
 import Foundation
 
+// TODO: boxed array for data channels
+// TODO: generic ViewModelData
+
 class Model: Observable {
     enum DeploymentType: Int {
         case EPSI = 1, FCTD
@@ -20,6 +23,8 @@ class Model: Observable {
         var deploymentType: DeploymentType = .EPSI
         var epsi_blocks = [EpsiModelData]()
         var ctd_blocks = [CtdModelData]()
+        var fluor_blocks = [FluorModelData]()
+        var vnav_blocks = [VnavModelData]()
         var mostRecentCoords: LatLon?
         var isUpdated = true
     }
@@ -45,16 +50,26 @@ class Model: Observable {
         if !d.ctd_blocks.isEmpty {
             d.ctd_blocks.last!.appendNewFileBoundary()
         }
+        if !d.fluor_blocks.isEmpty {
+            d.fluor_blocks.last!.appendNewFileBoundary()
+        }
+        if !d.vnav_blocks.isEmpty {
+            d.vnav_blocks.last!.appendNewFileBoundary()
+        }
     }
     func getEndTime() -> Double {
-        let epsi_time_end = d.epsi_blocks.getEndTime()
-        let ctd_time_end = d.ctd_blocks.getEndTime()
-        return max(epsi_time_end, ctd_time_end)
+        var endTime = d.epsi_blocks.getEndTime()
+        endTime = max(endTime, d.ctd_blocks.getEndTime())
+        endTime = max(endTime, d.fluor_blocks.getEndTime())
+        endTime = max(endTime, d.vnav_blocks.getEndTime())
+        return endTime
     }
     func getBeginTime() -> Double {
-        let epsi_time_begin = d.epsi_blocks.getBeginTime()
-        let ctd_time_begin = d.ctd_blocks.getBeginTime()
-        return min(epsi_time_begin, ctd_time_begin)
+        var beginTime = d.epsi_blocks.getBeginTime()
+        beginTime = min(beginTime, d.ctd_blocks.getBeginTime())
+        beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
+        beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
+        return beginTime
     }
     func resetIsUpdated() -> Bool {
         defer { d.isUpdated = false }

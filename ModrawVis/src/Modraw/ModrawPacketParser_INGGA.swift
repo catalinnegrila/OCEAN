@@ -56,7 +56,7 @@ class ModrawPacketParser_INGG: ModrawPacketParser {
         super.init(signature: "$INGGA")
     }
     override func parse(packet: ModrawPacket, model: Model) {
-        let str = packet.parent.peekString(at: packet.signatureStart, len: packet.checksumStart - packet.signatureStart)
+        let str = packet.parent.peekString(at: packet.signatureStart, len: packet.endChecksumStart - packet.signatureStart)
         model.d.mostRecentCoords = LatLon(ingga: str.components(separatedBy: ","))
     }
 }

@@ -20,7 +20,7 @@ if os.path.exists(source_dir):
     destination_dir = None
 else:
     # Local development configuration
-    source_dir = "/Users/catalin/Projects/OCEAN_data/new_data/"
+    source_dir = "/Users/catalin/Projects/OCEAN_data/epsi_data/"
     sim_mode = (socket.gethostname() == "Catalins-MacBook-Pro.local")
     #destination_dir = "/Users/catalin/Projects/OCEAN_data/out/"
     destination_dir = None

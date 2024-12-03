@@ -4,7 +4,12 @@ import ModrawLib
 class EpsiModrawParser {
     var modrawParser: ModrawParser
     fileprivate var packetParsers: [ModrawPacketParser] =
-        [ EpsiModrawPacketParser_EFE4(), EpsiModrawPacketParser_SB49(), ModrawPacketParser_INGG()  ]
+        [ ModrawPacketParser_EFE4(),
+          ModrawPacketParser_SB49(),
+          ModrawPacketParser_INGG(),
+          ModrawPacketParser_ECOP(),
+          ModrawPacketParser_VNAV()
+        ]
 
     init(fileUrl: URL) throws {
         modrawParser = try ModrawParser(fileUrl: fileUrl)

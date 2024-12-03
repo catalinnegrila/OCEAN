@@ -1,7 +1,7 @@
 import Foundation
 import ModrawLib
 
-class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
+class ModrawPacketParser_SB49 : ModrawPacketParser_BlockData {
     init() {
         super.init(signature: "$SB49")
     }
@@ -60,7 +60,7 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
     func sbe_block_rec_len() -> Int {
         return sbe_timestamp_len + 3 * sbe_channel6_len + sbe_channel4_len + 2 // <CR><LF>
     }
-    override func getExpectedBlockSize() -> Int {
+    override func getExpectedBlockDataLen() -> Int {
         return sbe_block_rec_len() * sbe_recs_per_block
     }
     func parseSbeTimestamp(packet: ModrawPacket, i: inout Int) -> Double {
@@ -182,7 +182,7 @@ class EpsiModrawPacketParser_SB49 : EpsiModrawPacketParser {
         return top_line / bot_line
     }
     override func parse(packet: ModrawPacket, model: Model) {
-        var i = getEpsiPayloadStart(packet: packet)
+        var i = getBlockDataPayloadStart(packet: packet)
 
         let (prev_block, this_block) = model.d.ctd_blocks.getLastTwoBlocks()
         var prev_time_s = prev_block?.time_s.last!

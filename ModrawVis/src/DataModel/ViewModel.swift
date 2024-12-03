@@ -11,6 +11,8 @@ public class ViewModel: ObservableObject
     @Published var time_window = (0.0, 0.0)
     var epsi = EpsiViewModelData()
     var ctd = CtdViewModelData()
+    var fluor = FluorViewModelData()
+    var vnav = VnavViewModelData()
     @Published var broadcaster = ViewModelBroadcaster()
 
     @Published var modelProducer: ModelProducer? {
@@ -67,6 +69,8 @@ public class ViewModel: ObservableObject
                 time_window = modelProducer.getTimeWindow(model: model)
                 epsi.mergeBlocks(time_window: time_window, blocks: &model.d.epsi_blocks)
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
+                fluor.mergeBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
+                vnav.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
                 broadcaster.broadcast(vm: self)
                 return true
             }

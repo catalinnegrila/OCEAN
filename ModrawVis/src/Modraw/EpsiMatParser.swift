@@ -17,7 +17,7 @@ class EpsiMatParser
         epsi.a1_g = mat.getMatrixNumeric1(name: "epsi.a1_g")
         epsi.a2_g = mat.getMatrixNumeric1(name: "epsi.a2_g")
         epsi.a3_g = mat.getMatrixNumeric1(name: "epsi.a3_g")
-        
+
         model.d.ctd_blocks = [CtdModelData()]
         let ctd = model.d.ctd_blocks.first!
         ctd.time_s = mat.getMatrixNumeric1(name: "ctd.time_s")

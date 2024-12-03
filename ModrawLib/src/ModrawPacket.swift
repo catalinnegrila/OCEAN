@@ -4,10 +4,10 @@ public class ModrawPacket {
     public var packetStart: Int
     var timestampStart: Int?
     public var signatureStart: Int
-    public var checksumStart: Int
+    public var endChecksumStart: Int
 
     public static let PACKET_CHECKSUM_LEN = 3 // <*><HEX><HEX>
-    fileprivate static let PACKET_END_CHECKSUM_LEN = 5 // <*><HEX><HEX><CR><LF>
+    public static let PACKET_END_CHECKSUM_LEN = 5 // <*><HEX><HEX><CR><LF>
     fileprivate static let PACKET_TIMESTAMP_LEN = 10
 
     public let parent: ModrawParser
@@ -21,33 +21,32 @@ public class ModrawPacket {
             parent.cursor = timestampRange.1
         }
 
+        guard !parent.atEnd() else { return nil }
         guard parent.peekByte().toChar() == "$" else { return nil }
         signatureStart = parent.cursor
 
-        checksumStart = 0
-        while !parent.atEnd()
+        endChecksumStart = 0 // Unnecessary but keeps the compiler happy
+        while true
         {
-            // Does this look like a checksum and a new packet beginning?
-            if isPacketEndChecksum() {
-                checksumStart = parent.cursor
-                parent.cursor += ModrawPacket.PACKET_END_CHECKSUM_LEN
-                if !parent.atEnd() && parent.peekByte().toChar() == "\n" {
-                    parent.cursor += 1
-                }
-                if isPacketStart() || parent.foundEndMarker() {
-                    break
-                } else {
-                    // False positive, continue
-                    checksumStart = 0
-                }
-            } else {
+            // Does this look like a checksum, optional <CR>, and a new packet beginning?
+            guard let endChecksumStart = findNextPacketEndChecksum(from: parent.cursor) else { return nil }
+            parent.cursor = endChecksumStart + ModrawPacket.PACKET_END_CHECKSUM_LEN
+            guard !parent.atEnd() else { return nil }
+
+            // Sometimes there's an extra new line after a packet
+            if parent.peekByte().toChar() == "\n" {
                 parent.cursor += 1
             }
+
+            guard !parent.atEnd() else { return nil }
+            if isPacketStart() || parent.foundEndMarker() {
+                self.endChecksumStart = endChecksumStart
+                break
+            }
         }
-        guard checksumStart != 0 else { return nil }
     }
     public func checkSignature(_ signature: String) -> Bool {
-        guard signatureStart + signature.count <= checksumStart else { return false }
+        guard signatureStart + signature.count <= endChecksumStart else { return false }
         return parent.foundMarker(i: signatureStart, marker: signature)
     }
     public func getPayloadStart(signatureLen: Int) -> Int {
@@ -85,17 +84,25 @@ public class ModrawPacket {
         }
         return false
     }
+    public func findNextPacketEndChecksum(from: Int) -> Int? {
+        for i in from..<parent.data.count {
+            if isPacketEndChecksum(i) {
+                return i
+            }
+        }
+        return nil
+    }
     public func isChecksum(_ i: Int) -> Bool {
         return i <= parent.data.count - 3 &&
             parent.data[i].toChar() == "*" &&
             parent.data[i+1].isHexDigit &&
             parent.data[i+2].isHexDigit
     }
-    fileprivate func isPacketEndChecksum() -> Bool {
-        return isChecksum(parent.cursor) &&
-            parent.cursor <= parent.data.count - 5 &&
-            parent.data[parent.cursor+3].toChar() == "\r" &&
-            parent.data[parent.cursor+4].toChar() == "\n"
+    fileprivate func isPacketEndChecksum(_ i: Int) -> Bool {
+        return isChecksum(i) &&
+            i <= parent.data.count - 5 &&
+            parent.data[i+3].toChar() == "\r" &&
+            parent.data[i+4].toChar() == "\n"
     }
 }
 
