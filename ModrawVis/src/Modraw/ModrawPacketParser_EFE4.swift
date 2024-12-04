@@ -3,12 +3,22 @@ import ModrawLib
 class ModrawPacketParser_EFE4 : ModrawPacketParser_BlockData {
     init() {
         super.init(signature: "$EFE4")
+        self.s_volt_func = self.unipolar
     }
 
-    var deployment_type: Model.DeploymentType = .EPSI
+    var s_volt_func: ((Double, Int) -> Double)?
+
     override func parse(header: ModrawHeader) {
-        let fishflag = header.getValueForKeyAsString(Model.fishflagFieldName) ?? "'EPSI'"
-        deployment_type = Model.DeploymentType.from(fishflag: fishflag)
+        let fishflag = header.getValueForFishflag()
+        switch fishflag {
+        case "EPSI":
+            s_volt_func = self.unipolar
+        case "FCTD":
+            s_volt_func = self.bipolar
+        default:
+            print("Unknown fishflag: \(fishflag)")
+            assertionFailure()
+        }
     }
 
     let efe_gain = 1.0
@@ -72,14 +82,8 @@ class ModrawPacketParser_EFE4 : ModrawPacketParser_BlockData {
             this_block.t1_volt.append(unipolar(FR: t_FR, data: t1_count))
             this_block.t2_volt.append(unipolar(FR: t_FR, data: t2_count))
 
-            switch deployment_type {
-            case .EPSI:
-                this_block.s1_volt.append(bipolar(FR: s_FR, data: s1_count))
-                this_block.s2_volt.append(bipolar(FR: s_FR, data: s2_count))
-            case .FCTD:
-                this_block.s1_volt.append(unipolar(FR: s_FR, data: s1_count))
-                this_block.s2_volt.append(unipolar(FR: s_FR, data: s2_count))
-            }
+            this_block.s1_volt.append(s_volt_func!(s_FR, s1_count))
+            this_block.s2_volt.append(s_volt_func!(s_FR, s2_count))
 
             let a1_volt = unipolar(FR: a_FR, data: a1_count)
             let a2_volt = unipolar(FR: a_FR, data: a2_count)

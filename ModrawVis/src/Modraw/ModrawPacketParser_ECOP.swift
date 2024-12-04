@@ -26,10 +26,11 @@ class ModrawPacketParser_ECOP : ModrawPacketParser_BlockData {
         i += ecop_timestamp_len
         return time_s
     }
-    func parseEcopChannel(packet: ModrawPacket, i: inout Int) -> Int {
-        let channel = packet.parent.peekHex(at: i, len: ecop_channel_len)!
+    func parseEcopChannel(packet: ModrawPacket, i: inout Int) -> Double {
+        let channel = packet.parent.peekHex(at: i, len: ecop_channel_len)
         i += ecop_channel_len
-        return Int(channel)
+        guard let channel else { return Double.nan }
+        return Double(channel) / Double(0xFFFF)
     }
     override func parse(packet: ModrawPacket, model: Model) {
         var i = getBlockDataPayloadStart(packet: packet)
@@ -50,10 +51,10 @@ class ModrawPacketParser_ECOP : ModrawPacketParser_BlockData {
 
             // TODO: convert to real values. Not yet implemented in Matlab either.
             this_block.time_s.append(time_s)
-            this_block.bb.append(Double(bb_raw))
-            this_block.chla.append(Double(chla_raw))
-            this_block.fDOM.append(Double(fDOM_raw))
+            this_block.bb.append(bb_raw)
+            this_block.chla.append(chla_raw)
+            this_block.fDOM.append(fDOM_raw)
         }
-        model.d.ctd_blocks.removeLastBlockIfEmpty()
+        model.d.fluor_blocks.removeLastBlockIfEmpty()
     }
 }

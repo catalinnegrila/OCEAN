@@ -1,7 +1,7 @@
 class TtvViewModelData: TtvModelData {
     func render_tof(gr: GraphRenderer) {
         let range = rangeUnion(tof_up.range(), tof_down.range())
-        let yAxis = rangeToYAxis(range: range)
+        let yAxis = rangeToYAxis3(range: range)
         
         gr.renderGrid(td: self, yAxis: yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: tof_up, range: range, color: .red)

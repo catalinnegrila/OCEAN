@@ -1,6 +1,16 @@
 import Foundation
 import ModrawLib
 
+extension ModrawHeader {
+
+    static let FISHFLAG_KEY = "CTD.fishflag"
+
+    func getValueForFishflag() -> String {
+        guard let fishflag = getValueForKeyAsString(ModrawHeader.FISHFLAG_KEY) else { return "n/a" }
+        return fishflag.trimmingCharacters(in: .punctuationCharacters)
+    }
+}
+
 class EpsiModrawParser {
     var modrawParser: ModrawParser
     fileprivate var packetParsers: [ModrawPacketParser] =
@@ -23,7 +33,7 @@ class EpsiModrawParser {
         for packetParser in packetParsers {
             packetParser.parse(header: header)
         }
-        model.d.fishflag = header.getValueForKeyAsString(Model.fishflagFieldName) ?? "n/a"
+        model.d.fishflag = header.getValueForFishflag()
         return true
     }
     fileprivate func getParserFor(packet: ModrawPacket) -> ModrawPacketParser? {

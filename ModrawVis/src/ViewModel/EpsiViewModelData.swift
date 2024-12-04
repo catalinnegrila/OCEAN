@@ -43,7 +43,7 @@ class EpsiViewModelData: EpsiModelData {
     func renderT(gr: GraphRenderer) {
         let t1_color = gr.isDarkTheme ? t1_dark_color : t1_light_color
         let t_volt_range = rangeUnion(t1_volt.range(), t2_volt.range())
-        let t_yAxis = rangeToYAxis(range: t_volt_range)
+        let t_yAxis = rangeToYAxis3(range: t_volt_range)
         
         gr.renderGrid(td: self, yAxis: t_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: t1_volt, range: t_volt_range, color: t1_color)
@@ -56,7 +56,7 @@ class EpsiViewModelData: EpsiModelData {
     }
     func renderS(gr: GraphRenderer) {
         let s_volt_range = rangeUnion(s1_volt.range(), s2_volt.range())
-        let s_yAxis = rangeToYAxis(range: s_volt_range)
+        let s_yAxis = rangeToYAxis3(range: s_volt_range)
         gr.renderGrid(td: self, yAxis: s_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: s1_volt, range: s_volt_range, color: s1_color)
         gr.renderTimeSeries(td: self, data: s2_volt, range: s_volt_range, color: s2_color)
@@ -81,12 +81,12 @@ class EpsiViewModelData: EpsiModelData {
         }
     }
     func renderA(gr: GraphRenderer) {
-        let epsi_gr = GraphRenderer(context: gr.context, gr: gr)
+        let gr = GraphRenderer(context: gr.context, gr: gr)
         // EPSI a1
-        epsi_gr.rect = CGRect(x: gr.rect.minX, y: gr.rect.minY, width: gr.rect.width, height: gr.rect.height / 2)
+        gr.rect = gr.rect.inset(0.0, 0.0, 0.0, gr.rect.height / 2)
         
         let a1_g_range = a1_g.range()
-        let a1_yAxis = rangeToYAxis(range: a1_g_range)
+        let a1_yAxis = rangeToYAxis3(range: a1_g_range)
         gr.renderGrid(td: self, yAxis: a1_yAxis, leftLabels: false, format: "%.1f")
         gr.renderTimeSeries(td: self, data: a1_g, range: a1_g_range, color: a1_color)
         if (time_s.count > 0) {
@@ -94,13 +94,13 @@ class EpsiViewModelData: EpsiModelData {
         }
 
         // EPSI a2, a3
-        epsi_gr.offsetRectY(0)
+        gr.advanceRectY(0)
         let a23_g_range = rangeUnion(a2_g.range(), a3_g.range())
         
-        let a23_yAxis = rangeToYAxis(range: a23_g_range)
+        let a23_yAxis = rangeToYAxis3(range: a23_g_range)
         gr.renderGrid(td: self, yAxis: a23_yAxis, leftLabels: true, format: "%.1f")
         gr.renderTimeSeries(td: self, data: a2_g, range: a23_g_range, color: a2_color)
-        gr.renderTimeSeries(td: self, data: a2_g, range: a23_g_range, color: a3_color)
+        gr.renderTimeSeries(td: self, data: a3_g, range: a23_g_range, color: a3_color)
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [(a2_color, "x"), (a3_color, "y")])
         }

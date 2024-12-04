@@ -26,12 +26,12 @@ struct ModrawVisApp: App {
         }.commands {
             FileMenuCommands(vm: vm)
             CommandGroup(before: .windowArrangement) {
-                WindowVisibilityToggle(windowID: "info")
-                    .keyboardShortcut("i", modifiers: [.command])
+                InfoWindowToggle(vm: vm)
             }
-        } .windowToolbarStyle(.unifiedCompact)
+        }.windowToolbarStyle(.unifiedCompact)
         UtilityWindow("Info", id: "info") {
             InfoView(vm: vm)
-        }.commandsRemoved().windowResizability(.contentSize) 
+        }.commandsRemoved()
+            .windowResizability(.contentSize)
     }
 }

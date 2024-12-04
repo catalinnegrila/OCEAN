@@ -5,8 +5,7 @@ struct FileMenuCommands: Commands {
     var vm: ViewModel
 
     func modalFilePicker(chooseFiles: Bool) -> URL? {
-        let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 500, height: 600))
-        let picker = NSOpenPanel(contentRect: rect, styleMask: .utilityWindow, backing: .buffered, defer: true)
+        let picker = NSOpenPanel(contentRect: CGRect.zero, styleMask: .utilityWindow, backing: .buffered, defer: true)
         
         picker.canChooseDirectories = !chooseFiles
         picker.canChooseFiles = chooseFiles

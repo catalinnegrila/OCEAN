@@ -11,7 +11,19 @@ extension Path {
     }
 }
 
-func rangeToYAxis(range: (Double, Double)) -> [Double]
+extension CGPoint {
+    func offset(_ dx: Double, _ dy: Double) -> CGPoint {
+        return CGPoint(x: x + dx, y: y + dy)
+    }
+}
+
+extension CGRect {
+    func inset(_ dx0: Double, _ dy0: Double, _ dx1: Double, _ dy1: Double) -> CGRect {
+        return CGRect(x: minX + dx0, y: minY + dy0, width: width - dx0 - dx1, height: height - dy0 - dy1)
+    }
+}
+
+func rangeToYAxis3(range: (Double, Double)) -> [Double]
 {
     if (range.0 != range.1) {
         return [range.0, (range.1 + range.0) / 2, range.1]
@@ -38,7 +50,7 @@ class GraphRenderer {
         self.xAxis = gr.xAxis
         self.rect = gr.rect
     }
-    func offsetRectY(_ vgap: Double) {
+    func advanceRectY(_ vgap: Double) {
         rect = rect.offsetBy(dx: 0.0, dy: rect.height + vgap)
     }
     func valueToY(_ v: Double, range: (Double, Double)) -> Double {
@@ -51,6 +63,7 @@ class GraphRenderer {
 
     let font = Font.body
     let leftLabelsWidth = 70.0
+    let rightLabelsWidth = 40.0
 
     func renderGrid(td: TimestampedData, yAxis: [Double], leftLabels: Bool, format: String) {
         let nub = 7.0
@@ -69,64 +82,58 @@ class GraphRenderer {
         if yAxis.isEmpty {
             context.fill(Path(rect), with: .color(color))
             context.draw(Text("no data").foregroundColor(.gray),
-                         at: CGPoint(x: (rect.minX + rect.maxX) / 2, y: (rect.minY + rect.maxY) / 2),
+                         at: CGPoint(x: rect.midX, y: rect.midY),
                          anchor: .center)
             return
         }
 
         if (!xAxis.isEmpty) {
-            var xOffset = [CGFloat](repeating: 0.0, count: xAxis.count)
-            for i in 0..<xAxis.count {
-                let s = xAxis[i]
-                xOffset[i] = (1 - s) * rect.minX + s * rect.maxX
-            }
-            
             // Dashed vertical lines
             context.stroke(Path { path in
-                for i in 0..<xAxis.count {
-                    path.addVLine(x: xOffset[i], y0: rect.minY, y1: rect.maxY)
+                for s in xAxis {
+                    path.addVLine(x: lerpToX(s), y0: rect.minY, y1: rect.maxY)
                 }
             }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
             
             // Vertical nubs
             context.stroke(Path { path in
-                for i in 0..<xAxis.count {
-                    path.addVLine(x: xOffset[i], y0: rect.minY, y1: rect.minY + nub)
-                    path.addVLine(x: xOffset[i], y0: rect.maxY - nub, y1: rect.maxY)
+                for s in xAxis {
+                    let x = lerpToX(s)
+                    path.addVLine(x: x, y0: rect.minY, y1: rect.minY + nub)
+                    path.addVLine(x: x, y0: rect.maxY - nub, y1: rect.maxY)
                 }
             }, with: .color(.gray), lineWidth: thickLine)
         }
         
         if (!yAxis.isEmpty) {
-            let yAxisMin = yAxis[0]
-            let yAxisMax = yAxis[yAxis.count - 1]
+            let yRange = (yAxis[0], yAxis[yAxis.count - 1])
             
             var yOffset = [CGFloat](repeating: 0.0, count: yAxis.count)
             for i in 0..<yAxis.count {
-                let s = (yAxis[i] - yAxisMin) / (yAxisMax - yAxisMin)
-                yOffset[i] = s * rect.minY + (1 - s) * rect.maxY
+                yOffset[i] = valueToY(yAxis[i], range: yRange)
             }
             
             // Dashed horizontal lines
             context.stroke(Path { path in
-                for i in 0..<yAxis.count {
-                    path.addHLine(y: yOffset[i], x0: rect.minX, x1: rect.maxX)
+                for v in yAxis {
+                    path.addHLine(y: valueToY(v, range: yRange), x0: rect.minX, x1: rect.maxX)
                 }
             }, with: .color(.gray), style: StrokeStyle(lineWidth: 0.5, dash: [5]))
             
             // Horizontal nubs
             context.stroke(Path { path in
-                for i in 0..<yAxis.count {
-                    path.addHLine(y: yOffset[i], x0: rect.minX, x1: rect.minX + nub)
-                    path.addHLine(y: yOffset[i], x0: rect.maxX - nub, x1: rect.maxX)
+                for v in yAxis {
+                    let y = valueToY(v, range: yRange)
+                    path.addHLine(y: y, x0: rect.minX, x1: rect.minX + nub)
+                    path.addHLine(y: y, x0: rect.maxX - nub, x1: rect.maxX)
                 }
             }, with: .color(.gray), lineWidth: thickLine)
             
             // Y-Axis labels
-            for i in 0..<yAxis.count {
-                let atX = leftLabels ? rect.minX - textGap : rect.maxX + textGap
-                context.draw(Text(String(format: format, yAxis[i])).font(font),
-                             at: CGPoint(x: atX, y: yOffset[i]),
+            for v in yAxis {
+                let x = leftLabels ? rect.minX - textGap : rect.maxX + textGap
+                context.draw(Text(String(format: format, v)).font(font),
+                             at: CGPoint(x: x, y: valueToY(v, range: yRange)),
                              anchor: leftLabels ? .trailing : .leading)
             }
         }
@@ -157,12 +164,12 @@ class GraphRenderer {
             let minX = lerpToX(time_f.first!)
             assert(minX >= rect.minX)
             if (minX - rect.minX > 2) {
-                let rcEmpty = CGRect(x: rect.minX + 1, y: rect.minY + 1, width: minX - rect.minX - 1, height: rect.height - 2)
+                let rcEmpty = rect.inset(1.0, 1.0, rect.minX - minX, 1.0)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
             let maxX = lerpToX(time_f.last!)
             if (rect.maxX - maxX > 2) {
-                let rcEmpty = CGRect(x: maxX, y: rect.minY + 1, width: rect.maxX - maxX - 1, height: rect.height - 2)
+                let rcEmpty = rect.inset(maxX - rect.minX, 1.0, 1.0, 1.0)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
         }
@@ -266,8 +273,13 @@ class GraphRenderer {
         context.fill(Path(rcLabels), with: .color(Color(red: gray, green: gray, blue: gray)))
         context.stroke(Path(rcLabels), with: .color(.black))
         
-        var rcDot = CGRect(x: rcLabels.minX + inset.0, y: rcLabels.minY + inset.1 + (textHeight - dotSize) / 2, width: dotSize, height: dotSize)
-        var ptText = CGPoint(x: rcLabels.minX + inset.0 + dotSize + inset.0, y: rcLabels.minY + inset.1)
+        var rcDot = CGRect(
+            x: rcLabels.minX + inset.0,
+            y: rcLabels.minY + inset.1 + (textHeight - dotSize) / 2,
+            width: dotSize,
+            height: dotSize)
+        
+        var ptText = rcLabels.origin.offset(inset.0 + dotSize + inset.0, inset.1)
         for i in 0..<labels.count {
             context.fill(Circle().path(in: rcDot), with: .color(labels[i].0))
             context.draw(Text(labels[i].1).foregroundColor(.black).font(font), at: ptText, anchor: .topLeading)
@@ -295,7 +307,7 @@ class GraphRenderer {
     }
     func renderGenericTimeseries(td: TimestampedData, channel: TimestampedData.Channel, color: Color) {
         let range = channel.range()
-        let yAxis = rangeToYAxis(range: range)
+        let yAxis = rangeToYAxis3(range: range)
         renderGrid(td: td, yAxis: yAxis, leftLabels: true, format: "%.1f")
         renderTimeSeries(td: td, data: channel, range: range, color: color)
     }

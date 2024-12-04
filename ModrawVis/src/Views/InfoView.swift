@@ -1,22 +1,45 @@
+import Foundation
 import SwiftUI
+
+struct InfoWindowToggle: View {
+    @StateObject var vm: ViewModel
+    var body: some View {
+        WindowVisibilityToggle(windowID: "info")
+            .keyboardShortcut("i", modifiers: [.command])
+            .disabled(vm.time_window.0 == vm.time_window.1)
+    }
+}
 
 struct InfoView: View {
     @StateObject public var vm: ViewModel
+
     func toColor(_ state: ViewModelBroadcaster.State) -> Color {
-       switch vm.broadcaster.state {
-           case .Starting, .Stopped: return .blue
-           case .Sending: return .green
-           case .Error: return .red
-       }
+        switch vm.broadcaster.state {
+            case .Starting, .Stopped: return .blue
+            case .Sending: return .green
+            case .Error: return .red
+        }
     }
     func timeWindowToString() -> String {
         let dt = vm.time_window.1 - vm.time_window.0
         guard dt > 0.0 else { return "n/a" }
         return String(format: "%.2f seconds", dt)
     }
+    func nowToString() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let date = Date(timeIntervalSince1970: vm.time_window.1)
+        return dateFormatter.string(from: date)
+    }
+
     var body: some View {
         ScrollView {
             Grid {
+                GridRow {
+                    Text("Fishflag:").bold()
+                    Text(vm.model.d.fishflag)
+                }
+                Divider()
                 GridRow {
                     Text("")
                         .gridColumnAlignment(.trailing)
@@ -26,36 +49,36 @@ struct InfoView: View {
                         .frame(maxWidth: .infinity)
                 }
                 GridRow {
-                    Text("Latitude (scientific):")
-                    Text(vm.model.d.mostRecentCoords?.lat.describeSci() ?? "n/a").bold()
+                    Text("Latitude (scientific):").bold()
+                    Text(vm.model.d.mostRecentCoords?.lat.describeSci() ?? "n/a")
                 }
                 GridRow {
-                    Text("Longitude (scientific):")
-                    Text(vm.model.d.mostRecentCoords?.lon.describeSci() ?? "n/a").bold()
-                }
-                Divider()
-                GridRow {
-                    Text("Latitude:")
-                    Text(vm.model.d.mostRecentCoords?.lat.describe() ?? "n/a").bold()
-                }
-                GridRow {
-                    Text("Longitude:")
-                    Text(vm.model.d.mostRecentCoords?.lon.describe() ?? "n/a").bold()
+                    Text("Longitude (scientific):").bold()
+                    Text(vm.model.d.mostRecentCoords?.lon.describeSci() ?? "n/a")
                 }
                 Divider()
                 GridRow {
-                    Text(Model.fishflagFieldName)
-                    Text(vm.model.d.fishflag).bold()
+                    Text("Latitude:").bold()
+                    Text(vm.model.d.mostRecentCoords?.lat.describe() ?? "n/a")
                 }
                 GridRow {
-                    Text("Time window:")
-                    Text(timeWindowToString()).bold()
+                    Text("Longitude:").bold()
+                    Text(vm.model.d.mostRecentCoords?.lon.describe() ?? "n/a")
                 }
                 Divider()
                 GridRow {
-                    Text("Broadcast:")
+                    Text("Current time:").bold()
+                    Text(nowToString())
+                }
+                GridRow {
+                    Text("Time window:").bold()
+                    Text(timeWindowToString())
+                }
+                Divider()
+                GridRow {
+                    Text("Broadcast:").bold()
                     HStack {
-                        Text(String(vm.broadcaster.state.rawValue)).bold()
+                        Text(String(vm.broadcaster.state.rawValue))
                             .foregroundColor(toColor(vm.broadcaster.state))
                         switch vm.broadcaster.state {
                         case .Starting, .Sending, .Error:
@@ -70,29 +93,47 @@ struct InfoView: View {
                     }
                 }
                 Divider()
-                ForEach($vm.graphs, id: \.id) { $graph in
+                GridRow {
+                    Text("Visibility presets:").bold()
+                    Picker("", selection: $vm.model.d.fishflag) {
+                        Text("EPSI").tag("EPSI")
+                        Text("FCTD").tag("FCTD")
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                }
+                GridRow {
+                    Spacer()
+                    Button {
+                        for i in 0..<vm.graphs.count {
+                            vm.graphs[i].resetToUserDefaultFor(preset: vm.model.d.fishflag)
+                        }
+                    } label: {
+                        Text("Reset to defaults").frame(maxWidth: .infinity)
+                    }.gridCellUnsizedAxes(.horizontal)
+                }
+                ForEach($vm.graphs, id: \.label) { $graph in
                     GridRow {
-                        Text(graph.label).bold()
+                        Text("\(graph.label):").bold()
                         HStack {
                             if graph.visible {
-                                Text(String("Visible")).bold()
+                                Text(String("Visible"))
                                     .foregroundColor(.green)
                                 Button("Hide") {
-                                    graph.setVisible(fishflag: vm.model.d.fishflag, visible: false)
+                                    graph.setVisibleFor(preset: vm.model.d.fishflag, visible: false)
                                 }
                             } else {
-                                Text(String("Hidden")).bold()
+                                Text(String("Hidden"))
                                     .foregroundColor(.blue)
                                 Button("Show") {
-                                    graph.setVisible(fishflag: vm.model.d.fishflag, visible: true)
+                                    graph.setVisibleFor(preset: vm.model.d.fishflag, visible: true)
                                 }
                             }
                         }
                     }
                 }
-            }
-            Spacer()
-        }.frame(width: 350).frame(minHeight: 250)
+            }.padding(15.0)
+        }.frame(width: 350).frame(minHeight: 500)
     }
 }
 

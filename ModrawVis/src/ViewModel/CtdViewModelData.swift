@@ -61,34 +61,28 @@ class CtdViewModelData: CtdModelData {
     func renderS(gr: GraphRenderer) {
         gr.renderGenericTimeseries(td: self, channel: S, color: S_color)
     }
-    func getDzdtZeroY(gr: GraphRenderer) -> Double {
-        let dzdt_min = dzdt_range.0
-        let dzdt_max = dzdt_range.1
-        let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
-        return zero_s * gr.rect.minY + (1.0 - zero_s) * gr.rect.maxY
-    }
     func renderDzdt(gr: GraphRenderer) {
         var dzdt_yAxis: [Double]
         let dzdt_min = dzdt_range.0
         let dzdt_max = dzdt_range.1
-        let zero_y = getDzdtZeroY(gr: gr)
+        let zero_y = gr.valueToY(0.0, range: dzdt_range)
         if (dzdt_min * dzdt_max < 0) {
             // Plot contains zero level, highlight that instead of middle
             dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
         } else {
-            dzdt_yAxis = rangeToYAxis(range: dzdt_range)
+            dzdt_yAxis = rangeToYAxis3(range: dzdt_range)
         }
         gr.renderGrid(td: self, yAxis: dzdt_yAxis, leftLabels: true, format: "%.2f")
         if (zero_y > gr.rect.minY + 2) {
             gr.context.drawLayer { ctx in
-                ctx.clip(to: Path(CGRect(x: gr.rect.minX, y: gr.rect.minY, width: gr.rect.width, height: zero_y - gr.rect.minY)))
+                ctx.clip(to: Path(gr.rect.inset(0.0, 0.0, 0.0, gr.rect.minY - zero_y)))
                 let rdUp = GraphRenderer(context: ctx, gr: gr)
                 rdUp.renderTimeSeries(td: self, data: dzdt_movmean, range: dzdt_range, color: dzdt_up_color)
             }
         }
         if (zero_y < gr.rect.maxY - 2) {
             gr.context.drawLayer { ctx in
-                ctx.clip(to: Path(CGRect(x: gr.rect.minX, y: zero_y, width: gr.rect.width, height: gr.rect.maxY - zero_y)))
+                ctx.clip(to: Path(gr.rect.inset(0.0, zero_y - gr.rect.minY, 0.0, 0.0)))
                 let rdDown = GraphRenderer(context: ctx, gr: gr)
                 rdDown.renderTimeSeries(td: self, data: dzdt_movmean, range: dzdt_range, color: dzdt_down_color)
             }
@@ -101,28 +95,30 @@ class CtdViewModelData: CtdModelData {
         renderDzdtArrows(gr: gr)
     }
     func renderZ(gr: GraphRenderer) {
-        gr.renderGenericTimeseries(td: self, channel: z, color: P_color)
+        let z_yAxis = rangeToYAxis3(range: z_range)
+        gr.renderGrid(td: self, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
+        gr.renderTimeSeries(td: self, data: z, range: z_range, color: dzdt_up_color)
     }
     func renderDzdtStyledZ(gr: GraphRenderer) {
-        let z_yAxis = rangeToYAxis(range: z_range)
+        let z_yAxis = rangeToYAxis3(range: z_range)
         gr.renderGrid(td: self, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
         gr.renderTimeSeries(td: self, data: z_pos, range: z_range, color: dzdt_down_color)
         gr.renderTimeSeries(td: self, data: z_neg, range: z_range, color: dzdt_up_color)
         renderDzdtArrows(gr: gr)
     }
     func renderDzdtArrows(gr: GraphRenderer) {
-        let zero_y = getDzdtZeroY(gr: gr)
+        let zero_y = gr.valueToY(0.0, range: dzdt_range)
         let arrow_x = gr.rect.maxX + 10.0
         let arrow_headLen = 15.0
         let arrow_len = 40.0
         let arrow_thick = 5.0
         if (zero_y > gr.rect.minY + 2) {
-            let arrow_y = min(zero_y, gr.rect.maxY)
-            gr.drawArrow(from: CGPoint(x: arrow_x, y: arrow_y - 1), to: CGPoint(x: arrow_x, y: arrow_y - arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_up_color)
+            let arrow = CGPoint(x: arrow_x, y: min(zero_y, gr.rect.maxY))
+            gr.drawArrow(from: arrow.offset(0.0, -1.0), to: arrow.offset(0.0, -arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_up_color)
         }
         if (zero_y < gr.rect.maxY - 2) {
-            let arrow_y = max(zero_y, gr.rect.minY)
-            gr.drawArrow(from: CGPoint(x: arrow_x, y: arrow_y + 1), to: CGPoint(x: arrow_x, y: arrow_y + arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_down_color)
+            let arrow = CGPoint(x: arrow_x, y: max(zero_y, gr.rect.minY))
+            gr.drawArrow(from: arrow.offset(0.0, 1.0), to: arrow.offset(0.0, arrow_len), thick: arrow_thick, head: arrow_headLen, color: dzdt_down_color)
         }
     }
 }

@@ -64,7 +64,7 @@ class ModrawPacketParser_BlockData: ModrawPacketParser {
             return true
         }
         guard prev_time_s < time_s else {
-            if (sample_index == 0) {
+            if DEBUG_VALIDATION && sample_index == 0 {
                 print("Dropping \(signature) past sample[\(sample_index)] current timestamp \(time_s) < previous timestamp \(prev_time_s!)")
             }
             return false

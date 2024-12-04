@@ -4,7 +4,7 @@ class VnavViewModelData: VnavModelData {
 
     func render3(gr: GraphRenderer, base: Int, labels: [(Color, String)]) {
         let range = rangeUnion(channels[base].range(), channels[base+1].range(), channels[base+2].range())
-        let yAxis = rangeToYAxis(range: range)
+        let yAxis = rangeToYAxis3(range: range)
         
         gr.renderGrid(td: self, yAxis: yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: channels[base], range: range, color: labels[0].0)

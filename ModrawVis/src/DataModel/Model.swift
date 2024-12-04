@@ -4,28 +4,18 @@ import Foundation
 // TODO: generic ViewModelData
 
 class Model: Observable {
-    enum DeploymentType: Int {
-        case EPSI = 1, FCTD
-        
-        static func from(fishflag: String) -> DeploymentType{
-            switch fishflag {
-            case "'EPSI'": return .EPSI
-            case "'FCTD'": return .FCTD
-            default:
-                print("Unknown fishflag: \(fishflag)")
-                return .EPSI
-            }
-        }
-    }
-    static let fishflagFieldName = "CTD.fishflag"
     struct ModelData {
-        var fishflag: String = "n/a"
         var epsi_blocks = [EpsiModelData]()
         var ctd_blocks = [CtdModelData]()
         var fluor_blocks = [FluorModelData]()
         var vnav_blocks = [VnavModelData]()
         var ttv_blocks = [TtvModelData]()
-        var mostRecentCoords: LatLon?
+        var fishflag: String = "n/a"
+        var mostRecentCoords: LatLon? {
+            didSet {
+                isUpdated = true
+            }
+        }
         var isUpdated = true
     }
     @Published var d = ModelData()
