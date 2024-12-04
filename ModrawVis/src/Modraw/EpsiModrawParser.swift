@@ -8,7 +8,8 @@ class EpsiModrawParser {
           ModrawPacketParser_SB49(),
           ModrawPacketParser_INGG(),
           ModrawPacketParser_ECOP(),
-          ModrawPacketParser_VNAV()
+          ModrawPacketParser_VNAV(),
+          ModrawPacketParser_TTVP()
         ]
 
     init(fileUrl: URL) throws {

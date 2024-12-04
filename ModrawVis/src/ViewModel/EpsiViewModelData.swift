@@ -40,7 +40,7 @@ class EpsiViewModelData: EpsiModelData {
     let a2_color = Color(red: 220/255, green: 86/255, blue: 77/255)
     let a3_color = Color(red: 240/255, green: 207/255, blue: 140/255, opacity: 0.75)
 
-    func renderEpsi_t(gr: GraphRenderer) {
+    func renderT(gr: GraphRenderer) {
         let t1_color = gr.isDarkTheme ? t1_dark_color : t1_light_color
         let t_volt_range = rangeUnion(t1_volt.range(), t2_volt.range())
         let t_yAxis = rangeToYAxis(range: t_volt_range)
@@ -54,42 +54,33 @@ class EpsiViewModelData: EpsiModelData {
                 (t2_color, "t2 - \(String(format: "%.2g", t2_volt_mean))")])
         }
     }
-    func renderEpsi_s(gr: GraphRenderer) {
+    func renderS(gr: GraphRenderer) {
         let s_volt_range = rangeUnion(s1_volt.range(), s2_volt.range())
         let s_yAxis = rangeToYAxis(range: s_volt_range)
         gr.renderGrid(td: self, yAxis: s_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: s1_volt, range: s_volt_range, color: s1_color)
         gr.renderTimeSeries(td: self, data: s2_volt, range: s_volt_range, color: s2_color)
-        
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", s1_volt_rms))"),
                 (s2_color, "s2 - rms \(String(format: "%.2g", s2_volt_rms))")])
         }
     }
-    func renderEpsi_s1(gr: GraphRenderer) {
-        let s1_volt_range = s1_volt.range()
-        let s1_yAxis = rangeToYAxis(range: s1_volt_range)
-        gr.renderGrid(td: self, yAxis: s1_yAxis, leftLabels: true, format: "%.2f")
-        gr.renderTimeSeries(td: self, data: s1_volt, range: s1_volt_range, color: s1_color)
-        
+    func renderS1(gr: GraphRenderer) {
+        gr.renderGenericTimeseries(td: self, channel: s1_volt, color: s1_color)
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", s1_volt_rms))")])
         }
     }
-    func renderEpsi_s2(gr: GraphRenderer) {
-        let s2_volt_range = s2_volt.range()
-        let s2_yAxis = rangeToYAxis(range: s2_volt_range)
-        gr.renderGrid(td: self, yAxis: s2_yAxis, leftLabels: true, format: "%.2f")
-        gr.renderTimeSeries(td: self, data: s2_volt, range: s2_volt_range, color: s2_color)
-        
+    func renderS2(gr: GraphRenderer) {
+        gr.renderGenericTimeseries(td: self, channel: s2_volt, color: s2_color)
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s2_color, "s2 - rms \(String(format: "%.2g", s2_volt_rms))")])
         }
     }
-    func renderEpsi_a(gr: GraphRenderer) {
+    func renderA(gr: GraphRenderer) {
         let epsi_gr = GraphRenderer(context: gr.context, gr: gr)
         // EPSI a1
         epsi_gr.rect = CGRect(x: gr.rect.minX, y: gr.rect.minY, width: gr.rect.width, height: gr.rect.height / 2)

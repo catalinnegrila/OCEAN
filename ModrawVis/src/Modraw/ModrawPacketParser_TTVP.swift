@@ -22,7 +22,7 @@ class ModrawPacketParser_TTVP : ModrawPacketParser_BlockData {
     func parseTtvChannel(packet: ModrawPacket, i: inout Int) -> Double {
         let channel = packet.parent.peekHex(at: i, len: ttv_channel_len)!
         i += ttv_channel_len
-        return Double(channel)
+        return Double(channel) / 1_000_000_000.0 // TODO: remove division once we have good data
     }
     override func parse(packet: ModrawPacket, model: Model) {
         var i = getBlockDataPayloadStart(packet: packet)

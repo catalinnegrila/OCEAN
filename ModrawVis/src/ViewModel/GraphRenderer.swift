@@ -56,13 +56,24 @@ class GraphRenderer {
         let nub = 7.0
         let thickLine = 1.5
         let textGap = 5.0
-        
+        let gray = isDarkTheme ? 0.15 : 0.85
+        let color = Color(red: gray, green: gray, blue: gray, opacity: 0.5)
+
         // Framing rectangle
         context.stroke(
             Path(rect),
             with: .color(.gray),
             lineWidth: thickLine)
-        
+
+        // No data representation
+        if yAxis.isEmpty {
+            context.fill(Path(rect), with: .color(color))
+            context.draw(Text("no data").foregroundColor(.gray),
+                         at: CGPoint(x: (rect.minX + rect.maxX) / 2, y: (rect.minY + rect.maxY) / 2),
+                         anchor: .center)
+            return
+        }
+
         if (!xAxis.isEmpty) {
             var xOffset = [CGFloat](repeating: 0.0, count: xAxis.count)
             for i in 0..<xAxis.count {
@@ -119,13 +130,8 @@ class GraphRenderer {
                              anchor: leftLabels ? .trailing : .leading)
             }
         }
-        
-        renderNoData(td: td)
-    }
-    func renderNoData(td: TimestampedData) {
-        let gray = isDarkTheme ? 0.15 : 0.85
-        let color = Color(red: gray, green: gray, blue: gray, opacity: 0.5)
-        
+
+        // Missing data gaps
         for dataGap in td.dataGaps {
 #if !DEBUG
             if dataGap.type == .NEW_FILE_BOUNDARY { continue }
@@ -144,6 +150,8 @@ class GraphRenderer {
                 context.fill(Path(rcGap), with: .color(gapColor))
             }
         }
+
+        // Missing at the beginning/end of the current time window
         if (!td.time_f.isEmpty) {
             let time_f = td.time_f.data[...]
             let minX = lerpToX(time_f.first!)
@@ -157,15 +165,9 @@ class GraphRenderer {
                 let rcEmpty = CGRect(x: maxX, y: rect.minY + 1, width: rect.maxX - maxX - 1, height: rect.height - 2)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
-        } else {
-            context.fill(Path(rect), with: .color(color))
-            context.draw(Text("no data").foregroundColor(.gray),
-                         at: CGPoint(x: (rect.minX + rect.maxX) / 2, y: (rect.minY + rect.maxY) / 2),
-                         anchor: .center)
         }
     }
     func renderTimeSeries(td: TimestampedData, data: TimestampedData.Channel, range: (Double, Double), color: Color) {
-        assert(data.count == td.time_f.count)
         guard !data.isEmpty && !td.time_f.isEmpty else { return }
         let time_f = td.time_f.data[...]
         let data = data.data[...]
@@ -291,4 +293,11 @@ class GraphRenderer {
             }, with: .color(color))
         }
     }
+    func renderGenericTimeseries(td: TimestampedData, channel: TimestampedData.Channel, color: Color) {
+        let range = channel.range()
+        let yAxis = rangeToYAxis(range: range)
+        renderGrid(td: td, yAxis: yAxis, leftLabels: true, format: "%.1f")
+        renderTimeSeries(td: td, data: channel, range: range, color: color)
+    }
+
 }

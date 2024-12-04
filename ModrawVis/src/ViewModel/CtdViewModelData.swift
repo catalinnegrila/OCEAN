@@ -55,29 +55,23 @@ class CtdViewModelData: CtdModelData {
     let dzdt_down_color = Color(red: 82/255, green: 135/255, blue: 187/255)
     let P_color = Color(red: 24/255, green: 187/255, blue: 24/255)
 
-    func renderCtd_T(gr: GraphRenderer) {
-        let T_range = T.range()
-        let T_yAxis = rangeToYAxis(range: T_range)
-        gr.renderGrid(td: self, yAxis: T_yAxis, leftLabels: true, format: "%.1f")
-        gr.renderTimeSeries(td: self, data: T, range: T_range, color: T_color)
+    func renderT(gr: GraphRenderer) {
+        gr.renderGenericTimeseries(td: self, channel: T, color: T_color)
     }
-    func renderCtd_S(gr: GraphRenderer) {
-        let S_range = S.range()
-        let S_yAxis = rangeToYAxis(range: S_range)
-        gr.renderGrid(td: self, yAxis: S_yAxis, leftLabels: true, format: "%.1f")
-        gr.renderTimeSeries(td: self, data: S, range: S_range, color: S_color)
+    func renderS(gr: GraphRenderer) {
+        gr.renderGenericTimeseries(td: self, channel: S, color: S_color)
     }
-    func getCtd_dzdt_zero_y(gr: GraphRenderer) -> Double {
+    func getDzdtZeroY(gr: GraphRenderer) -> Double {
         let dzdt_min = dzdt_range.0
         let dzdt_max = dzdt_range.1
         let zero_s = (0.0 - dzdt_min) / (dzdt_max - dzdt_min)
         return zero_s * gr.rect.minY + (1.0 - zero_s) * gr.rect.maxY
     }
-    func renderCtd_dzdt(gr: GraphRenderer) {
+    func renderDzdt(gr: GraphRenderer) {
         var dzdt_yAxis: [Double]
         let dzdt_min = dzdt_range.0
         let dzdt_max = dzdt_range.1
-        let zero_y = getCtd_dzdt_zero_y(gr: gr)
+        let zero_y = getDzdtZeroY(gr: gr)
         if (dzdt_min * dzdt_max < 0) {
             // Plot contains zero level, highlight that instead of middle
             dzdt_yAxis = [dzdt_min, 0.0, dzdt_max]
@@ -104,22 +98,20 @@ class CtdViewModelData: CtdModelData {
             // Render the no data, if needed
             gr.renderTimeSeries(td: self, data: dzdt_movmean, range: dzdt_range, color: .black)
         }
-        renderCtd_dzdt_arrows(gr: gr)
+        renderDzdtArrows(gr: gr)
     }
-    func renderCtd_z(gr: GraphRenderer) {
-        let z_yAxis = rangeToYAxis(range: z_range)
-        gr.renderGrid(td: self, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
-        gr.renderTimeSeries(td: self, data: z, range: z_range, color: P_color)
+    func renderZ(gr: GraphRenderer) {
+        gr.renderGenericTimeseries(td: self, channel: z, color: P_color)
     }
-    func renderCtd_z_dzdt(gr: GraphRenderer) {
+    func renderDzdtStyledZ(gr: GraphRenderer) {
         let z_yAxis = rangeToYAxis(range: z_range)
         gr.renderGrid(td: self, yAxis: z_yAxis, leftLabels: true, format: "%.1f")
         gr.renderTimeSeries(td: self, data: z_pos, range: z_range, color: dzdt_down_color)
         gr.renderTimeSeries(td: self, data: z_neg, range: z_range, color: dzdt_up_color)
-        renderCtd_dzdt_arrows(gr: gr)
+        renderDzdtArrows(gr: gr)
     }
-    func renderCtd_dzdt_arrows(gr: GraphRenderer) {
-        let zero_y = getCtd_dzdt_zero_y(gr: gr)
+    func renderDzdtArrows(gr: GraphRenderer) {
+        let zero_y = getDzdtZeroY(gr: gr)
         let arrow_x = gr.rect.maxX + 10.0
         let arrow_headLen = 15.0
         let arrow_len = 40.0

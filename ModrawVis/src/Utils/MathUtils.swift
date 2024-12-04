@@ -20,3 +20,8 @@ func rangeUnion(_ r1: (Double, Double), _ r2: (Double, Double)) -> (Double, Doub
 {
     return (min(r1.0, r2.0), max(r1.1, r2.1))
 }
+
+func rangeUnion(_ r1: (Double, Double), _ r2: (Double, Double), _ r3: (Double, Double)) -> (Double, Double)
+{
+    return (min(r1.0, r2.0, r3.0), max(r1.1, r2.1, r3.1))
+}

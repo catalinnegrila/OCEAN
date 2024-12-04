@@ -16,9 +16,9 @@ struct ModrawView: View {
         ScrollView {
             VStack {
                 Canvas { context, size in
-                    let stopwatch = Stopwatch(label: "Render")
+                    //let stopwatch = Stopwatch(label: "Render")
                     render(context: context, size: size)
-                    stopwatch.printElapsed()
+                    //stopwatch.printElapsed()
                 }
                 .id(refreshView)
                 .frame(minWidth: 300)
@@ -27,8 +27,8 @@ struct ModrawView: View {
                 .onReceive(refreshTimer) { _ in
                     Task {
                         //let stopwatch = Stopwatch(label: "Update")
+                        newHeight = getRenderHeight()
                         if (vm.update()) {
-                            newHeight = getRenderHeight()
                             //stopwatch.printElapsed()
                             refreshView.toggle()
                         }

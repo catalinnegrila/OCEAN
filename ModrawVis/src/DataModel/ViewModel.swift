@@ -45,7 +45,7 @@ public class ViewModel: ObservableObject
     var ctd = CtdViewModelData()
     var fluor = FluorViewModelData()
     var vnav = VnavViewModelData()
-    var ttv = VnavViewModelData()
+    var ttv = TtvViewModelData()
     @Published var broadcaster = ViewModelBroadcaster()
     fileprivate var graphsFishflag = "n/a"
     @Published var graphs = [ChannelGraph]()
@@ -76,34 +76,68 @@ public class ViewModel: ObservableObject
 
         graphs.append(ChannelGraph(id: "epsi_t_volt", label: "FP07 [Volt]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_t(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderT(gr: gr) }))
         graphs.append(ChannelGraph(id: "epsi_s_volt", label: "Shear [Volt]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderS(gr: gr) }))
         graphs.append(ChannelGraph(id: "epsi_s1_volt", label: "s1 [Volt]",
                                    defaults: [("'EPSI'", false), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s1(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderS1(gr: gr) }))
         graphs.append(ChannelGraph(id: "epsi_s2_volt", label: "s2 [Volt]",
                                    defaults: [("'EPSI'", false), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s2(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderS2(gr: gr) }))
         graphs.append(ChannelGraph(id: "epsi_a_volt", label: "Accel [g]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_a(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderA(gr: gr) }))
+
         graphs.append(ChannelGraph(id: "ctd_T", label: "T [\u{00B0}C]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_T(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderT(gr: gr) }))
         graphs.append(ChannelGraph(id: "ctd_S", label: "S",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_S(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderS(gr: gr) }))
         graphs.append(ChannelGraph(id: "ctd_dzdt", label: "dzdt [m/s]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_dzdt(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderDzdt(gr: gr) }))
         graphs.append(ChannelGraph(id: "ctd_z", label: "z [m]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_z(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderZ(gr: gr) }))
         graphs.append(ChannelGraph(id: "ctd_dzdt_z", label: "z [m] + dzdt",
                                    defaults: [("'EPSI'", false), ("'FCTD'", true)],
-                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_z_dzdt(gr: gr) }))
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderDzdtStyledZ(gr: gr) }))
+
+        graphs.append(ChannelGraph(id: "vnav_Compass", label: "Compass",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.vnav.renderCompass(gr: gr) }))
+        graphs.append(ChannelGraph(id: "vnav_Acceleration", label: "Acceleration",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.vnav.renderAcceleration(gr: gr) }))
+        graphs.append(ChannelGraph(id: "vnav_Gyro", label: "Gyro",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.vnav.renderGyro(gr: gr) }))
+        graphs.append(ChannelGraph(id: "vnav_YawPitchRoll", label: "Yaw/Pitch/Roll",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.vnav.renderYawPitchRoll(gr: gr) }))
+
+        graphs.append(ChannelGraph(id: "fluor_bb", label: "bb",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.fluor.render_bb(gr: gr) }))
+        graphs.append(ChannelGraph(id: "fluor_chla", label: "chla",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.fluor.render_chla(gr: gr) }))
+        graphs.append(ChannelGraph(id: "fluor_fDOM", label: "fDOM",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.fluor.render_fDOM(gr: gr) }))
+
+        graphs.append(ChannelGraph(id: "ttv_tof", label: "tof",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ttv.render_tof(gr: gr) }))
+        graphs.append(ChannelGraph(id: "ttv_dtof", label: "dtof",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ttv.render_dtof(gr: gr) }))
+        graphs.append(ChannelGraph(id: "ttv_vfr", label: "vfr [\u{00B5}s]",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", false)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.ttv.render_vfr(gr: gr) }))
     }
     func clearLastOpen() {
         lastOpenFile = nil
@@ -138,7 +172,7 @@ public class ViewModel: ObservableObject
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
                 fluor.mergeBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
                 vnav.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
-                ttv.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
+                ttv.mergeBlocks(time_window: time_window, blocks: &model.d.ttv_blocks)
 
                 broadcaster.broadcast(vm: self)
 
