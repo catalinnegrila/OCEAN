@@ -48,8 +48,6 @@ class EpsiViewModelData: EpsiModelData {
         gr.renderGrid(td: self, yAxis: t_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: t1_volt, range: t_volt_range, color: t1_color)
         gr.renderTimeSeries(td: self, data: t2_volt, range: t_volt_range, color: t2_color)
-        
-        gr.drawMainLabel("FP07 [Volt]")
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (t1_color, "t1 - \(String(format: "%.2g", t1_volt_mean))"),
@@ -63,7 +61,6 @@ class EpsiViewModelData: EpsiModelData {
         gr.renderTimeSeries(td: self, data: s1_volt, range: s_volt_range, color: s1_color)
         gr.renderTimeSeries(td: self, data: s2_volt, range: s_volt_range, color: s2_color)
         
-        gr.drawMainLabel("Shear [Volt]")
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", s1_volt_rms))"),
@@ -76,7 +73,6 @@ class EpsiViewModelData: EpsiModelData {
         gr.renderGrid(td: self, yAxis: s1_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: s1_volt, range: s1_volt_range, color: s1_color)
         
-        gr.drawMainLabel("s1 [Volt]")
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s1_color, "s1 - rms \(String(format: "%.2g", s1_volt_rms))")])
@@ -88,7 +84,6 @@ class EpsiViewModelData: EpsiModelData {
         gr.renderGrid(td: self, yAxis: s2_yAxis, leftLabels: true, format: "%.2f")
         gr.renderTimeSeries(td: self, data: s2_volt, range: s2_volt_range, color: s2_color)
         
-        gr.drawMainLabel("s2 [Volt]")
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [
                 (s2_color, "s2 - rms \(String(format: "%.2g", s2_volt_rms))")])
@@ -118,6 +113,5 @@ class EpsiViewModelData: EpsiModelData {
         if (time_s.count > 0) {
             gr.drawDataLabels(labels: [(a2_color, "x"), (a3_color, "y")])
         }
-        gr.drawMainLabel("Accel [g]")
     }
 }

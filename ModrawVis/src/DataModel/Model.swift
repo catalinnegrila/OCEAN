@@ -20,7 +20,6 @@ class Model: Observable {
     static let fishflagFieldName = "CTD.fishflag"
     struct ModelData {
         var fishflag: String = "n/a"
-        var deploymentType: DeploymentType = .EPSI
         var epsi_blocks = [EpsiModelData]()
         var ctd_blocks = [CtdModelData]()
         var fluor_blocks = [FluorModelData]()

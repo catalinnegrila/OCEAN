@@ -72,9 +72,10 @@ struct ModrawView: View {
         gr.rect = CGRect(x: gr.leftLabelsWidth, y: vgap, width: max(size.width - gr.leftLabelsWidth - rightLabelsWidth, 5), height: plotHeight)
 
         var visibleGraphs = 0
-        for i in 0..<vm.graphs.count {
-            if vm.graphs[i].visible {
-                vm.graphs[i].renderer(gr)
+        for graph in vm.graphs {
+            if graph.visible {
+                graph.renderer(gr)
+                gr.drawMainLabel(graph.label)
                 gr.offsetRectY(vgap)
                 visibleGraphs += 1
             }

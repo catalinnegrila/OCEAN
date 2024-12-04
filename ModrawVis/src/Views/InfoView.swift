@@ -4,7 +4,7 @@ struct InfoView: View {
     @StateObject public var vm: ViewModel
     func toColor(_ state: ViewModelBroadcaster.State) -> Color {
        switch vm.broadcaster.state {
-           case .Starting, .Stopped: return .yellow
+           case .Starting, .Stopped: return .blue
            case .Sending: return .green
            case .Error: return .red
        }
@@ -72,7 +72,7 @@ struct InfoView: View {
                 Divider()
                 ForEach($vm.graphs, id: \.id) { $graph in
                     GridRow {
-                        Text(graph.id)
+                        Text(graph.label).bold()
                         HStack {
                             if graph.visible {
                                 Text(String("Visible")).bold()

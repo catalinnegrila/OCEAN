@@ -2,14 +2,16 @@ import Foundation
 import SwiftUI
 
 struct ChannelGraph: Observable {
-    var id: String
+    let id: String
+    var label: String
     var visible: Bool
     let renderer: (GraphRenderer) -> Void
 
-    init(id: String, defaults: [(String, Bool)], renderer: @escaping (GraphRenderer)->Void) {
+    init(id: String, label: String, defaults: [(String, Bool)], renderer: @escaping (GraphRenderer)->Void) {
         self.id = id
+        self.label = label
         self.renderer = renderer
-        self.visible = true
+        self.visible = false
         for defaultValue in defaults {
             let id = ChannelGraph.userDefaultsId(fishflag: defaultValue.0, id: self.id)
             if (UserDefaults.standard.object(forKey: id) as? Bool) == nil {
@@ -20,9 +22,9 @@ struct ChannelGraph: Observable {
     static func userDefaultsId(fishflag: String, id: String) -> String {
         return "\(fishflag).\(id)"
     }
-    mutating func isVisible(fishflag: String) -> Bool {
+    mutating func resetVisible(fishflag: String) {
         let id = ChannelGraph.userDefaultsId(fishflag: fishflag, id: self.id)
-        return UserDefaults.standard.object(forKey: id) as? Bool ?? true
+        visible = UserDefaults.standard.object(forKey: id) as? Bool ?? true
     }
     mutating func setVisible(fishflag: String, visible: Bool) {
         let id = ChannelGraph.userDefaultsId(fishflag: fishflag, id: self.id)
@@ -45,6 +47,7 @@ public class ViewModel: ObservableObject
     var vnav = VnavViewModelData()
     var ttv = VnavViewModelData()
     @Published var broadcaster = ViewModelBroadcaster()
+    fileprivate var graphsFishflag = "n/a"
     @Published var graphs = [ChannelGraph]()
 
     @Published var modelProducer: ModelProducer? {
@@ -71,36 +74,36 @@ public class ViewModel: ObservableObject
             openSocketWithBonjour()
         }
 
-        graphs.append(ChannelGraph(id: "epsi_t_volt",
+        graphs.append(ChannelGraph(id: "epsi_t_volt", label: "FP07 [Volt]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_t(gr: gr) }))
-        graphs.append(ChannelGraph(id: "epsi_s_volt",
+        graphs.append(ChannelGraph(id: "epsi_s_volt", label: "Shear [Volt]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s(gr: gr) }))
-        graphs.append(ChannelGraph(id: "epsi_s2_volt",
+        graphs.append(ChannelGraph(id: "epsi_s1_volt", label: "s1 [Volt]",
+                                   defaults: [("'EPSI'", false), ("'FCTD'", true)],
+                                   renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s1(gr: gr) }))
+        graphs.append(ChannelGraph(id: "epsi_s2_volt", label: "s2 [Volt]",
                                    defaults: [("'EPSI'", false), ("'FCTD'", true)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_s2(gr: gr) }))
-        graphs.append(ChannelGraph(id: "epsi_a_volt",
+        graphs.append(ChannelGraph(id: "epsi_a_volt", label: "Accel [g]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.epsi.renderEpsi_a(gr: gr) }))
-        graphs.append(ChannelGraph(id: "ctd_T",
+        graphs.append(ChannelGraph(id: "ctd_T", label: "T [\u{00B0}C]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_T(gr: gr) }))
-        graphs.append(ChannelGraph(id: "ctd_S",
+        graphs.append(ChannelGraph(id: "ctd_S", label: "S",
                                    defaults: [("'EPSI'", true), ("'FCTD'", true)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_S(gr: gr) }))
-        graphs.append(ChannelGraph(id: "ctd_dzdt",
+        graphs.append(ChannelGraph(id: "ctd_dzdt", label: "dzdt [m/s]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_dzdt(gr: gr) }))
-        graphs.append(ChannelGraph(id: "ctd_z",
+        graphs.append(ChannelGraph(id: "ctd_z", label: "z [m]",
                                    defaults: [("'EPSI'", true), ("'FCTD'", false)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_z(gr: gr) }))
-        graphs.append(ChannelGraph(id: "ctd_dzdt_z",
+        graphs.append(ChannelGraph(id: "ctd_dzdt_z", label: "z [m] + dzdt",
                                    defaults: [("'EPSI'", false), ("'FCTD'", true)],
                                    renderer: { (gr: GraphRenderer) -> Void in self.ctd.renderCtd_z_dzdt(gr: gr) }))
-    }
-    func enableChannelGraphsFor(fishflag: String) {
-        
     }
     func clearLastOpen() {
         lastOpenFile = nil
@@ -130,12 +133,21 @@ public class ViewModel: ObservableObject
         if let modelProducer = modelProducer {
             if modelProducer.update(model: model) {
                 time_window = modelProducer.getTimeWindow(model: model)
+
                 epsi.mergeBlocks(time_window: time_window, blocks: &model.d.epsi_blocks)
                 ctd.mergeBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
                 fluor.mergeBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
                 vnav.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
                 ttv.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
+
                 broadcaster.broadcast(vm: self)
+
+                if model.d.fishflag != graphsFishflag {
+                    for i in 0..<graphs.count {
+                        graphs[i].resetVisible(fishflag: model.d.fishflag)
+                    }
+                    graphsFishflag = model.d.fishflag
+                }
                 return true
             }
         }

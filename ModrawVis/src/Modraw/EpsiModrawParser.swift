@@ -23,7 +23,6 @@ class EpsiModrawParser {
             packetParser.parse(header: header)
         }
         model.d.fishflag = header.getValueForKeyAsString(Model.fishflagFieldName) ?? "n/a"
-        model.d.deploymentType = Model.DeploymentType.from(fishflag: model.d.fishflag)
         return true
     }
     fileprivate func getParserFor(packet: ModrawPacket) -> ModrawPacketParser? {
