@@ -1,8 +1,5 @@
 import Foundation
 
-// TODO: boxed array for data channels
-// TODO: generic ViewModelData
-
 class Model: Observable {
     struct ModelData {
         var epsi_blocks = [EpsiModelData]()
@@ -30,40 +27,33 @@ class Model: Observable {
         title = ""
     }
     func reset() {
-        print("model reset")
         d = ModelData()
     }
     func appendNewFileBoundary() {
-        if !d.epsi_blocks.isEmpty {
-            d.epsi_blocks.last!.appendNewFileBoundary()
-        }
-        if !d.ctd_blocks.isEmpty {
-            d.ctd_blocks.last!.appendNewFileBoundary()
-        }
-        if !d.fluor_blocks.isEmpty {
-            d.fluor_blocks.last!.appendNewFileBoundary()
-        }
-        if !d.vnav_blocks.isEmpty {
-            d.vnav_blocks.last!.appendNewFileBoundary()
-        }
-        if !d.ttv_blocks.isEmpty {
-            d.ttv_blocks.last!.appendNewFileBoundary()
+        for child in Mirror(reflecting: d).children {
+            if let tda = child.value as? Array<TimestampedData> {
+                if !tda.isEmpty {
+                    tda.last!.appendNewFileBoundary()
+                }
+            }
         }
     }
     func getEndTime() -> Double {
-        var endTime = d.epsi_blocks.getEndTime()
-        endTime = max(endTime, d.ctd_blocks.getEndTime())
-        endTime = max(endTime, d.fluor_blocks.getEndTime())
-        endTime = max(endTime, d.vnav_blocks.getEndTime())
-        endTime = max(endTime, d.ttv_blocks.getEndTime())
+        var endTime = 0.0
+        for child in Mirror(reflecting: d).children {
+            if let tda = child.value as? Array<TimestampedData> {
+                endTime = max(endTime, tda.getEndTime())
+            }
+        }
         return endTime
     }
     func getBeginTime() -> Double {
-        var beginTime = d.epsi_blocks.getBeginTime()
-        beginTime = min(beginTime, d.ctd_blocks.getBeginTime())
-        beginTime = min(beginTime, d.fluor_blocks.getBeginTime())
-        beginTime = min(beginTime, d.vnav_blocks.getBeginTime())
-        beginTime = min(beginTime, d.ttv_blocks.getBeginTime())
+        var beginTime = Double.greatestFiniteMagnitude
+        for child in Mirror(reflecting: d).children {
+            if let tda = child.value as? Array<TimestampedData> {
+                beginTime = min(beginTime, tda.getBeginTime())
+            }
+        }
         return beginTime
     }
     func resetIsUpdated() -> Bool {
