@@ -27,6 +27,9 @@ class CtdViewModelData: CtdModelData {
 
         z_range = z.invRange()
 
+        let time_s = self.time_s.data[...]
+        let z = self.z.data[...]
+
         dzdt.reserveCapacity(z.count)
         dzdt.append(0.0)
         for i in 1..<z.count {

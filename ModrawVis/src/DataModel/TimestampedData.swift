@@ -22,10 +22,6 @@ class TimestampedData
     class Channel {
         var data = [Double]()
 
-        subscript (i: Int) -> Double {
-            get { data[i] }
-            set { data[i] = newValue }
-        }
         var isEmpty: Bool {
             get { data.isEmpty }
         }
@@ -93,13 +89,14 @@ class TimestampedData
     func append(from: TimestampedData, first: Int, count: Int)
     {
         assert(channels.count == from.channels.count)
+        let time_s = from.time_s.data[...]
         for i in 0..<channels.count - 1 { // skip the time_f channel
             if !from.channels[i].isEmpty { // some channels are optional
                 channels[i].data.append(contentsOf: from.channels[i].data[first..<first+count])
             }
         }
         for dataGap in from.dataGaps {
-            if (dataGap.t1 >= from.time_s[first] && dataGap.t0 <= from.time_s[first + count - 1]) {
+            if (dataGap.t1 >= time_s[first] && dataGap.t0 <= time_s[first + count - 1]) {
                 dataGaps.append(dataGap)
             }
         }
@@ -132,6 +129,7 @@ class TimestampedData
     }
     func getTimeSlice(t0: Double, t1: Double) -> (Int, Int)? {
         guard !time_s.data.isEmpty && t1 >= getFirstTimestamp() && t0 <= getLastTimestamp() else { return nil }
+        let time_s = self.time_s.data[...]
         var slice = (0, time_s.count - 1)
         while time_s[slice.0] < t0 {
             slice.0 += 1
@@ -145,6 +143,7 @@ class TimestampedData
         func s_to_f(_ s: Double ) -> Double {
             return (s - time_window.0) / (time_window.1 - time_window.0)
         }
+        let time_s = self.time_s.data[...]
         assert(time_f.isEmpty)
         time_f.data.reserveCapacity(time_s.count)
         for i in 0..<time_s.count {

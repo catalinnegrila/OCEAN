@@ -24,10 +24,10 @@ class EpsiViewModelData: EpsiModelData {
         s2_volt_rms = s2_volt.rms()
         
         for i in 0..<time_s.count {
-            t1_volt[i] -= t1_volt_mean
-            t2_volt[i] -= t2_volt_mean
-            s1_volt[i] -= s1_volt_rms
-            s2_volt[i] -= s2_volt_rms
+            t1_volt.data[i] -= t1_volt_mean
+            t2_volt.data[i] -= t2_volt_mean
+            s1_volt.data[i] -= s1_volt_rms
+            s2_volt.data[i] -= s2_volt_rms
         }
     }
 

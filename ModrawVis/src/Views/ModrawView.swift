@@ -26,10 +26,10 @@ struct ModrawView: View {
                 .navigationTitle($vm.model.title)
                 .onReceive(refreshTimer) { _ in
                     Task {
-                        let stopwatch = Stopwatch(label: "Update")
+                        //let stopwatch = Stopwatch(label: "Update")
                         if (vm.update()) {
                             newHeight = getRenderHeight()
-                            stopwatch.printElapsed()
+                            //stopwatch.printElapsed()
                             refreshView.toggle()
                         }
                     }

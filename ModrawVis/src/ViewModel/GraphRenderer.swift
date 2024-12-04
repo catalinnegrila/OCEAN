@@ -145,13 +145,14 @@ class GraphRenderer {
             }
         }
         if (!td.time_f.isEmpty) {
-            let minX = lerpToX(td.time_f[0])
+            let time_f = td.time_f.data[...]
+            let minX = lerpToX(time_f.first!)
             assert(minX >= rect.minX)
             if (minX - rect.minX > 2) {
                 let rcEmpty = CGRect(x: rect.minX + 1, y: rect.minY + 1, width: minX - rect.minX - 1, height: rect.height - 2)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
-            let maxX = lerpToX(td.time_f[td.time_f.count - 1])
+            let maxX = lerpToX(time_f.last!)
             if (rect.maxX - maxX > 2) {
                 let rcEmpty = CGRect(x: maxX, y: rect.minY + 1, width: rect.maxX - maxX - 1, height: rect.height - 2)
                 context.fill(Path(rcEmpty), with: .color(color))
@@ -166,8 +167,10 @@ class GraphRenderer {
     func renderTimeSeries(td: TimestampedData, data: TimestampedData.Channel, range: (Double, Double), color: Color) {
         assert(data.count == td.time_f.count)
         guard !data.isEmpty && !td.time_f.isEmpty else { return }
-        let minX = lerpToX(td.time_f[0])
-        let maxX = lerpToX(td.time_f[td.time_f.count - 1])
+        let time_f = td.time_f.data[...]
+        let data = data.data[...]
+        let minX = lerpToX(time_f.first!)
+        let maxX = lerpToX(time_f.last!)
         
         var emptyX = 0.0
         for dataGap in td.dataGaps {
@@ -186,7 +189,7 @@ class GraphRenderer {
                     if data[i].isNaN {
                         prevWasNaN = true
                     } else {
-                        let x = lerpToX(td.time_f[i])
+                        let x = lerpToX(time_f[i])
                         let y = valueToY(data[i], range: range)
                         if (i == 0 || prevWasNaN) { //} || (time_f[i] - time_f[i - 1]) > 2*(time_f[1] - time_f[0])) {
                             path.move(to: CGPoint(x: x, y: y))
@@ -201,7 +204,7 @@ class GraphRenderer {
             context.stroke(Path { path in
                 for i in 0..<data.count {
                     if !data[i].isNaN {
-                        let x = lerpToX(td.time_f[i])
+                        let x = lerpToX(time_f[i])
                         let y = valueToY(data[i], range: range)
                         path.addHLine(y: y, x0: x-1, x1: x+1)
                         path.addVLine(x: x, y0: y-1, y1: y+1)
@@ -214,8 +217,8 @@ class GraphRenderer {
                 for x in stride(from: minX, to: maxX, by: 1.0) {
                     var minY: Double?
                     var maxY: Double?
-                    while i < td.time_f.count {
-                        let sampleX = lerpToX(td.time_f[i])
+                    while i < time_f.count {
+                        let sampleX = lerpToX(time_f[i])
                         if (sampleX > x) {
                             break
                         }
@@ -227,7 +230,7 @@ class GraphRenderer {
                     if (minY != nil && maxY != nil) {
                         path.addVLine(x: x, y0: minY! - 1, y1: maxY! + 1)
                     }
-                    if i >= td.time_f.count {
+                    if i >= time_f.count {
                         break
                     }
                 }
