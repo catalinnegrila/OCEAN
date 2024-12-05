@@ -29,7 +29,7 @@ struct FileMenuCommands: Commands {
 
     @MainActor
     var body: some Commands {
-        CommandGroup(replacing: CommandGroupPlacement.newItem)
+        CommandGroup(replacing: .newItem)
         {
             Section {
                 Button("Open Folder...") {
@@ -52,13 +52,13 @@ struct FileMenuCommands: Commands {
             Section {
                 Button("Connect with Bonjour") {
                     vm.openSocketWithBonjour()
-                }.keyboardShortcut("b")
+                }
                 Button("Connect to localhost") {
                     vm.openSocket(URL(string: "tcp://localhost:31415")!)
-                }.keyboardShortcut("l")
+                }
                 Button("Connect to Local IP") {
                     vm.openSocket(URL(string: "tcp://\(getWiFiAddress()!):31415")!)
-                }.keyboardShortcut("i")
+                }
             }
             #endif
         }

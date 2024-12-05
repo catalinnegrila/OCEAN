@@ -33,7 +33,9 @@ public class ViewModel: ObservableObject
     }
     init() {
         initializeGraphDescriptors()
-
+        //openLast()
+    }
+    func openLast() -> Bool {
         if let lastOpenFile {
             openFile(lastOpenFile)
         } else if let lastOpenFolder {
@@ -41,10 +43,11 @@ public class ViewModel: ObservableObject
         } else if let lastOpenSocket {
             openSocket(lastOpenSocket)
         } else {
-            openSocketWithBonjour()
+            return false
+            //openSocketWithBonjour()
         }
+        return true
     }
-
     fileprivate func initializeGraphDescriptors() {
         graphs.append(GraphDescriptor("FP07 [Volt]",   [true, false], self.epsi.renderT))
         graphs.append(GraphDescriptor("Shear [Volt]",  [true, false], self.epsi.renderS))
@@ -101,11 +104,11 @@ public class ViewModel: ObservableObject
             if modelProducer.update(model: model) {
                 time_window = modelProducer.getTimeWindow(model: model)
 
-                epsi.mergeBlocks(time_window: time_window, blocks: &model.d.epsi_blocks)
-                ctd.mergeBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
-                fluor.mergeBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
-                vnav.mergeBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
-                ttv.mergeBlocks(time_window: time_window, blocks: &model.d.ttv_blocks)
+                epsi.fromMergedBlocks(time_window: time_window, blocks: &model.d.epsi_blocks)
+                ctd.fromMergedBlocks(time_window: time_window, blocks: &model.d.ctd_blocks)
+                fluor.fromMergedBlocks(time_window: time_window, blocks: &model.d.fluor_blocks)
+                vnav.fromMergedBlocks(time_window: time_window, blocks: &model.d.vnav_blocks)
+                ttv.fromMergedBlocks(time_window: time_window, blocks: &model.d.ttv_blocks)
 
                 broadcaster.broadcast(vm: self)
                 updateView = true

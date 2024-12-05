@@ -154,10 +154,10 @@ class TimestampedData
             dataGaps[i].t1_f = s_to_f(dataGaps[i].t1)
         }
     }
-    func mergeBlocks<T: TimestampedData>(time_window: (Double, Double), blocks: inout [T]) {
+    func fromMergedBlocks<T: TimestampedData>(time_window: (Double, Double), blocks: inout [T]) {
         removeAll()
         blocks.removeBlocksOlderThan(t0: time_window.0)
-        blocks.appendSamplesBetween(t0: time_window.0, t1: time_window.1, data: self)
+        blocks.appendSamplesBetween(t0: time_window.0, t1: time_window.1, to: self)
         if !time_s.isEmpty {
             calculateDerivedData(time_window: time_window)
         }
@@ -173,14 +173,14 @@ extension Array where Element: TimestampedData {
             remove(at: 0)
         }
     }
-    func appendSamplesBetween<T: TimestampedData>(t0: Double, t1: Double, data: T) {
+    func appendSamplesBetween<T: TimestampedData>(t0: Double, t1: Double, to: T) {
         if (!isEmpty) {
-            data.reserveCapacity(reduce(0) { $0 + $1.time_s.count })
+            to.reserveCapacity(reduce(0) { $0 + $1.time_s.count })
             for block in self {
                 let slice = block.getTimeSlice(t0: t0, t1: t1)
                 assert(slice != nil)
                 if (slice != nil) {
-                    data.append(from: block, first: slice!.0, count: slice!.1 - slice!.0 + 1)
+                    to.append(from: block, first: slice!.0, count: slice!.1 - slice!.0 + 1)
                 }
             }
         }

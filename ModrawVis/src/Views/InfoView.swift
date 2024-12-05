@@ -6,7 +6,7 @@ struct InfoWindowToggle: View {
     var body: some View {
         WindowVisibilityToggle(windowID: "info")
             .keyboardShortcut("i", modifiers: [.command])
-            .disabled(vm.time_window.0 == vm.time_window.1)
+            .disabled(vm.model.isEmpty) //!vm.model.d.isEmpty) //vm.time_window.0 == vm.time_window.1)
     }
 }
 

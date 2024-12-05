@@ -5,13 +5,6 @@ class ModrawPacketParser_ECOP : ModrawPacketParser_BlockData {
     init() {
         super.init(signature: "$ECOP")
     }
-    //sensor.name="tridente";
-    //sensor.bb.cal0=-1.720756e-6;
-    //sensor.bb.cal1= 5.871734e4;
-    //sensor.chla.cal0=-158.44269e-6;
-    //sensor.chla.cal1= 504.23178e3;
-    //sensor.fDOM.cal0=-49.728096e-3;
-    //sensor.fDOM.cal1= 30.125764e3;
     let ecop_recs_per_block = 1
     let ecop_timestamp_len = 16
     let ecop_channel_len = 4
@@ -30,7 +23,7 @@ class ModrawPacketParser_ECOP : ModrawPacketParser_BlockData {
         let channel = packet.parent.peekHex(at: i, len: ecop_channel_len)
         i += ecop_channel_len
         guard let channel else { return Double.nan }
-        return Double(channel) / Double(0xFFFF)
+        return Double(channel) / Double(0xFFFF) // TODO: replace this with the real conversion
     }
     override func parse(packet: ModrawPacket, model: Model) {
         var i = getBlockDataPayloadStart(packet: packet)
