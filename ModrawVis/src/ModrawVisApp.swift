@@ -1,5 +1,35 @@
 import SwiftUI
-/*
+
+class NSWindowUtils {
+    static let SplashWindowId = "splash"
+    static let MainWindowId = "main"
+    static let InfoWindowId = "info"
+
+    static func findWindow(_ id: String) -> NSWindow? {
+        for window in NSApp.windows {
+            if window.identifier?.rawValue == id {
+                return window
+            }
+        }
+        return nil
+    }
+    static func showWindow(_ id: String) {
+        if let window = NSWindowUtils.findWindow(id) {
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+    static func hideWindow(_ id: String) {
+        if let window = NSWindowUtils.findWindow(id) {
+            window.orderOut(nil)
+        }
+    }
+    static func closeWindow(_ id: String) {
+        if let window = NSWindowUtils.findWindow(id) {
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
@@ -7,14 +37,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var vm: ViewModel?
     func createSourceSelectionWindow() {
-        for window in NSApp.windows {
-            print("\(window.identifier?.rawValue ?? "none"): \(window.title)")
-            window.orderOut(nil)
-            //window.close()
-        }
+        NSWindowUtils.hideWindow(NSWindowUtils.MainWindowId)
 
         // Create the SwiftUI view that provides the window contents.
-        let contentView = SelectSourceView()
+        let contentView = SelectSourceView(vm: self.vm!)
             .edgesIgnoringSafeArea(.top) // to extend entire content under titlebar
 
         // Create the window and set the content view.
@@ -22,9 +48,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 768, height: 512),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered, defer: false)
-        //guard let window else { return }
+        window.identifier = NSUserInterfaceItemIdentifier(NSWindowUtils.SplashWindowId)
         window.center()
-        //window.setFrameAutosaveName("SelectSourceWindow")
 
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
@@ -33,7 +58,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.contentView = NSHostingView(rootView: contentView)
         //DispatchQueue.main.async {
-            //window.orderOut(nil)
             window.makeKeyAndOrderFront(nil)
         //}
     }
@@ -52,17 +76,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 }
-*/
+
 @main
 struct ModrawVisApp: App {
-    //@NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var vm = ViewModel()
 
     init() {
-        //appDelegate.vm = vm
+        appDelegate.vm = vm
     }
     var body: some Scene {
-        Window("Visualizer", id: "main" ) {
+        Window("Visualizer", id: NSWindowUtils.MainWindowId) {
             ModrawView(vm: vm)
         }.commands {
             FileMenuCommands(vm: vm)
@@ -71,7 +95,7 @@ struct ModrawVisApp: App {
             }
         }.windowToolbarStyle(.unifiedCompact)
 
-        UtilityWindow("Info", id: "info") {
+        UtilityWindow("Info", id: NSWindowUtils.InfoWindowId) {
             InfoView(vm: vm)
         }.commandsRemoved()
             .windowResizability(.contentSize)

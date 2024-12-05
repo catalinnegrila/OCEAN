@@ -4,9 +4,9 @@ import SwiftUI
 struct InfoWindowToggle: View {
     @StateObject var vm: ViewModel
     var body: some View {
-        WindowVisibilityToggle(windowID: "info")
+        WindowVisibilityToggle(windowID: NSWindowUtils.InfoWindowId)
             .keyboardShortcut("i", modifiers: [.command])
-            .disabled(vm.model.isEmpty) //!vm.model.d.isEmpty) //vm.time_window.0 == vm.time_window.1)
+            .disabled(vm.model.isEmpty)
     }
 }
 

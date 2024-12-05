@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 struct FileMenuCommands: Commands {
     var vm: ViewModel
 
-    func modalFilePicker(chooseFiles: Bool) -> URL? {
+    static func modalOpenPanel(chooseFiles: Bool, vm: ViewModel) -> Bool {
         let picker = NSOpenPanel(contentRect: CGRect.zero, styleMask: .utilityWindow, backing: .buffered, defer: true)
         
         picker.canChooseDirectories = !chooseFiles
@@ -20,27 +20,25 @@ struct FileMenuCommands: Commands {
             ]
         }
 
-        if (picker.runModal() == .OK) {
-            return picker.urls[0]
-        } else {
-            return nil
-        }
-    }
+        guard picker.runModal() == .OK else { return false }
 
+        if chooseFiles {
+            vm.openFile(picker.urls[0])
+        } else {
+            vm.openFolder(picker.urls[0])
+        }
+        return true
+    }
     @MainActor
     var body: some Commands {
         CommandGroup(replacing: .newItem)
         {
             Section {
                 Button("Open Folder...") {
-                    if let folderUrl = modalFilePicker(chooseFiles: false) {
-                        vm.openFolder(folderUrl)
-                    }
+                    let _ = FileMenuCommands.modalOpenPanel(chooseFiles: false, vm: vm)
                 }.keyboardShortcut("o")
                 Button("Open File...") {
-                    if let fileUrl = modalFilePicker(chooseFiles: true) {
-                        vm.openFile(fileUrl)
-                    }
+                    let _ = FileMenuCommands.modalOpenPanel(chooseFiles: true, vm: vm)
                 }.keyboardShortcut("f")
             }
             Section {
