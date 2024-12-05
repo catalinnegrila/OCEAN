@@ -1,3 +1,5 @@
+![ModrawVis Screenshot](ModrawVis.jpg)
+
 ## Quick Setup Notes
 
 ### For the live environment
@@ -183,7 +185,7 @@ avoid data loss while making repeated simulations painless during development.
 
  ## SiqualikScripts
 
- This is a collection of scripts used during the MOTIVE (Nov 2024) Cruise on the Sikuliaq.
+ This is a collection of scripts used during the MOTIVE (Nov 2024) Cruise on the [R/V Sikuliaq](https://web.sikuliaq.alaska.edu/).
 
  - `ParseAndUpload.py` - listens to ship telemetry over different UDP ports and uploads
  various data (SOG, course, heading, depth, and inferred current data and SOW) to the
