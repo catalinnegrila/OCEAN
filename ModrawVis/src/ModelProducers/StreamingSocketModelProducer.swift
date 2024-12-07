@@ -21,14 +21,31 @@ class StreamingSocketModelProducer: StreamingModelProducer {
             connection = nil
         }
     }
-    func openConnection(model: Model, nwConnection: NWConnection) {
-        connection = ClientConnection(nwConnection: nwConnection)
+    func openConnection(model: Model, endpoint: NWEndpoint) {
+        connectionName = endpoint.debugDescription
+        connection = ClientConnection(endpoint)
         print("\(connectionName!): created")
-        connection.onReadyCallback = { (nwConnection: NWConnection) -> Void in
-            self.onReadyCallback(model: model, nwConnection: nwConnection)
-        }
-        connection.onStopCallback = { (error: Error?) -> Void in
-            self.onStopCallback(model: model, error: error)
+        connection.onStateUpdateCallback = { [weak self](newState: NWConnection.State) -> Void in
+            switch newState {
+            case .ready:
+                if let path = self?.connection.nwConnection.currentPath, let endpoint = path.remoteEndpoint {
+                    model.title = "Connected to tcp://\(endpoint.toString())"
+                }
+            case .cancelled:
+                DispatchQueue.main.async {
+                    self?.epsiModrawParser = nil
+                }
+                if self?.connectionStarted ?? false {
+                    self!.retryCount += 1
+                    DispatchQueue.main.async {
+                        model.title = "Connection to \(self!.connectionName!) stopped. Retrying (attempt \(self!.retryCount))..."
+                    }
+                    sleep(1)
+                    self!.retryConnection(model: model)
+                }
+            default:
+                break
+            }
         }
         connection.onReceiveCallback = { (data: Data?) -> Void in
             self.onReceiveCallback(model: model, data: data)
@@ -43,19 +60,6 @@ class StreamingSocketModelProducer: StreamingModelProducer {
             str += String(Character(UnicodeScalar(byte)))
         }
         return str
-    }
-    fileprivate func onReadyCallback(model: Model, nwConnection: NWConnection) {
-        var endpointDescr = "<unknown endpoint>"
-        if let path = nwConnection.currentPath, let endpoint = path.remoteEndpoint {
-            switch(endpoint) {
-            case let .hostPort(host: host, port: port):
-                let IPAddr = host.debugDescription.components(separatedBy: "%")[0]
-                endpointDescr = "\(IPAddr):\(port)"
-            default:
-                break
-            }
-        }
-        model.title = "Connected to tcp://\(endpointDescr)"
     }
     fileprivate func onReceiveCallback(model: Model, data: Data?) {
         guard let data = data else { return }
@@ -77,23 +81,6 @@ class StreamingSocketModelProducer: StreamingModelProducer {
             if let epsiModrawParser = self.epsiModrawParser {
                 epsiModrawParser.parse(model: model)
             }
-        }
-    }
-    fileprivate func onStopCallback(model: Model, error: Error?) {
-        DispatchQueue.main.async {
-            self.epsiModrawParser = nil
-        }
-        if error == nil {
-            if connectionStarted {
-                retryCount += 1
-                DispatchQueue.main.async {
-                    model.title = "Connection to \(self.connectionName!) stopped. Retrying (attempt \(self.retryCount))..."
-                }
-                sleep(1)
-                retryConnection(model: model)
-            }
-        } else {
-            print("\(connectionName!): stopped with error: \(error!)")
         }
     }
 }

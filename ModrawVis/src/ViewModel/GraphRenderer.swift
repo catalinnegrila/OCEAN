@@ -164,12 +164,12 @@ class GraphRenderer {
             let minX = lerpToX(time_f.first!)
             assert(minX >= rect.minX)
             if (minX - rect.minX > 2) {
-                let rcEmpty = rect.inset(1.0, 1.0, rect.minX - minX, 1.0)
+                let rcEmpty = CGRect(x: rect.minX, y: rect.minY, width: minX - rect.minX, height: rect.height)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
             let maxX = lerpToX(time_f.last!)
             if (rect.maxX - maxX > 2) {
-                let rcEmpty = rect.inset(maxX - rect.minX, 1.0, 1.0, 1.0)
+                let rcEmpty = CGRect(x: maxX, y: rect.minY, width: rect.maxX - maxX, height: rect.height)
                 context.fill(Path(rcEmpty), with: .color(color))
             }
         }

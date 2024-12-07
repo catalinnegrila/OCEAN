@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SelectSourceButtonStyle: ButtonStyle {
+struct WelcomeButtonStyle: ButtonStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
             .background(configuration.isPressed ?
@@ -10,7 +10,7 @@ struct SelectSourceButtonStyle: ButtonStyle {
     }
 }
 
-struct SelectSourceButton: View {
+struct WelcomeButton: View {
     let image: String
     let label: String
     let info: String
@@ -23,7 +23,7 @@ struct SelectSourceButton: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 24)
-                    .foregroundColor(SelectSourceView.iconGrayColor)
+                    .foregroundColor(WelcomeView.iconGrayColor)
                 VStack {
                     HStack {
                         Text(self.label).font(.system(.title3/*, design: .rounded*/).bold())
@@ -33,53 +33,56 @@ struct SelectSourceButton: View {
                         Text(info).font(.system(.caption/*, design: .rounded*/))
                         Spacer()
                     }
-                }.foregroundColor(SelectSourceView.textGrayColor)
+                }.foregroundColor(WelcomeView.textGrayColor)
             }.padding(8)
         }
         .focusEffectDisabled()
-        .buttonStyle(SelectSourceButtonStyle())
+        .buttonStyle(WelcomeButtonStyle())
     }
 }
 
 struct AppVersionView: View {
-    func getBundleKey(in bundle: Bundle = .main, key: String) -> String {
-        guard let value = bundle.object(forInfoDictionaryKey: key) as? String else {
-            print("\(key) not found in the info dictionary")
-            return "n/a"
-        }
-        return value
-    }
     func appVersion() -> String {
-        let version = getBundleKey(key: "CFBundleShortVersionString")
-        let build = getBundleKey(key: "CFBundleVersion")
+        let version = NSWindowUtils.getBundleKey(key: "CFBundleShortVersionString")
+        let build = NSWindowUtils.getBundleKey(key: "CFBundleVersion")
         return "\(version) (build \(build))"
     }
     var body: some View {
         VStack {
             if let image = NSImage(named: "AppIcon") {
                 Image(nsImage: image)
-                    //.shadow(color: .gray, radius: 36)
                     .shadow(color: .gray, radius: 36)
             }
             VStack {
-                Text(getBundleKey(key: "CFBundleDisplayName"))
+                Text(NSWindowUtils.getBundleKey(key: "CFBundleDisplayName"))
                     .font(.system(.title, design: .rounded).bold())
-                    .foregroundColor(SelectSourceView.textGrayColor)
+                    .foregroundColor(WelcomeView.textGrayColor)
                 Text("Version \(appVersion())")
                     .font(.body)
-                    .foregroundColor(SelectSourceView.iconGrayColor)
+                    .foregroundColor(WelcomeView.iconGrayColor)
             }
         }
     }
 }
 
-struct SelectSourceView: View {
+struct WelcomeWindowToggle: View {
+    @StateObject var vm: ViewModel
+    var body: some View {
+        Button(NSWindowUtils.WelcomeWindowTitle) {
+            NSWindowUtils.createWelcomeWindow(vm: vm)
+        }.keyboardShortcut("1", modifiers: [.command, .shift])
+    }
+}
+
+struct WelcomeView: View {
+    @Environment(\.openWindow) var openWindow
     static let iconGrayColor = Color(red: 0.6, green: 0.6, blue: 0.6)
     static let textGrayColor = Color(red: 0.87, green: 0.87, blue: 0.87)
-
+    @State var presentOpenSocketSheet = false
     func nextWindow() {
-        //NSWindowUtils.closeWindow(NSWindowUtils.SplashWindowId)
-        NSWindowUtils.showWindow(NSWindowUtils.MainWindowId)
+        NSWindowUtils.hideWindow(NSWindowUtils.WelcomeWindowId)
+        openWindow(id: NSWindowUtils.MainWindowId)
+        //NSWindowUtils.showWindow(NSWindowUtils.MainWindowId)
     }
     @StateObject var vm: ViewModel
     var body: some View {
@@ -93,7 +96,7 @@ struct SelectSourceView: View {
                 Spacer()
                 
                 VStack(spacing: 8) {
-                    SelectSourceButton(
+                    WelcomeButton(
                         image: "text.document",
                         label: "Open file...",
                         info: "Select a .modraw or Matlab .mat file containing FCTD/EPSI data.",
@@ -102,7 +105,7 @@ struct SelectSourceView: View {
                                 nextWindow()
                             }
                         })
-                    SelectSourceButton(
+                    WelcomeButton(
                         image: "folder",
                         label: "Open folder...",
                         info: "Start streaming .modraw data from a folder.",
@@ -111,22 +114,24 @@ struct SelectSourceView: View {
                                 nextWindow()
                             }
                         })
-                    SelectSourceButton(
-                        image: "network",
-                        label: "Open socket...",
-                        info: "Connect to the ModrawService on a local or remote socket.",
-                        action: { print("socket") })
-                    SelectSourceButton(
+                    WelcomeButton(
                         image: "network.badge.shield.half.filled",
-                        label: "Search for ModrawService...",
-                        info: "Discover ModrawService on the local network using Bonjour.",
-                        action: { print("bonjour") })
+                        label: "Connect to ModrawServer...",
+                        info: "Discover ModrawServer on the local network using Bonjour.",
+                        action: {
+                            presentOpenSocketSheet = true
+                            //vm.openSocketWithBonjour()
+                            //nextWindow()
+                        })
                 }
-//                Spacer()
+                Spacer()
             }
             .frame(maxWidth: .infinity)
             .padding()
             .background(Color(red: 0.13, green: 0.13, blue: 0.13))
+            .sheet(isPresented: $presentOpenSocketSheet) {
+                OpenSocketView() //(vm: vm)
+            }
         }
     }
 }

@@ -1,34 +1,29 @@
 import SwiftUI
-import UniformTypeIdentifiers
+
+struct TestButton: View {
+    @State var presentOpenSocketSheet = false
+    var body: some View {
+        Button("test") {
+            presentOpenSocketSheet = true
+        }.sheet(isPresented: $presentOpenSocketSheet, content: {
+            OpenSocketView()
+        })
+    }
+}
 
 struct FileMenuCommands: Commands {
     var vm: ViewModel
 
     static func modalOpenPanel(chooseFiles: Bool, vm: ViewModel) -> Bool {
-        let picker = NSOpenPanel(contentRect: CGRect.zero, styleMask: .utilityWindow, backing: .buffered, defer: true)
-        
-        picker.canChooseDirectories = !chooseFiles
-        picker.canChooseFiles = chooseFiles
-        picker.allowsMultipleSelection = false
-        picker.canDownloadUbiquitousContents = true
-        picker.canResolveUbiquitousConflicts = true
-
-        if (chooseFiles) {
-            picker.allowedContentTypes = [
-                UTType(filenameExtension: "modraw")!,
-                UTType(filenameExtension: "mat")!
-            ]
-        }
-
-        guard picker.runModal() == .OK else { return false }
-
+        guard let url = NSWindowUtils.modalOpenPanel(chooseFiles: chooseFiles) else { return false }
         if chooseFiles {
-            vm.openFile(picker.urls[0])
+            vm.openFile(url)
         } else {
-            vm.openFolder(picker.urls[0])
+            vm.openFolder(url)
         }
         return true
     }
+
     @MainActor
     var body: some Commands {
         CommandGroup(replacing: .newItem)
@@ -59,6 +54,7 @@ struct FileMenuCommands: Commands {
                 }
             }
             #endif
+            TestButton()
         }
     }
 }

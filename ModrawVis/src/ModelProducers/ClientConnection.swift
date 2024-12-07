@@ -1,85 +1,85 @@
 import Foundation
 import Network
 
-@available(macOS 10.14, *)
+extension NWEndpoint {
+    func toString() -> String {
+        switch self {
+        case let .service(name: name, type: _, domain: domain, interface: _):
+            return "\(domain)\(name)"
+        case let .hostPort(host: host, port: port):
+            return "tcp://\(host):\(port)"
+        case let .url(url):
+            return url.absoluteString
+        default:
+            assertionFailure()
+            return debugDescription
+        }
+    }
+}
+
+extension NWConnection {
+    func toString() -> String {
+        // con.currentPath.remoteEndpoint
+        return self.debugDescription
+    }
+}
+
 class ClientConnection {
     let nwConnection: NWConnection
-    let queue = DispatchQueue(label: "Client connection Q")
+    let queue = DispatchQueue(label: "ClientConnectionQ")
 
-    init(nwConnection: NWConnection) {
-        self.nwConnection = nwConnection
+    init(_ endpoint: NWEndpoint) {
+        self.nwConnection = NWConnection(to: endpoint, using: .tcp)
+        print(nwConnection.state)
+    }
+    deinit {
+        print("[\(nwConnection.endpoint.toString())]: deinit")
     }
 
-    var onReadyCallback: ((NWConnection) -> Void)? = nil
-    var onStopCallback: ((Error?) -> Void)? = nil
-    var onReceiveCallback: ((Data?) -> Void)? = nil
+    var onStateUpdateCallback: ((NWConnection.State) -> Void)?
+    var onReceiveCallback: ((Data?) -> Void)?
 
     func start() {
-        nwConnection.stateUpdateHandler = onStateChange(to:)
+        nwConnection.stateUpdateHandler = { (newState) in
+            let endpoint = self.nwConnection.endpoint
+            print("[\(endpoint.toString())]: state '\(newState)'")
+            switch newState {
+            case .waiting, .failed:
+                self.nwConnection.cancel()
+            default:
+                break
+            }
+            if let onStateUpdateCallback = self.onStateUpdateCallback {
+                onStateUpdateCallback(newState)
+            }
+        }
         setupReceive()
         nwConnection.start(queue: queue)
     }
 
     private func setupReceive() {
         nwConnection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { (data, _, isComplete, error) in
-            if let data = data, !data.isEmpty {
+            if let data, !data.isEmpty {
                 if let onReceiveCallback = self.onReceiveCallback {
                     onReceiveCallback(data)
                 }
-            }
-            if isComplete {
-                self.onConnectionEnded()
-            } else if let error {
-                self.onConnectionFailed(error: error)
-            } else {
+            } else if !isComplete {
                 self.setupReceive()
+            } else if let error {
+                print("[\(self.nwConnection.endpoint.toString())]: receive failed with error: \(error)")
             }
-        }
-    }
-
-    private func onStateChange(to state: NWConnection.State) {
-        print("Connection: \(state)")
-        switch state {
-        case .waiting(let error):
-            onConnectionFailed(error: error)
-        case .ready:
-            if let onReadyCallback {
-                onReadyCallback(nwConnection)
-            }
-        case .failed(let error):
-            onConnectionFailed(error: error)
-        default:
-            break
         }
     }
 
     func send(data: Data) {
-        nwConnection.send(content: data, completion: .contentProcessed( { error in
-            if let error = error {
-                self.onConnectionFailed(error: error)
+        nwConnection.send(content: data, completion: .contentProcessed({ error in
+            if let error {
+                print("[\(self.nwConnection.endpoint.toString())]: send failed with error: \(error)")
             }
         }))
     }
 
     func stop() {
-        stop(error: nil)
-    }
-
-    private func onConnectionFailed(error: Error) {
-        print("Connection failed with error: \(error)")
-        self.stop(error: error)
-    }
-
-    private func onConnectionEnded() {
-        self.stop(error: nil)
-    }
-
-    private func stop(error: Error?) {
-        self.nwConnection.stateUpdateHandler = nil
-        self.nwConnection.cancel()
-        if let onStopCallback {
-            //self.onStopCallback = nil
-            onStopCallback(error)
-        }
+        nwConnection.cancel()
     }
 }
