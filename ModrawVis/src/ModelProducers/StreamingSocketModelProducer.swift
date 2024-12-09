@@ -29,7 +29,7 @@ class StreamingSocketModelProducer: StreamingModelProducer {
             switch newState {
             case .ready:
                 if let path = self?.connection.nwConnection.currentPath, let endpoint = path.remoteEndpoint {
-                    model.title = "Connected to tcp://\(endpoint.toString())"
+                    model.title = "Connected to \(endpoint.toString())"
                 }
             case .cancelled:
                 DispatchQueue.main.async {

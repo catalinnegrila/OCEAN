@@ -1,103 +1,167 @@
 import SwiftUI
 import Network
 
-struct OpenSocketView: View {
-    struct ConnectionInfo {
-        var label: String { get {endpoint.toString()}}
-        var badge: String
-        var endpoint: NWEndpoint
+struct CustomAddressView: View {
+    @Binding var customAddress: String
+    @State private var showInvalidAddress = false
+    var checkConnection: (NWEndpoint)->Void
+    func isValid() -> Bool {
+        let pattern = "(25[0-5]|2[0-4]\\d|1\\d{2}|\\d{1,2})\\.(25[0-5]|2[0-4]\\d|1\\d{2}|\\d{1,2})\\.(25[0-5]|2[0-4]\\d|1\\d{2}|\\d{1,2})\\.(25[0-5]|2[0-4]\\d|1\\d{2}|\\d{1,2})(\\:(\\d{1,5}))?"
+        let regexText = NSPredicate(format: "SELF MATCHES %@", pattern)
+        return regexText.evaluate(with: customAddress)
     }
-    struct OpenSocketLabel: View {
-        let label: String
-        let badge: String
-        let image = "rectangle.connected.to.line.below"
-        var body: some View {
-            Label(label, systemImage: badge == "Bonjour" ? "bonjour" : image)
-                .id(label)
-                .badge(badge)
-                .listRowSeparator(.visible)
+    func submit() {
+        if isValid() {
+            let comp = customAddress.components(separatedBy: ":")
+            let host = comp[0]
+            let port = NWEndpoint.Port(comp.count == 2 ? comp[1] : OpenSocketView.ModrawServerDefaultPort)
+            let endpoint = NWEndpoint.hostPort(host: .init(host), port: port!)
+            checkConnection(endpoint)
+            customAddress = ""
+        } else {
+            showInvalidAddress = true
         }
     }
+
+    var body: some View {
+        HStack {
+            Text("IP:")
+            TextField("Server IP address", text: $customAddress)
+                .tint(.black)
+                .onSubmit {
+                    submit()
+                }
+            Button("+") {
+                submit()
+            }
+            .disabled(customAddress.isEmpty)
+        }
+        .alert(isPresented: $showInvalidAddress) {
+            Alert(
+                title: Text("Invalid Server Address"),
+                message: Text("'\(customAddress)' is not a valid IP address,\ne.g. 192.168.1.168")
+            )
+        }
+    }
+}
+
+class ConnectionInfo {
+    var label: String { get {endpoint.toString()}}
+    var badge: String
+    var endpoint: NWEndpoint
+    var remoteEndpoint: NWEndpoint
+
+    init(badge: String, endpoint: NWEndpoint) {
+        self.badge = badge
+        self.endpoint = endpoint
+        self.remoteEndpoint = endpoint
+    }
+    init(badge: String, host: String) {
+        self.badge = badge
+        let host = NWEndpoint.Host(host)
+        let port = NWEndpoint.Port(OpenSocketView.ModrawServerDefaultPort)
+        self.endpoint = NWEndpoint.hostPort(host: host, port: port!)
+        self.remoteEndpoint = self.endpoint
+    }
+}
+
+extension Array<ConnectionInfo> {
+    public mutating func remove(label: String) {
+        if let i = firstIndex(where: { $0.remoteEndpoint.toString() == label }) {
+            remove(at: i)
+        }
+    }
+}
+
+struct OpenSocketLabel: View {
+    var ci: ConnectionInfo
+    init(_ ci: ConnectionInfo) {
+        self.ci = ci
+    }
+    func image() -> String {
+        return (ci.badge == "Bonjour") ? "bonjour" : "rectangle.connected.to.line.below"
+    }
+    var body: some View {
+        Label(ci.label, systemImage: image())
+            .id(ci.label)
+            .badge(ci.badge)
+            .listRowSeparator(.visible)
+    }
+}
+
+struct OpenSocketView: View {
+    @Environment(\.dismiss) var dismiss
     @State private var connections = [ConnectionInfo]()
     @State private var unavailable = [ConnectionInfo]()
+    @State private var checkConnectionTasks = [String: ClientConnection]()
     @State private var selectedLabel: String?
-    @State private var customIP = "tcp://"
-    @State private var backgroundTasks = 0
+    @State private var customAddress = ""
+    @State private var showCheckConnectionTasksProgress = false
     @FocusState private var isListFocused: Bool
+    static let ModrawServerDefaultPort = "31415"
+    let browseBonjourService = BrowseBonjourService("ModrawServer")
 
+    func removeConnection(label: String) {
+        connections.remove(label: label)
+        unavailable.remove(label: label)
+    }
     func checkConnection(_ ci: ConnectionInfo) {
-        if let i = connections.firstIndex(where: { $0.label == ci.label }) {
-            connections.remove(at: i)
-        }
-        if let i = unavailable.firstIndex(where: { $0.label == ci.label }) {
-            unavailable.remove(at: i)
-        }
         let connection = ClientConnection(ci.endpoint)
+        removeConnection(label: ci.label)
         connection.onStateUpdateCallback = { [weak connection](newState: NWConnection.State) -> Void in
             DispatchQueue.main.async {
                 switch newState {
                 case .ready:
-                    self.connections.append(ci)
+                    if let endpoint = connection?.nwConnection.currentPath?.remoteEndpoint {
+                        removeConnection(label: endpoint.toString())
+                    }
+                    connections.append(ci)
                     connection?.stop()
                 case .waiting, .failed:
-                    self.unavailable.append(ci)
+                    unavailable.append(ci)
                 case .cancelled:
-                    self.backgroundTasks -= 1
+                    checkConnectionTasks.removeValue(forKey: ci.label)
+                    showCheckConnectionTasksProgress = !checkConnectionTasks.isEmpty
                 default:
                     break
                 }
             }
         }
-        backgroundTasks += 1
         connection.start()
+        checkConnectionTasks[ci.label] = connection
+        showCheckConnectionTasksProgress = true
     }
     func checkBonjour() {
-        let discoverService = BrowseBonjourService("ModrawServer")
-        discoverService.onFound = { endpoint in
+        browseBonjourService.onFound = { endpoint in
             DispatchQueue.main.async {
-                self.connections.append(ConnectionInfo(badge: "Bonjour", endpoint: endpoint))
-                discoverService.stop()
+                //self.connections.append(ConnectionInfo(badge: "Bonjour", endpoint: endpoint))
+                checkConnection(ConnectionInfo(badge: "Bonjour", endpoint: endpoint))
             }
         }
-        discoverService.onStateUpdate = { newState in
+        browseBonjourService.onStateUpdate = { newState in
             switch newState {
             case .failed(let error):
                 print("NWBrowser: failed with error: \(error.localizedDescription)")
-            case .cancelled:
-                self.backgroundTasks -= 1
+            //case .cancelled:
+                //self.decBackgroundTasks()
             default:
                 break
             }
         }
-        backgroundTasks += 1
-        discoverService.start()
+        //incBackgroundTasks()
+        browseBonjourService.start()
     }
+
     var body: some View {
         VStack(spacing: 8) {
-            HStack {
-                Text("IP:")
-                TextField("Enter a custom address:", text: $customIP)
-                    .tint(.black)
-                Button("Check") {
-                    if let url = URL(string: customIP) {
-                        let endpoint = NWEndpoint.url(url)
-                        print(endpoint)
-                        checkConnection(ConnectionInfo(badge: "custom IP", endpoint: endpoint))
-                    }
-                }
-            }
+            CustomAddressView(customAddress: $customAddress, checkConnection: { endpoint in
+                checkConnection(ConnectionInfo(badge: "custom IP", endpoint: endpoint))
+            })
             List(selection: $selectedLabel) {
                 Section(header: Text("Available services")) {
                     ForEach($connections, id: \.label) { $ci in
-                        OpenSocketLabel(label: ci.label, badge: ci.badge)
+                        OpenSocketLabel(ci)
                     }
-                }
-            }
-            .border(.green)
-            .onChange(of: selectedLabel) { _, newValue in
-                if let newValue {
-                    //customIP = newValue
-                    print(newValue)
                 }
             }
             .focused($isListFocused)
@@ -109,24 +173,21 @@ struct OpenSocketView: View {
             List() {
                 Section(header: Text("Not responding")) {
                     ForEach($unavailable, id: \.label) { $ci in
-                        OpenSocketLabel(label: ci.label, badge: ci.badge)
+                        OpenSocketLabel(ci)
                     }
                 }
-            }.border(.red)
-            HStack {
-                if backgroundTasks > 0 {
-                    ProgressView()
-                    Text("Scanning the local network for ModrawServer using Bonjour...")
-                }
-            }.frame(height: 40)
-            //Spacer()
+            }
             HStack {
                 Spacer()
                 Button("Cancel") {
+                    browseBonjourService.stop()
+                    dismiss()
                     //ModalWindow.current.endModal(withCode: .cancel)
                 }
                 Button("Connect") {
                     print("Connect to \($selectedLabel)")
+                    browseBonjourService.stop()
+                    dismiss()
                     //ModalWindow.current.endModal(withCode: .OK)
                 }
                 .disabled($selectedLabel.wrappedValue == nil)
@@ -136,12 +197,25 @@ struct OpenSocketView: View {
         .padding(16)
         .frame(width: 400, height: 400)
         .task {
-            checkConnection(ConnectionInfo(badge: "DEV1", endpoint: NWEndpoint.hostPort(host: "192.168.1.168", port: 31415)))
-            checkConnection(ConnectionInfo(badge: "localhost", endpoint: NWEndpoint.hostPort(host: "127.0.0.1", port: 31415)))
-            if let ip = getWiFiAddress() {
-                checkConnection(ConnectionInfo(badge: "local IP", endpoint: NWEndpoint.hostPort(host: .init(ip), port: 31415)))
-            }
             checkBonjour()
+            checkConnection(ConnectionInfo(badge: "DEV1", host: "192.168.1.168"))
+            checkConnection(ConnectionInfo(badge: "localhost", host: "127.0.0.1"))
+            if let ip = getWiFiAddress() {
+                checkConnection(ConnectionInfo(badge: "local IP", host: ip))
+            }
+        }
+        .sheet(isPresented: $showCheckConnectionTasksProgress) {
+            VStack(spacing: 8) {
+                HStack {
+                    ProgressView().scaleEffect(0.75)
+                    Text("Searching for ModrawServer on the network...")
+                }
+                Button("Cancel") {
+                    for checkConnectionTask in checkConnectionTasks {
+                        checkConnectionTask.value.stop()
+                    }
+                }
+            }.padding(16)
         }
     }
 }

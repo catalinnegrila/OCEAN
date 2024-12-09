@@ -238,7 +238,7 @@ def wait_on_socket(IPAddr, port):
         sock.listen(5)
         while True:
             print()
-            print(f"Waiting for client to connect to tcp://{IPAddr}:{port}...")
+            print(f"Waiting for client to connect to {IPAddr}:{port}...")
             connection,address = sock.accept()
             print(f"Connection started from {address[0]}:{address[1]}")
             buf = connection.recv(100).decode("utf-8")

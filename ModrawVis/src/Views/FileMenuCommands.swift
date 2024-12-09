@@ -38,7 +38,7 @@ struct FileMenuCommands: Commands {
             }
             Section {
                 Button("Connect to DEV1") {
-                    vm.openSocket(URL(string: "tcp://192.168.1.168:31415")!)
+                    vm.openSocket(URL(string: "192.168.1.168:31415")!)
                 }.keyboardShortcut("d")
             }
             #if DEBUG
@@ -47,10 +47,10 @@ struct FileMenuCommands: Commands {
                     vm.openSocketWithBonjour()
                 }
                 Button("Connect to localhost") {
-                    vm.openSocket(URL(string: "tcp://localhost:31415")!)
+                    vm.openSocket(URL(string: "localhost:31415")!)
                 }
                 Button("Connect to Local IP") {
-                    vm.openSocket(URL(string: "tcp://\(getWiFiAddress()!):31415")!)
+                    vm.openSocket(URL(string: "\(getWiFiAddress()!):31415")!)
                 }
             }
             #endif

@@ -5,9 +5,9 @@ extension NWEndpoint {
     func toString() -> String {
         switch self {
         case let .service(name: name, type: _, domain: domain, interface: _):
-            return "\(domain)\(name)"
+            return "\(name).\(domain)"
         case let .hostPort(host: host, port: port):
-            return "tcp://\(host):\(port)"
+            return "\(host):\(port)"
         case let .url(url):
             return url.absoluteString
         default:
