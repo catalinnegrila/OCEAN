@@ -32,3 +32,10 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# Google API
+credentials.json
+token.json
+
+# Python
+__pycache__
