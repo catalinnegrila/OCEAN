@@ -93,7 +93,7 @@ struct OpenSocketView: View {
     @Environment(\.dismiss) var dismiss
     @State private var connections = [ConnectionInfo]()
     @State private var unavailable = [ConnectionInfo]()
-    @State private var checkConnectionTasks = [String: ClientConnection]()
+    @State private var checkConnectionTasks = [String: (ConnectionInfo, ClientConnection)]()
     @State private var selectedLabel: String?
     @State private var customAddress = ""
     @State private var showCheckConnectionTasksProgress = false
@@ -127,9 +127,20 @@ struct OpenSocketView: View {
                 }
             }
         }
-        connection.start()
-        checkConnectionTasks[ci.label] = connection
+        checkConnectionTasks[ci.label] = (ci, connection)
         showCheckConnectionTasksProgress = true
+        connection.start()
+        if checkConnectionTasks.count == 1 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                for checkConnectionTask in checkConnectionTasks.values {
+                    let ci = checkConnectionTask.0
+                    ci.badge += ", timeout"
+                    unavailable.append(ci)
+                    let connection = checkConnectionTask.1
+                    connection.stop()
+                }
+            }
+        }
     }
     func checkBonjour() {
         browseBonjourService.onFound = { endpoint in
@@ -211,8 +222,12 @@ struct OpenSocketView: View {
                     Text("Searching for ModrawServer on the network...")
                 }
                 Button("Cancel") {
-                    for checkConnectionTask in checkConnectionTasks {
-                        checkConnectionTask.value.stop()
+                    for checkConnectionTask in checkConnectionTasks.values {
+                        let ci = checkConnectionTask.0
+                        ci.badge += ", cancelled"
+                        unavailable.append(ci)
+                        let connection = checkConnectionTask.1
+                        connection.stop()
                     }
                 }
             }.padding(16)
