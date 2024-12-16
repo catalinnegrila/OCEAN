@@ -6,7 +6,7 @@ import xarray as xr
 import numpy as np
 
 from GoogleApiAuthLib import get_gmail
-from GmailUtils import search_messages, read_message
+from GmailApiLib import search_messages, read_message
 
 our_email = "xeos.motive.2024@gmail.com"
 reported_gps_signature = "Reported GPS Positions"
@@ -42,10 +42,6 @@ def parse_location_from_Email(text):
 
 
 def get_all_locations():
-    all_emails_path = os.path.join(script_dir, "all_emails.csv")
-    return pd.read_csv(all_emails_path, parse_dates=False)
-
-
     print(f"Querying '{our_email}'...")
     service = get_gmail(script_dir)
     results = search_messages(service, reported_gps_signature)
@@ -118,7 +114,9 @@ def df_to_ds(df):
 
 def save_netcdf(wws):
     for name, wwi in wws.items():
-        wwi.to_netcdf(os.path.join(script_dir, f"{wwi.name}_locations.nc"))
+        file_name = os.path.join(script_dir, f"{wwi.name}_locations.nc")
+        print(f"Writing {file_name}")
+        wwi.to_netcdf(file_name)
 
 
 def lon_str(lon):
@@ -139,6 +137,7 @@ def lat_str(lat):
 
 def current_loc_to_ascii(wws):
     file_name = os.path.join(script_dir, "current_locations.txt")
+    print(f"Writing {file_name}")
     with open(file_name, "w") as file:
         now_utc = datetime.now(timezone.utc)
         formatted_time = now_utc.strftime("%Y-%m-%dT%H:%M:%S")
@@ -152,7 +151,6 @@ def current_loc_to_ascii(wws):
 
 if __name__ == "__main__":
     df = get_all_locations()
-
     if len(df) == 0:
         print("No locations found to process.")
         exit(1)

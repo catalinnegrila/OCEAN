@@ -1,0 +1,5 @@
+*.nc
+*.csv
+*.txt
+
+!Requirements.txt
