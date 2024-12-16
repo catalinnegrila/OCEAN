@@ -1,12 +1,19 @@
-from NmeaOverUdpLib import WaitForMessage
-from GoogleApiAuthLib import GetSheets
+import os
 import math
 import numpy
 
-def CalcSpeed(l, t):
+from NmeaOverUdpLib import wait_for_message
+from GoogleApiAuthLib import get_sheets
+
+sheet_id = "1MkdbDaoq77wdhYghtDvlUaKA76W28v1E2GF8xGBV-PI"
+tab_name = "D1-FCTD2-Transit_Test"
+first_col = "K"
+last_col = "Q"
+
+def calc_speed(l, t):
     return round(math.sqrt(l*l + t*t), 2)
 
-def CalcHead(l, t):
+def calc_head(l, t):
     n = math.sqrt(l*l + t*t)
     return round(numpy.arccos(numpy.clip(numpy.dot([l/n, t/n], [1, 0]), -1.0, 1.0)) * 180 / math.pi, 2)
 
@@ -20,14 +27,14 @@ def CalcHead(l, t):
 
 # $INVBW,lwspeed,twspeed,Aw,lgspeed,tgspeed,Ag,stwspeed,At,stgspeed,As*csum term
 # ['$INVBW', '', '', 'V', '11.05', '-0.01', 'A', '', 'V', '', 'V*4A']
-invbw = WaitForMessage(52200, '$INVBW')
+invbw = wait_for_message(52200, '$INVBW')
 if invbw:
     lgspeed = float(invbw[4])
     tgspeed = float(invbw[5])
-    calc_gspeed = CalcSpeed(lgspeed, tgspeed)
-    calc_ghead = CalcHead(lgspeed, tgspeed)
+    calc_gspeed = calc_speed(lgspeed, tgspeed)
+    calc_ghead = calc_head(lgspeed, tgspeed)
 
-invtg = WaitForMessage(52200, '$INVTG')
+invtg = wait_for_message(52200, '$INVTG')
 if invtg:
     course = invtg[1]
     gspeed = invtg[5]
@@ -37,7 +44,7 @@ else:
     course = "n/a"
     gspeed = "n/a"
 
-inhdt = WaitForMessage(52200, '$INHDT')
+inhdt = wait_for_message(52200, '$INHDT')
 if inhdt:
     head = inhdt[1]
     print(f'  Heading: {head} deg')
@@ -46,25 +53,25 @@ else:
 
 # SOW
 # ['$VDVBW', '10.06', '0.12', 'A', '', '', '*24']
-vdvbw = WaitForMessage(53135, '$VDVBW')
+vdvbw = wait_for_message(53135, '$VDVBW')
 if vdvbw:
     lwspeed = float(vdvbw[1])
     twspeed = float(vdvbw[2])
-    calc_wspeed = CalcSpeed(lwspeed, twspeed)
-    calc_whead = CalcHead(lwspeed, twspeed)
+    calc_wspeed = calc_speed(lwspeed, twspeed)
+    calc_whead = calc_head(lwspeed, twspeed)
 else:
     calc_wspeed = "n/a"
 
 if invbw and vdvbw:
-    current_head = CalcHead(lwspeed - lgspeed, twspeed - tgspeed)
-    current_speed = CalcSpeed(lwspeed - lgspeed, twspeed - tgspeed)
+    current_head = calc_head(lwspeed - lgspeed, twspeed - tgspeed)
+    current_speed = calc_speed(lwspeed - lgspeed, twspeed - tgspeed)
 else:
     current_head = "n/a"
     current_speed = "n/a"
 
 # ek80 depth, lds\docs\format_description
 # ['$EMDBS', '13085.9', 'f', '3988.57', 'M', '2180.98', 'F*1A']
-emdbs = WaitForMessage(55005, '$EMDBS')
+emdbs = wait_for_message(55005, '$EMDBS')
 if emdbs:
     depth = emdbs[3]
 else:
@@ -80,32 +87,28 @@ print(f"  Current heading: {current_head} deg")
 print(f'Ocean depth: {depth} m')
 
 # Upload
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sheets = get_sheets(script_dir)
 
-sheets = GetSheets()
-ssid = "1MkdbDaoq77wdhYghtDvlUaKA76W28v1E2GF8xGBV-PI"
-tabName = "D1-FCTD2-Transit_Test"
-firstCol = "K"
-lastCol = "Q"
-
-rangeName = f"{tabName}!{firstCol}1:{lastCol}"
+range_name = f"{tab_name}!{first_col}1:{last_col}"
 result = (
     sheets.values()
-    .get(spreadsheetId=ssid, range=rangeName)
+    .get(spreadsheetId=sheet_id, range=range_name)
     .execute()
 )
 values = result.get("values", [])
 
-nextRow = len(values) + 1
-print(f"Inserting on tab '{tabName}' row {nextRow}...")
-rangeName = f"{tabName}!{firstCol}{nextRow}"
+next_row = len(values) + 1
+print(f"Inserting on tab '{tab_name}' row {next_row}...")
+range_name = f"{tab_name}!{first_col}{next_row}"
 values = {
-    "range": rangeName,
+    "range": range_name,
     "majorDimension": "ROWS",               
     "values": [[calc_wspeed, gspeed, course, head, current_speed, current_head, depth]]
 }
 result = (
     sheets.values()
-    .update(spreadsheetId=ssid, range=rangeName, valueInputOption="RAW", body=values)
+    .update(spreadsheetId=sheet_id, range=range_name, valueInputOption="RAW", body=values)
     .execute()
 )
 print("\033[1;32mSuccess!\033[0m")
