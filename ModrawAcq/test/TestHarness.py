@@ -10,7 +10,7 @@ import ModrawFilter
 # Setup is one level below this test script, ../Setup
 acq_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Setup_path = os.path.join(acq_path, "Setup")
-data_in_path = os.path.join(os.path.dirname(os.path.dirname(acq_path)), "OCEAN_data", "acq_test")
+data_in_path = "/Users/Shared/FCTD_EPSI_DATA/acq_test"
 data_out_path = "/Users/Shared/FCTD_EPSI_DATA/TESTMOTIVE2024"
 print(f"Modraw input: {data_in_path}")
 print(f"Modraw output: {data_out_path}")

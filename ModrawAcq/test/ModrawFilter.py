@@ -32,6 +32,9 @@ class ModrawParser:
             s += chr(self.data[self.cursor + i])
         return s
 
+    def isString(self, str):
+        return self.peekString(len(str)) == str
+
     def parseLine(self):
         line = ""
         while self.cursor < self.count:
@@ -63,7 +66,7 @@ class ModrawParser:
         return header
 
     def isPacketStart(self, i):
-        if self.peekString(4) == "$SOM":
+        if self.isString("$SOM"):
             return True
         if i >= self.count:
             return False
@@ -124,45 +127,20 @@ class ModrawParser:
             self.cursor += self.PACKET_CHECKSUM_LEN
 
             self.cursor += blocksize
-            if not self.isPacketEndChecksum(self.cursor):
-                self.cursor = packet.startCursor
-                return None
+            self.cursor += self.PACKET_END_CHECKSUM_LEN
         else:
             #print(f"{packet.signature}")
-            while self.cursor < self.count:
-                if self.isPacketEndChecksum(self.cursor):
-                    self.cursor += self.PACKET_END_CHECKSUM_LEN
-                    packet.endCursor = self.cursor
-                    break
-                else:
-                    self.cursor += 1
+            while self.cursor < self.count and not \
+                (self.isPacketEnd(self.cursor) and \
+                 (self.isPacketStart(self.cursor) or \
+                  self.isString("%*****START_FCTD_TAILER_END_RUN*****") \
+                 ) \
+                ):
+                self.cursor += 1
 
-        self.cursor += self.PACKET_END_CHECKSUM_LEN
-        packet.endCursor = self.cursor
-
-        if packet.endCursor == None:
+        if not self.isPacketEnd(self.cursor):
             self.cursor = packet.startCursor
             return None
+
+        packet.endCursor = self.cursor
         return packet
-
-def getLastTimestamp(modraw):
-    cursor = modraw.cursor
-    for i in range(modraw.count - modraw.PACKET_START_LEN - 1, cursor, -1):
-        modraw.cursor = i
-        packet = modraw.parsePacket()
-        if packet != None and packet.timestamp != None:
-            modraw.cursor = cursor
-            return packet.timestamp
-    modraw.cursor = cursor
-    return None
-
-    if not window_started:
-        print(f"{lastTimestamp} ")
-        print(f"{packet.timestamp} ")
-        if packet.timestamp != None and (lastTimestamp - packet.timestamp) > time_window * 1000:
-            window_started = True
-    if packet.signature == "$SOM3" or window_started:
-        print(f"{packet.signature} KEEP ")
-    else:
-        print(f"{packet.signature} DROP ")
-
