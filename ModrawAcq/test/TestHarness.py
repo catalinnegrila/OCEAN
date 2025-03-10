@@ -1,8 +1,9 @@
-# 7. Diff 2 modraw files
-# - how is the new file name computed
-# - how are the Timestamps calculated
-# - do the packets go in the same order
-# - why are VNAV packets failing checksum and do they disappear?
+# TODO:
+# 8. Stream multiple modraw files
+# 9. Mock the UDP and TCP clients
+# 10. Where is PCode data coming from?
+# 11. Diff input and output .modraw files to detect regressions
+# 12. Diff the UDP and TCP outputs against reference recordings
 
 import pty, os, re
 import ModrawFilter
