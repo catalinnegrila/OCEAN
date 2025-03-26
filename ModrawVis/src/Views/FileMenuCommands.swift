@@ -1,5 +1,5 @@
 import SwiftUI
-
+/* OS 15+
 struct TestButton: View {
     @State var presentOpenSocketSheet = false
     var body: some View {
@@ -10,7 +10,7 @@ struct TestButton: View {
         })
     }
 }
-
+*/
 struct FileMenuCommands: Commands {
     var vm: ViewModel
 
@@ -54,7 +54,7 @@ struct FileMenuCommands: Commands {
                 }
             }
             #endif
-            TestButton()
+            // OS 15+ TestButton()
         }
     }
 }

@@ -4,7 +4,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
-
     var vm: ViewModel?
     func applicationDidFinishLaunching(_ notification: Notification) {
         assert(vm != nil)
@@ -17,7 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 //let _ = NSWindowUtils.runModal(contentView: socketView, title: "Open Socket")
 
                 if vm.modelProducer == nil {
-                    NSWindowUtils.createWelcomeWindow(vm: vm)
+                    // Work in progress, enable to continue development.
+                    //NSWindowUtils.createWelcomeWindow(vm: vm)
                 }
             }
         }
@@ -34,23 +34,26 @@ struct ModrawVisApp: App {
     }
     var body: some Scene {
         // HACK to inhibit main window displaying before the Welcome window
-        MenuBarExtra {} label: {}
+        //MenuBarExtra {} label: {}
         
         Window("Visualizer", id: NSWindowUtils.MainWindowId) {
             ModrawView(vm: vm)
         }.commands {
             FileMenuCommands(vm: vm)
+            /* OS 15+
             CommandGroup(before: .windowArrangement) {
                 WelcomeWindowToggle(vm: vm)
                 InfoWindowToggle(vm: vm)
             }
+            */
         }
         .windowToolbarStyle(.unifiedCompact)
 
+        /* OS 15+
         UtilityWindow("Info", id: NSWindowUtils.InfoWindowId) {
             InfoView(vm: vm)
         }
         .commandsRemoved()
-        .windowResizability(.contentSize)
+        .windowResizability(.contentSize)*/
     }
 }

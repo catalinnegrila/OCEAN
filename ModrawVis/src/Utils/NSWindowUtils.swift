@@ -56,6 +56,7 @@ class NSWindowUtils {
             window.close()
         }
     }
+    /* OS 15+
     static func createWelcomeWindow(vm: ViewModel) {
         // Is the window already open?
         if let window = findWindow(WelcomeWindowId) {
@@ -82,6 +83,7 @@ class NSWindowUtils {
         window.contentView = NSHostingView(rootView: contentView)
         window.makeKeyAndOrderFront(nil)
     }
+    */
     static func runModal(contentView: some View, title: String) -> NSApplication.ModalResponse {
         let window = ModalWindow(
             contentRect: .zero,

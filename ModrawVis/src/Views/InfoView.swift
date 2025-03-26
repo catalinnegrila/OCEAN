@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+/* OS 15+
 struct InfoWindowToggle: View {
     @StateObject var vm: ViewModel
     var body: some View {
@@ -9,6 +10,7 @@ struct InfoWindowToggle: View {
             .disabled(vm.model.isEmpty)
     }
 }
+*/
 
 struct InfoView: View {
     @StateObject public var vm: ViewModel
