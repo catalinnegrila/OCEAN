@@ -40,8 +40,8 @@ CTD.printData=2
 %with engineer display mode(1): rate is times per second -> even 16: 2 or 4 or 8
 CTD.engDispRate = 8
 %Serial port for Fish and PCode
-CTD.CTDPortName='/dev/ttys009'
-CTD.CommandPortName='/dev/ttys010'
+CTD.CTDPortName='/dev/ttys007'
+CTD.CommandPortName='/dev/ttys008'
 CTD.speed=230400
 %Length of CTD data: 24 or 72 (has micro-cond)84 with accels
 %CTD.CTDlength=84

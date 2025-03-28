@@ -63,7 +63,8 @@ class ClientConnection {
                 if let onReceiveCallback = self.onReceiveCallback {
                     onReceiveCallback(data)
                 }
-            } else if !isComplete {
+            }
+            if !isComplete {
                 self.setupReceive()
             } else if let error {
                 print("[\(self.nwConnection.endpoint.toString())]: receive failed with error: \(error)")

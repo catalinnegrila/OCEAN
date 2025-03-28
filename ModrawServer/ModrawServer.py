@@ -20,10 +20,13 @@ if os.path.exists(source_dir):
     destination_dir = None
 else:
     # Local development configuration
+    print(f"\033[1;31m!!! Running in simulator mode !!!\033[0m\n")
     source_dir = "/Users/catalin/Projects/OCEAN_data/epsi_data/"
     sim_mode = (socket.gethostname() == "Catalins-MacBook-Pro.local")
     #destination_dir = "/Users/catalin/Projects/OCEAN_data/out/"
     destination_dir = None
+
+print(f"Source directory: {source_dir}\n") 
 
 try:
     import zeroconf
