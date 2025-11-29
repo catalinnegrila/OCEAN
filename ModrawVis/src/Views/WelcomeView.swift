@@ -1,5 +1,5 @@
 import SwiftUI
-/* OS 15+
+
 struct WelcomeButtonStyle: ButtonStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
@@ -135,4 +135,3 @@ struct WelcomeView: View {
         }
     }
 }
-*/

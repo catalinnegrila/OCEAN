@@ -1,16 +1,5 @@
 import SwiftUI
-/* OS 15+
-struct TestButton: View {
-    @State var presentOpenSocketSheet = false
-    var body: some View {
-        Button("test") {
-            presentOpenSocketSheet = true
-        }.sheet(isPresented: $presentOpenSocketSheet, content: {
-            OpenSocketView()
-        })
-    }
-}
-*/
+
 struct FileMenuCommands: Commands {
     var vm: ViewModel
 
@@ -54,7 +43,6 @@ struct FileMenuCommands: Commands {
                 }
             }
             #endif
-            // OS 15+ TestButton()
         }
     }
 }

@@ -1,7 +1,6 @@
 import SwiftUI
 import Network
 
-/* OS 15+
 struct CustomAddressView: View {
     @Binding var customAddress: String
     @State private var showInvalidAddress = false
@@ -235,4 +234,3 @@ struct OpenSocketView: View {
         }
     }
 }
-*/

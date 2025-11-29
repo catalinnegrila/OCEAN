@@ -9,6 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         assert(vm != nil)
         if let vm {
             DispatchQueue.main.async {
+                NSWindowUtils.createInfoWindow(vm: vm)
                 //@Environment(\.openWindow) var openWindow
                 //openWindow(id: NSWindowUtils.MainWindowId)
 
@@ -40,12 +41,13 @@ struct ModrawVisApp: App {
             ModrawView(vm: vm)
         }.commands {
             FileMenuCommands(vm: vm)
-            /* OS 15+
-            CommandGroup(before: .windowArrangement) {
-                WelcomeWindowToggle(vm: vm)
-                InfoWindowToggle(vm: vm)
+
+            CommandGroup(before: .sidebar) {
+                Section {
+                    WelcomeWindowToggle(vm: vm)
+                    InfoWindowMenuToggle(vm: vm)
+                }
             }
-            */
         }
         .windowToolbarStyle(.unifiedCompact)
 
@@ -54,6 +56,7 @@ struct ModrawVisApp: App {
             InfoView(vm: vm)
         }
         .commandsRemoved()
-        .windowResizability(.contentSize)*/
+        .windowResizability(.contentSize)
+         */
     }
 }

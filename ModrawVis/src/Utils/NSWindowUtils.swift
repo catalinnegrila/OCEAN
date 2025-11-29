@@ -26,12 +26,20 @@ final class ModalWindow: NSWindow {
     }
 }
 
+class InfoWindowDelegate: NSObject, NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        NSWindowUtils.InfoWindowVisible = false
+    }
+}
+
 class NSWindowUtils {
     static let WelcomeWindowId = "welcome"
     static let MainWindowId = "main"
     static let InfoWindowId = "info"
     static let WelcomeWindowTitle = "Welcome to \(getBundleKey(key: "CFBundleDisplayName"))"
-
+    static var InfoWindow: NSPanel?
+    static private var InfoWindowDelegatePtr = InfoWindowDelegate()
+    static var InfoWindowVisible = false
     static func findWindow(_ id: String) -> NSWindow? {
         for window in NSApp.windows {
             if let windowId = window.identifier?.rawValue, windowId.starts(with: id) {
@@ -56,7 +64,6 @@ class NSWindowUtils {
             window.close()
         }
     }
-    /* OS 15+
     static func createWelcomeWindow(vm: ViewModel) {
         // Is the window already open?
         if let window = findWindow(WelcomeWindowId) {
@@ -83,7 +90,38 @@ class NSWindowUtils {
         window.contentView = NSHostingView(rootView: contentView)
         window.makeKeyAndOrderFront(nil)
     }
-    */
+    static func createInfoWindow(vm: ViewModel)
+    {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 100, y: 100, width: 400, height: 300),
+            styleMask: [.titled, .closable, .utilityWindow, .resizable],
+            backing: .buffered, defer: false)
+        panel.identifier = NSUserInterfaceItemIdentifier(NSWindowUtils.InfoWindowId)
+        panel.title = "Info"
+        panel.isFloatingPanel = true // Utility windows are typically floating
+        panel.level = .floating // Ensures it stays above normal windows
+        panel.isMovableByWindowBackground = true
+        panel.delegate = InfoWindowDelegatePtr
+
+        panel.contentView = NSHostingView(rootView: InfoView(vm: vm))
+        if InfoWindowVisible {
+            panel.makeKeyAndOrderFront(nil)
+        } else {
+            panel.orderOut(nil)
+        }
+        InfoWindow = panel // keep it alive while hidden
+    }
+    static func toggleInfoWindow()
+    {
+        if let InfoWindow {
+            if InfoWindowVisible {
+                InfoWindow.orderOut(nil)
+            } else {
+                InfoWindow.makeKeyAndOrderFront(nil)
+            }
+            InfoWindowVisible.toggle()
+        }
+    }
     static func runModal(contentView: some View, title: String) -> NSApplication.ModalResponse {
         let window = ModalWindow(
             contentRect: .zero,

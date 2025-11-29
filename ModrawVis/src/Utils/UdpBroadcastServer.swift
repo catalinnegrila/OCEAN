@@ -45,7 +45,7 @@ class UdpBroadcastServer {
         }
         let result = sendto(server_socket, &buf, buf.count, 0, &server_address_sockaddr, socklen_t(MemoryLayout<sockaddr_in>.size))
         guard result == buf.count else {
-            print("Broadcast failed: \(result) of \(buf.count) bytes")
+            //print("Broadcast failed: \(result) of \(buf.count) bytes")
             return false
         }
         return true

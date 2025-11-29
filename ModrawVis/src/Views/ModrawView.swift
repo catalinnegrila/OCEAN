@@ -36,11 +36,11 @@ struct ModrawView: View {
                     }
                 }
             }
-        }/*.toolbar {
+        }.toolbar {
             ToolbarItem() {
-                InfoWindowToggle(vm: vm)
+                InfoWindowButtonToggle(vm: vm)
             }
-        }*/
+        }
     }
         
     let plotHeight = 100.0

@@ -12,6 +12,31 @@ struct InfoWindowToggle: View {
 }
 */
 
+struct InfoWindowButtonToggle: View {
+    @StateObject var vm: ViewModel
+    var body: some View {
+        Button("Info") {}
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onEnded { _ in
+                        NSWindowUtils.toggleInfoWindow()
+                    }
+            )
+            .disabled(vm.model.isEmpty)
+    }
+}
+
+struct InfoWindowMenuToggle: View {
+    @StateObject var vm: ViewModel
+    var body: some View {
+        Button("Show/Hide Info") {
+                NSWindowUtils.toggleInfoWindow()
+            }
+            .keyboardShortcut("i", modifiers: [.command])
+            .disabled(vm.model.isEmpty)
+    }
+}
+
 struct InfoView: View {
     @StateObject public var vm: ViewModel
 
