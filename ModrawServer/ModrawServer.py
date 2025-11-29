@@ -13,7 +13,7 @@ port = 31415
 dir_scan_freq = 0.025 # Seconds between scanning for changes to the source folder
 sim_block_size = 512 * 2
 
-source_dir = "/Users/Shared/FCTD_EPSI_DATA/Current_Cruise/"
+source_dir = "/Volumes/FCTD_EPSI_DATA/Current_Cruise/"
 if os.path.exists(source_dir):
     # Lab machine automatic configuration
     sim_mode = False
@@ -66,7 +66,7 @@ except ImportError:
 
 def enumerate_all_files(dir):
     file_names = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and os.path.splitext(f)[1] == ".modraw"]
-    file_names.sort()
+    file_names.sort(key=os.path.getmtime)
     return file_names
 
 @dataclass
