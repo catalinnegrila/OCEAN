@@ -22,6 +22,7 @@ class ModrawPacketParser_VNAV: ModrawPacketParser_BlockData {
 
             let time_s = parseVnavTimestamp(packet: packet, i: &i)
             if !isValidSample(this_block: this_block, sample_index: j, prev_time_s: &prev_time_s, time_s: time_s) {
+                i = checksumStart + ModrawPacket.PACKET_END_CHECKSUM_LEN
                 continue
             }
 
