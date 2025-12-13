@@ -15,14 +15,11 @@ struct InfoWindowToggle: View {
 struct InfoWindowButtonToggle: View {
     @StateObject var vm: ViewModel
     var body: some View {
-        Button("Info") {}
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onEnded { _ in
-                        NSWindowUtils.toggleInfoWindow()
-                    }
-            )
-            .disabled(vm.model.isEmpty)
+        Button(action: {
+            NSWindowUtils.toggleInfoWindow()
+        }) {
+            Label("Info", systemImage: "info.circle")
+        }
     }
 }
 
@@ -33,7 +30,6 @@ struct InfoWindowMenuToggle: View {
                 NSWindowUtils.toggleInfoWindow()
             }
             .keyboardShortcut("i", modifiers: [.command])
-            .disabled(vm.model.isEmpty)
     }
 }
 

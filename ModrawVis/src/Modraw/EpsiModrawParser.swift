@@ -17,6 +17,7 @@ class EpsiModrawParser {
         [ ModrawPacketParser_EFE4(),
           ModrawPacketParser_SB49(),
           ModrawPacketParser_INGG(),
+          ModrawPacketParser_GPGG(),
           ModrawPacketParser_ECOP(),
           ModrawPacketParser_VNAV(),
           ModrawPacketParser_TTVP()
@@ -38,7 +39,7 @@ class EpsiModrawParser {
     }
     fileprivate func getParserFor(packet: ModrawPacket) -> ModrawPacketParser? {
         for packetParser in packetParsers {
-            if packet.checkSignature(packetParser.signature) {
+            if packetParser.isValid(packet: packet) {
                 return packetParser
             }
         }

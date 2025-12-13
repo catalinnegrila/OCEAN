@@ -33,7 +33,7 @@ public class ViewModel: ObservableObject
     }
     init() {
         initializeGraphDescriptors()
-        //openLast()
+        _ = openLast()
     }
     func openLast() -> Bool {
         if let lastOpenFile {

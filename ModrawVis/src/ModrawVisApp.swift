@@ -32,6 +32,7 @@ struct ModrawVisApp: App {
 
     init() {
         appDelegate.vm = vm
+        NSWindowUtils.restoreInfoWindowState()
     }
     var body: some Scene {
         // HACK to inhibit main window displaying before the Welcome window

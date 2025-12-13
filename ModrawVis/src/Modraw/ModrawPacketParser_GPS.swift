@@ -14,7 +14,7 @@ struct LatLonValue {
         self.cardinal = c
     }
     var degrees: Int {
-        Int(floor(value / 100.0))
+        Int(value / 100.0)
     }
     var minutes: Double {
         value.truncatingRemainder(dividingBy: 100)
@@ -25,7 +25,12 @@ struct LatLonValue {
         case .north, .east: 1.0
         }
         let sci = sign * (Double(degrees) + minutes / 60)
-        return String(format: "%.2f", sci)
+        // Print 2 digits without rounding
+        let formatter = NumberFormatter()
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        formatter.roundingMode = .down // Truncates towards zero
+        return formatter.string(from: NSNumber(value: sci)) ?? "\(sci)"
     }
     func describe() -> String {
         return "\(degrees)\u{00B0} \(Int(minutes))'\(cardinal.rawValue)"
@@ -35,12 +40,12 @@ struct LatLonValue {
 struct LatLon {
     let lat: LatLonValue
     let lon: LatLonValue
-    init?(ingga: [String]) {
-        guard ingga.count > 5 else { return nil }
-        guard ingga[0] == "$INGGA" else { return nil }
-        guard let lat = LatLonValue(ingga[2], cardinal: ingga[3]) else { return nil }
+    init?(_ comp: [String]) {
+        guard comp.count > 5 else { return nil }
+        guard ["$INGGA", "$GPGGA"].contains(comp[0]) else { return nil }
+        guard let lat = LatLonValue(comp[2], cardinal: comp[3]) else { return nil }
         self.lat = lat
-        guard let lon = LatLonValue(ingga[4], cardinal: ingga[5]) else { return nil }
+        guard let lon = LatLonValue(comp[4], cardinal: comp[5]) else { return nil }
         self.lon = lon
     }
     func describeSci() -> String {
@@ -51,12 +56,22 @@ struct LatLon {
     }
 }
 
-class ModrawPacketParser_INGG: ModrawPacketParser {
+class ModrawPacketParser_GPS: ModrawPacketParser {
+    override func parse(packet: ModrawPacket, model: Model) {
+        let str = packet.parent.peekString(at: packet.signatureStart, len: packet.endChecksumStart - packet.signatureStart)
+        model.d.mostRecentCoords = LatLon(str.components(separatedBy: ","))
+    }
+}
+
+class ModrawPacketParser_INGG: ModrawPacketParser_GPS {
     init() {
         super.init(signature: "$INGGA")
     }
-    override func parse(packet: ModrawPacket, model: Model) {
-        let str = packet.parent.peekString(at: packet.signatureStart, len: packet.endChecksumStart - packet.signatureStart)
-        model.d.mostRecentCoords = LatLon(ingga: str.components(separatedBy: ","))
+}
+
+class ModrawPacketParser_GPGG: ModrawPacketParser_GPS {
+    init() {
+        super.init(signature: "$GPGGA")
     }
 }
+

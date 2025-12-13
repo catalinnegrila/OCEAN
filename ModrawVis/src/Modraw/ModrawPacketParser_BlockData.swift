@@ -20,7 +20,7 @@ class ModrawPacketParser_BlockData: ModrawPacketParser {
         if DEBUG_VALIDATION {
             print(signature)
         }
-        var i = packet.getPayloadStart(signatureLen: signature.count)
+        var i = getPayloadStart(packet: packet)
         guard i + block_timestamp_len < packet.endChecksumStart else { return false }
         if DEBUG_VALIDATION {
             print("block_timestamp: \(packet.parent.peekString(at: i, len: block_timestamp_len))")

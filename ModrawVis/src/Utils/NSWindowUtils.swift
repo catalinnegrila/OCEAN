@@ -39,7 +39,8 @@ class NSWindowUtils {
     static let WelcomeWindowTitle = "Welcome to \(getBundleKey(key: "CFBundleDisplayName"))"
     static var InfoWindow: NSPanel?
     static private var InfoWindowDelegatePtr = InfoWindowDelegate()
-    static var InfoWindowVisible = false
+    static let InfoWindowVisibleKey = "InfoWindowVisibleOnStartup"
+    static var InfoWindowVisible = true
     static func findWindow(_ id: String) -> NSWindow? {
         for window in NSApp.windows {
             if let windowId = window.identifier?.rawValue, windowId.starts(with: id) {
@@ -111,6 +112,10 @@ class NSWindowUtils {
         }
         InfoWindow = panel // keep it alive while hidden
     }
+    static func restoreInfoWindowState() {
+        let value = UserDefaults.standard.object(forKey: InfoWindowVisibleKey)
+        InfoWindowVisible = value as? Bool ?? true
+    }
     static func toggleInfoWindow()
     {
         if let InfoWindow {
@@ -120,6 +125,7 @@ class NSWindowUtils {
                 InfoWindow.makeKeyAndOrderFront(nil)
             }
             InfoWindowVisible.toggle()
+            UserDefaults.standard.set(InfoWindowVisible, forKey: InfoWindowVisibleKey)
         }
     }
     static func runModal(contentView: some View, title: String) -> NSApplication.ModalResponse {
