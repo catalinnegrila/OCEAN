@@ -18,12 +18,11 @@ def wait_for_message(port, name):
             if ready[0]:
                 data, addr = sock.recvfrom(1024)
                 for line in data.decode("utf-8").splitlines():
-                    #start_index = line.find('$')
-                    #if start_index != -1:
-                    #    line = line[start_index:]
-                    #print(f"{port}: {line}")
-                    x = line.replace('\n', '').split(',')
-                    if x[0] == name:
+                    start_index = line.find(name)
+                    if start_index != -1:
+                        line = line[start_index:]
+                        #print(f"{port}: {line}")
+                        x = line.replace('\n', '').split(',')
                         message = x
                         print(" \033[1;32mOk.\033[0m")
                         break

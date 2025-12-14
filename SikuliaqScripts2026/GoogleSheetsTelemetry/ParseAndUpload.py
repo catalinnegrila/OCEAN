@@ -74,6 +74,31 @@ else:
     ghead = "n/a"
 print(f'  Heading: {ghead} deg')
 
+# NMEA 0183 standard Wind Speed and Angle, in relation to the vessel’s bow/centerline.
+# <1>    Wind angle, 0.0 to 359.9 degrees, in relation to the vessel’s bow/centerline, to the nearest 0.1
+#           degree. If the data for this field is not valid, the field will be blank.
+# <2>    Reference:
+#           R = Relative (apparent wind, as felt when standing on the moving ship)
+#           T = Theoretical (calculated actual wind, as though the vessel were stationary)
+# <3>    Wind speed, to the nearest tenth of a unit.  If the data for this field is not valid, the field will be
+#           blank.
+# <4>    Wind speed units:
+#           K = km/hr M = m/s
+#           N = knots
+#           S = statute miles/hr
+# $WIMWV,012,R,15.3,N,A*09
+wimwv = wait_for_message(53131, '$WIMWV')
+if wimwv:
+    # TODO: convert relative to theoretical
+    # (float(wimwv[1]) + float(ghead)) % 360
+    wind_head = wimwv[1]
+    wind_speed = wimwv[3]
+else:
+    wind_head = "n/a"
+    wind_speed = "n/a"
+print(f'  Wind speed: {wind_speed} kts, relative to ship')
+print(f'  Wind heading: {wind_head} deg, relative to ship')
+
 # 55005: mb_em304_centerbeam EM304 Centerbeam Depth
 # ek80 depth, lds\docs\format_description
 # ['$EMDBS', '13085.9', 'f', '3988.57', 'M', '2180.98', 'F*1A']
@@ -113,7 +138,7 @@ range_name = f"{tab_name}!{first_col}{next_row}"
 values = {
     "range": range_name,
     "majorDimension": "ROWS",               
-    "values": [[calc_wspeed, gspeed, gcourse, ghead, current_speed, current_head, depth]]
+    "values": [[calc_wspeed, gspeed, gcourse, ghead, current_speed, current_head, depth, wind_head, wind_speed]]
 }
 result = (
     sheets.values()
